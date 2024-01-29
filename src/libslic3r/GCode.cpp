@@ -5615,7 +5615,7 @@ std::string GCode::_before_extrude(const ExtrusionPath &path, const std::string 
     // compute speed here to be able to know it for travel_deceleration_use_target
     speed = _compute_speed_mm_per_sec(path, speed);
         
-    if (m_config.travel_deceleration_use_target){
+    if (m_config.travel_deceleration_use_target == true && m_config.deceleration_factor == 0){
         if (travel_acceleration <= acceleration || travel_acceleration == 0 || acceleration == 0) {
             m_writer.set_travel_acceleration((uint32_t)floor(acceleration + 0.5));
             m_writer.set_acceleration((uint32_t)floor(acceleration + 0.5));
@@ -5630,7 +5630,7 @@ std::string GCode::_before_extrude(const ExtrusionPath &path, const std::string 
                 Polyline poly_start = this->travel_to(gcode, path.first_point(), path.role());
                 coordf_t length = poly_start.length();
                 // compute some numbers
-                double previous_accel = m_writer.get_acceleration(); // in mm/s²
+                double previous_accel = m_writer.get_acceleration(); // in mm/s² // isn't used anywhere?
                 double previous_speed = m_writer.get_speed(); // in mm/s
                 double travel_speed = m_config.get_computed_value("travel_speed");
                 // first, the acceleration distance

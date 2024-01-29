@@ -5883,17 +5883,10 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Decelerate with travel acceleration");
     def->full_label = L("Use target acceleration for travel deceleration");
     def->category = OptionCategory::speed;
-    def->tooltip = L("If selected, the travel move going to start the extrusion will use this acceleration value.");
-    def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionBool(true));
-
-    def = this->add("deceleration_match_to_er_acceleration", coBool);
-    def->label = L("Enable ER deceleration");
-    def->full_label = L("Use factor of ER acceleration for decelerations");
-    def->category = OptionCategory::speed;
-    def->tooltip = L("If enabled gcode will set the deceleration value to deceleration_factor of the extrusion roles acceleration value, if disabled it will continue to use the firmwares deceleration value. "
-                    "\n this is mainly used for klippers InputShaping algorithm"
-                    "\n note: only supported with klipper firmware!");
+    //def->tooltip = L("If selected, the deceleration of a travel will use the acceleration value of the extrusion that will be printed after it (if any) ")
+    def->tooltip = L("if enabled, the travel move will use the upcoming extrusion roles acceleration value as the travel acceleration value before it starts the extrusion role"
+                     "\nit inserts the acceleration change at the 'midway' point of the travel move"
+                     "\nthis might help with 'ringing' artifacts that get generated from travel moves");
     def->mode = comExpert | comSuSi;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -5902,9 +5895,11 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Use percentage of ER acceleration for decelerations");
     def->category = OptionCategory::speed;
     def->tooltip = L("choose your deceration rate"
+                    "\n set 0 to disable \tNOTE: only supported with klipper firmware!"
+                    "\nIf higher than 0 sliced gcode will set the deceleration value to deceleration_factor of the extrusion roles acceleration value, if disabled it will continue to use the firmwares deceleration value for all declerations"
                     "\nthis is mainly used for klippers InputShaping algorithm"
                     "\nfeel free to experiment with changing this value and let us know the results.");
-    def->min = 1;
+    def->min = 0;
     def->max = 100;
     def->sidetext = "%";
     def->mode = comExpert | comSuSi;
@@ -7933,7 +7928,6 @@ std::unordered_set<std::string> prusa_export_to_remove_keys = {
 "top_solid_infill_acceleration",
 "travel_acceleration",
 "travel_deceleration_use_target",
-"deceleration_match_to_er_acceleration",
 "deceleration_factor",
 "travel_speed_z",
 "wipe_advanced_algo",
