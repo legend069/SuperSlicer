@@ -297,7 +297,6 @@ void GCodeWriter::set_travel_acceleration(uint32_t acceleration)
         return;
 
     m_current_travel_acceleration = acceleration;
-    m_current_acceleration = acceleration;// theres a bug with this, setting travel accel needs to reset the current accel so it can get written.
 }
 
 uint32_t GCodeWriter::get_acceleration() const
@@ -306,7 +305,7 @@ uint32_t GCodeWriter::get_acceleration() const
 }
 
 std::string GCodeWriter::write_acceleration(){
-    if (m_current_acceleration == m_last_acceleration || m_current_acceleration == 0 /*|| m_current_acceleration == m_current_travel_acceleration*/ )
+    if (m_current_acceleration == m_last_acceleration || m_current_acceleration == 0)
         return "";
 
     m_last_acceleration = m_current_acceleration;
