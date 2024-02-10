@@ -5880,35 +5880,12 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatOrPercent(1500, false));
 
     def = this->add("travel_deceleration_use_target", coBool);
-    def->label = L("Decelerate with travel acceleration");
+    def->label = L("Decelerate with target acceleration");
     def->full_label = L("Use target acceleration for travel deceleration");
     def->category = OptionCategory::speed;
-    def->tooltip = L("If selected, the travel move going to start the extrusion will use this acceleration value.");
+    def->tooltip = L("If selected, the deceleration of a travel will use the acceleration value of the extrusion that will be printed after it (if any) ");
     def->mode = comExpert | comSuSi;
     def->set_default_value(new ConfigOptionBool(true));
-
-    def = this->add("deceleration_match_to_er_acceleration", coBool);
-    def->label = L("Enable ER deceleration");
-    def->full_label = L("Use factor of ER acceleration for decelerations");
-    def->category = OptionCategory::speed;
-    def->tooltip = L("If enabled gcode will set the deceleration value to deceleration_factor of the extrusion roles acceleration value, if disabled it will continue to use the firmwares deceleration value. "
-                    "\n this is mainly used for klippers InputShaping algorithm"
-                    "\n note: only supported with klipper firmware!");
-    def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionBool(true));
-
-    def = this->add("deceleration_factor", coPercent);
-    def->label = L("Deceleration factor");
-    def->full_label = L("Use percentage of ER acceleration for decelerations");
-    def->category = OptionCategory::speed;
-    def->tooltip = L("choose your deceration rate"
-                    "\nthis is mainly used for klippers InputShaping algorithm"
-                    "\nfeel free to experiment with changing this value and let us know the results.");
-    def->min = 1;
-    def->max = 100;
-    def->sidetext = "%";
-    def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionPercent(50));
 
     def = this->add("travel_speed", coFloat);
     def->label = L("Travel");
@@ -7933,8 +7910,6 @@ std::unordered_set<std::string> prusa_export_to_remove_keys = {
 "top_solid_infill_acceleration",
 "travel_acceleration",
 "travel_deceleration_use_target",
-"deceleration_match_to_er_acceleration",
-"deceleration_factor",
 "travel_speed_z",
 "wipe_advanced_algo",
 "wipe_advanced_multiplier",
