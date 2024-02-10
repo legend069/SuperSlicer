@@ -21,6 +21,8 @@ public:
         multiple_extruders(false), m_extrusion_axis("E"), m_tool(nullptr),
         m_single_extruder_multi_material(false),
         m_last_acceleration(0), m_current_acceleration(0), m_current_speed(0),
+        m_current_travel_acceleration(0),m_last_fan_speed(0), m_last_temperature(0),m_last_temperature_with_offset(0),//stops a couple compiler warnings
+        //m_current_gcode_per_object(""),m_last_per_object_gcode(""),
         m_last_bed_temperature(0), m_last_bed_temperature_reached(true), 
         m_lifted(0)
         {}
@@ -50,6 +52,8 @@ public:
     void        set_travel_acceleration(uint32_t acceleration);
     uint32_t    get_acceleration() const;
     std::string write_acceleration();
+    void        set_per_object_gcode(std::string per_object);
+    std::string write_per_object_gcode();
     std::string reset_e(bool force = false);
     std::string update_progress(uint32_t num, uint32_t tot, bool allow_100 = false) const;
     // return false if this extruder was already selected
@@ -103,6 +107,8 @@ private:
     uint32_t        m_current_acceleration;
     uint32_t        m_current_travel_acceleration;
     double          m_current_speed;
+    std::string     m_current_per_object_gcode;
+    std::string     m_last_per_object_gcode;
     uint8_t         m_last_fan_speed;
     int16_t         m_last_temperature;
     int16_t         m_last_temperature_with_offset;
