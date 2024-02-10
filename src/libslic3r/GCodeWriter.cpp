@@ -324,7 +324,7 @@ std::string GCodeWriter::write_acceleration(){
         // M204: Set printing & travel acceleration
         gcode << "M204 P" << m_current_acceleration << " T" << (m_current_travel_acceleration > 0 ? m_current_travel_acceleration : m_current_acceleration);
     } else if (FLAVOR_IS(gcfKlipper)){
-        if (this->config.deceleration_factor > 0){
+        if (this->config.deceleration_match_to_er_acceleration == true){
             gcode << "SET_VELOCITY_LIMIT ACCEL=" << m_current_acceleration <<" ACCEL_TO_DECEL=" << m_current_acceleration * this->config.deceleration_factor.value / 100 /*<< " SQUARE_CORNER_VELOCITY="*/; //GUI will need to be "cleaned up" before adding in square corner feature since it will add ~12 boxes.
         }
         else{
