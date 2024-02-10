@@ -5898,7 +5898,6 @@ void PrintConfigDef::init_fff_params()
                     "\n set 0 to disable \tNOTE: only supported with klipper firmware!"
                     "\nIf higher than 0 sliced gcode will set the deceleration value to deceleration_factor of the extrusion roles acceleration value, if disabled it will continue to use the firmwares deceleration value for all declerations"
                     "\nthis is mainly used for klippers InputShaping algorithm"
-                    "\n for marlin firmware this only adjust the deceleration rate for travel movements"
                     "\nfeel free to experiment with changing this value and let us know the results.");
     def->min = 0;
     def->max = 100;
