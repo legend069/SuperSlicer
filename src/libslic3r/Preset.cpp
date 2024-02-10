@@ -572,8 +572,6 @@ static std::vector<std::string> s_Preset_print_options {
         "top_solid_infill_acceleration",
         "travel_acceleration",
         "travel_deceleration_use_target",
-        "deceleration_match_to_er_acceleration",
-        "deceleration_factor",
         // skirt
         "skirts",
         "skirt_distance",
