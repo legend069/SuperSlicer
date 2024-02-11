@@ -24,7 +24,6 @@
 #include "libslic3r/Utils.hpp"
 
 //#define DEBUG_FILES
-#pragma optimize("", off)
 #ifdef DEBUG_FILES
 #include <boost/nowide/cstdio.hpp>
 #include <SVG.hpp>
@@ -429,27 +428,44 @@ Polygons extract_perimeter_polygons(const Layer *layer, const SeamPosition confi
     class PerimeterCopy : public ExtrusionVisitorConst {
         Polygons* polygons;
         std::vector<const LayerRegion*>* corresponding_regions_out;
-        LayerRegion* current_layer_region;
+        const LayerRegion* current_layer_region;
         SeamPosition configured_seam_preference;
     public:
+        bool also_overhangs = false;
+        bool also_thin_walls = false;
         PerimeterCopy(std::vector<const LayerRegion*>* regions_out, Polygons* polys, SeamPosition configured_seam)
             : corresponding_regions_out(regions_out), configured_seam_preference(configured_seam), polygons(polys) {
         }
-        virtual void default_use(const ExtrusionEntity& entity) { };
+        virtual void default_use(const ExtrusionEntity& entity) {};
         virtual void use(const ExtrusionLoop& loop) override {
-            ExtrusionRole role = loop.role();
-            for (const ExtrusionPath& path : loop.paths) {
-                if (path.role() == ExtrusionRole::erExternalPerimeter) {
-                    role = ExtrusionRole::erExternalPerimeter;
-                }
-            }
-
-            if (role == ExtrusionRole::erExternalPerimeter
-                || (is_perimeter(role) && configured_seam_preference == spAllRandom)) { //for random seam alignment, extract all perimeters
+            if ((configured_seam_preference == spAllRandom && !loop.paths.empty() &&
+                    is_perimeter(loop.paths.front().role()))
+                || (also_thin_walls && loop.role() == erThinWall)) {
                 Points p;
                 loop.collect_points(p);
                 polygons->emplace_back(std::move(p));
                 corresponding_regions_out->push_back(current_layer_region);
+                return;
+            }else {
+                Points        p;
+                for (const ExtrusionPath &path : loop.paths) {
+                    if (path.role() == ExtrusionRole::erExternalPerimeter) {
+                        path.collect_points(p);
+                    }
+                    if (path.role() == ExtrusionRole::erOverhangPerimeter &&
+                        also_overhangs) { // TODO find a way to search for external overhangs only
+                        path.collect_points(p);
+                    }
+                    //if (path.role() == ExtrusionRole::erThinWall && also_thin_walls) {
+                    //    path.collect_points(p); // TODO: 2.7: reactivate when it's possible to distinguish between thinwalltravel & thinextrusions
+                    // // currently, only looking for thinwall-only loop
+                    //}
+                }
+
+                if (!p.empty()) { // for random seam alignment, extract all perimeters
+                    polygons->emplace_back(std::move(p));
+                    corresponding_regions_out->push_back(current_layer_region);
+                }
             }
         }
         virtual void use(const ExtrusionEntityCollection& collection) override {
@@ -457,41 +473,34 @@ Polygons extract_perimeter_polygons(const Layer *layer, const SeamPosition confi
                 entity->visit(*this);
             }
         }
+        void set_current_layer_region(const LayerRegion *set) { current_layer_region = set; }
     } visitor(&corresponding_regions_out, &polygons, configured_seam_preference);
 
     for (const LayerRegion *layer_region : layer->regions()) {
         for (const ExtrusionEntity *ex_entity : layer_region->perimeters.entities()) {
-            if (ex_entity->is_collection()) { //collection of inner, outer, and overhang perimeters
-                //ex_entity->visit(visitor);
-                for (const ExtrusionEntity *perimeter : static_cast<const ExtrusionEntityCollection*>(ex_entity)->entities()) {
-                    ExtrusionRole role = perimeter->role();
-                    if (perimeter->is_loop()) {
-                        for (const ExtrusionPath &path : static_cast<const ExtrusionLoop*>(perimeter)->paths) {
-                            if (path.role() == ExtrusionRole::erExternalPerimeter) {
-                                role = ExtrusionRole::erExternalPerimeter;
-                            }
-                        }
-                    }
-
-                    if (role == ExtrusionRole::erExternalPerimeter
-                            || (is_perimeter(role) && (configured_seam_preference == spAllRandom) )) { //for random seam alignment, extract all perimeters
+            visitor.set_current_layer_region(layer_region);
+            ex_entity->visit(visitor);
+            if (polygons.empty()) {
+                // maybe only thin walls?
+                visitor.also_thin_walls = true;
+                ex_entity->visit(visitor);
+                if (polygons.empty()) {
+                    // can happen if the external is fully an overhang
+                    visitor.also_overhangs = true;
+                    ex_entity->visit(visitor);
+                    visitor.also_overhangs = false;
+                    if (polygons.empty()) {
+                        // shouldn't happen
+                        ex_entity->visit(visitor);
+                        assert(ex_entity->role() == erThinWall); // no loops
+                        // what to do in this case?
                         Points p;
-                        perimeter->collect_points(p);
+                        ex_entity->collect_points(p);
                         polygons.emplace_back(std::move(p));
                         corresponding_regions_out.push_back(layer_region);
                     }
                 }
-                if (polygons.empty()) {
-                    Points p;
-                    ex_entity->collect_points(p);
-                    polygons.emplace_back(std::move(p));
-                    corresponding_regions_out.push_back(layer_region);
-                }
-            } else {
-                Points p;
-                ex_entity->collect_points(p);
-                polygons.emplace_back(std::move(p));
-                corresponding_regions_out.push_back(layer_region);
+                visitor.also_thin_walls = false;
             }
         }
     }
@@ -814,8 +823,8 @@ struct SeamComparator {
 
     // Standard comparator, must respect the requirements of comparators (e.g. give same result on same inputs) for sorting usage
     // should return if a is better seamCandidate than b
-    bool is_first_better(const SeamCandidate &a, const SeamCandidate &b, const Vec2f &preffered_location = Vec2f { 0.0f,
-            0.0f }) const {
+    bool is_first_better(const SeamCandidate &a, const SeamCandidate &b, const Vec2f &preffered_location = Vec2f { 0.0f, 0.0f}) const
+    {
         if ((setup == SeamPosition::spAligned || setup == SeamPosition::spExtremlyAligned) && a.central_enforcer != b.central_enforcer) {
             return a.central_enforcer;
         }
