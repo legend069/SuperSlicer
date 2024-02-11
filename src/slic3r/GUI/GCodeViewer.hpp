@@ -402,7 +402,7 @@ class GCodeViewer
             float get_min_no_outliers(float ratio_outlier = 0.01) const;
             float step_size_no_outliers(float ratio_outlier = 0.01, bool log = false) const;
             Color get_color_at_no_outliers(float value, float ratio_outlier = 0.01, bool log = false) const;
-            float step_size_with_outliers(float ratio_outlier = 0.01, bool log = false) const { return step_size(min, max, log); }
+            float step_size_with_outliers(float ratio_outlier = 0.01, bool log = true) const { return step_size(min, max, log); }
             Color get_color_at_with_outliers(float value, float ratio_outlier = 0.01, bool log = false) const { return get_color_at(min, max, value, log); }
             static float step_size(float min, float max, bool log = false);
             static Color get_color_at(float min, float max, float value, bool log = false);
