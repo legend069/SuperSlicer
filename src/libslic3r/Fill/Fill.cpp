@@ -256,12 +256,15 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
                     if (region_config.bridge_type == BridgeType::btFromFlow) {
                         Flow reference_flow = layerm.flow(FlowRole::frSolidInfill);
                         diameter = sqrt(4 * reference_flow.mm3_per_mm() / PI);
+                        params.flow = Flow::bridging_flow((float)(diameter * std::sqrt(region_config.bridge_flow_ratio.get_abs_value(1))), nozzle_diameter);
                     } else if (region_config.bridge_type == BridgeType::btFromHeight) {
-                        diameter = layerm.layer()->height;
+                        diameter = layerm.layer()->height * 2;
+                        params.flow = Flow::bridging_flow((float)(std::sqrt(diameter) * region_config.bridge_flow_ratio.get_abs_value(1)), nozzle_diameter);
                     } else /*if (region_config.bridge_type == BridgeType::btFromNozzle)*/ {
                         diameter = nozzle_diameter;
+                        params.flow = Flow::bridging_flow((float)(diameter * std::sqrt(region_config.bridge_flow_ratio.get_abs_value(1))), nozzle_diameter);
                     }
-                    params.flow = Flow::bridging_flow((float)(diameter * std::sqrt(region_config.bridge_flow_ratio.get_abs_value(1))), nozzle_diameter);
+                    
                 } else {
                     params.flow = layerm.region().flow(
                         *layer.object(),

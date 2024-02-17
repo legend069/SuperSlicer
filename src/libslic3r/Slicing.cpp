@@ -184,14 +184,14 @@ std::shared_ptr<SlicingParameters> SlicingParameters::create_from_config(
     if (! soluble_interface) {
         params.gap_raft_object = object_config.raft_contact_distance.value;// get_abs_value(support_material_interface_extruder_dmr);
         if (object_config.support_material_contact_distance_type.value == zdFilament) {
-            if (default_region_config.bridge_type == BridgeType::btFromNozzle) {
+            if (default_region_config.bridge_type.value == BridgeType::btFromNozzle) {
                 float nzd_avg = 0;
                 for (unsigned int extruder_id : object_extruders) {
                     nzd_avg += print_config.nozzle_diameter.get_at(extruder_id - 1);
                 }
                 nzd_avg /= object_extruders.size();
                 params.gap_raft_object += nzd_avg * sqrt(default_region_config.bridge_flow_ratio.get_abs_value(1)) - params.layer_height;
-            } else if (default_region_config.bridge_type == BridgeType::btFromFlow) {
+            } else if (default_region_config.bridge_type.value == BridgeType::btFromFlow) {
                 float nzd_solid_infill = print_config.nozzle_diameter.get_at(default_region_config.solid_infill_extruder - 1);
                 Flow reference_flow = Flow::new_from_config_width(frInfill, default_region_config.infill_extrusion_width, default_region_config.infill_extrusion_spacing, nzd_solid_infill, (float)params.layer_height, 1);
                 double diameter = sqrt(4 * reference_flow.mm3_per_mm() / PI);

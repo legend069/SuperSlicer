@@ -36,7 +36,8 @@ coordf_t LayerRegion::bridging_height_avg() const
     } else if (region_config.bridge_type == BridgeType::btFromHeight) {
         return this->layer()->height;
     } else if (region_config.bridge_type == BridgeType::btFromFlow) {
-        return this->bridging_flow(FlowRole::frInfill).height();
+        return this->bridging_flow(FlowRole::frInfill).height();//combine infill_every_layers cause BUG here?
+        //return this->bridging_flow(FlowRole::frExternalPerimeter).height();
     }
     throw Slic3r::InvalidArgument("Unknown BridgeType");
 }
@@ -48,7 +49,7 @@ Flow LayerRegion::bridging_flow(FlowRole role) const
     const PrintObject       &print_object   = *this->layer()->object();
     // Here this->extruder(role) - 1 may underflow to MAX_INT, but then the get_at() will follback to zero'th element, so everything is all right.
     float nozzle_diameter = float(print_object.print()->config().nozzle_diameter.get_at(region.extruder(role, *this->layer()->object()) - 1));
-    double diameter = 0;
+    double diameter = 0.0;
     if (region_config.bridge_type == BridgeType::btFromFlow) {
         Flow reference_flow = flow(role);
         diameter = sqrt(4 * reference_flow.mm3_per_mm() / PI);
