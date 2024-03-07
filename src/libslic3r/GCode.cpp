@@ -1449,6 +1449,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
         
             for (const auto& volume : part_details) {//loop though object volumes - object parts
                 volume_name = volume->name;
+                file.writeln(volume_name);//write file name at start/end of next loop
 
                 for (const auto& target_object : target_objects) {//loop though each volume
                     if (volume_name == target_object) {
@@ -1462,7 +1463,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
                         break;
                     }
                 }
-
+                file.writeln(volume_name);
                 nb_parts_per_object++;
             }
         }
