@@ -60,9 +60,6 @@ jobs:
         /usr/bin/codesign --force -s "$MACOS_APP_DEVELOPER_ID" ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app -v
         codesign -vvv --deep --strict ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app
         codesign -dvv ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app
-    - name: run stapler
-      run: |
-        xcrun stapler staple SliCR-3D-V2.dmg
     - name: Upload App artifact
       uses: actions/upload-artifact@v1.0.0
       with:
