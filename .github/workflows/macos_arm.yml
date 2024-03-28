@@ -55,9 +55,6 @@ jobs:
         /usr/bin/codesign -s "$MACOS_APP_DEVELOPER_ID" SliCR-3D-V2.dmg -v
         codesign -vvv --deep --strict SliCR-3D-V2.dmg
         codesign -dvv SliCR-3D-V2.dmg
-    - name: notarize the dmg
-      run: |
-        spctl -a -t open --context context:primary-signature -v SliCR-3D-V2.dmg
     - name: run codesign on app
       run: |
         /usr/bin/codesign --force -s "$MACOS_APP_DEVELOPER_ID" ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app -v
