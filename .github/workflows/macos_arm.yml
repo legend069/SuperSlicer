@@ -57,8 +57,6 @@ jobs:
         codesign -dvv SliCR-3D-V2.dmg
     - name: notarize the dmg
       run: |
-        xcrun notarytool store-credentials "notarytool-profile" --apple-id "$MACOS_APP_MAIL" --team-id "$MACOS_APP_TEAM_ID" --password "$MACOS_APP_PWD"
-        xcrun notarytool submit "SliCR-3D-V2.dmg" --keychain-profile "notarytool-profile" --wait
         spctl -a -t open --context context:primary-signature -v SliCR-3D-V2.dmg
     - name: run codesign on app
       run: |
