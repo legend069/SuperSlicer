@@ -8,6 +8,7 @@ on:
       - nightly_master
       - debug_ubuntu
       - pressure_advance
+  workflow_dispatch:
 
 jobs:
   build:
