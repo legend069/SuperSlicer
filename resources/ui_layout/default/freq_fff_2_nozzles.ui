@@ -1,26 +1,26 @@
 #logs
 page:print:
 group:freq_settings_event:no_title:no_search:
-	line:
-		setting:simple:script:enum$none$None$bp$Support on build plate only$se$For support enforcers only$ev$Everywhere:depends$support_material$support_material_auto$support_material_buildplate_only:label$Supports:tooltip$Select what kind of support do you need:full_width:s_support_fff	
-	end_line
-	line:
-		setting:label$Fill Pattern:full_width:fill_pattern
-	end_line
-	line:
-		setting:label$Infill:full_width:fill_density
-		freq_purging_volumes
-	end_line
-	line:
+    line:
+        setting:simple:script:enum$none$None$bp$Support on build plate only$se$For support enforcers only$ev$Everywhere:depends$support_material$support_material_auto$support_material_buildplate_only:label$Supports:tooltip$Select what kind of support do you need:full_width:s_support_fff
+    end_line
+    line:
+        setting:label$Fill Pattern:full_width:fill_pattern
+    end_line
+    line:
+        setting:label$Infill:full_width:fill_density
+        freq_purging_volumes
+    end_line
+    line:
          setting:label$Solid Layers Top:top_solid_layers
         setting:label$Bottom :bottom_solid_layers
-	end_line
-	line:
+    end_line
+    line:
         setting:label$Perimeters:width$8:perimeters
-	end_line
-	line:
-		setting:simple:script:float:depends$nozzle_diameter[0]:label$Tool [0]:tooltip$Value for nozzle[0]:full_width:s_nozzle_diameter_1
-		setting:simple:script:float:depends$nozzle_diameter[1]:label$Tool [1]:tooltip$Value for nozzle[1]:full_width:s_nozzle_diameter_2
-	end_line
+    end_line
+    line:
+        setting:simple:script:float:depends$nozzle_diameter[0]:label$Tool [0]:tooltip$Value for nozzle[0]:full_width:s_nozzle_diameter_1
+        setting:simple:script:float:depends$nozzle_diameter[1]:label$Tool [1]:tooltip$Value for nozzle[1]:full_width:s_nozzle_diameter_2
+    end_line
 
     

@@ -326,9 +326,8 @@ void MainFrame::update_icon() {
             m_tabpanel->SetPageImage(0, 0);
             m_tabpanel->SetPageImage(1, 1);
             m_tabpanel->SetPageImage(2, 2);
-            m_tabpanel->SetPageImage(3, 3);
-            m_tabpanel->SetPageImage(4, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 4);
-            m_tabpanel->SetPageImage(5, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 5);
+            m_tabpanel->SetPageImage(3, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 4);
+            m_tabpanel->SetPageImage(4, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 5);
         }
         break;
     }
@@ -392,7 +391,7 @@ static void update_marker_for_tabs_menu(wxMenuBar* bar, const wxString& title, i
         to_remove = 5;
         if (idx > 0) idx++;
     } else if (layout == MainFrame::ESettingsLayout::Tabs) {
-        to_remove = 7;
+        to_remove = 6;
         if (idx > 2) idx++;
     }
     for (size_t id = items_cnt - to_remove; id < items_cnt; id++) {
@@ -673,7 +672,7 @@ void MainFrame::update_layout()
             notebook->InsertFakeBtPage(1, 0, _L("Gcode preview"), std::string("tab_preview_menu"), icon_size, false);
             notebook->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
 
-            notebook->GetBtnsListCtrl()->InsertSpacer(4, 40);
+            notebook->GetBtnsListCtrl()->InsertSpacer(3, 40);
             notebook->GetBtnsListCtrl()->GetPageButton(0)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
                                                                     this->m_plater->Show();
 
@@ -760,7 +759,7 @@ void MainFrame::update_layout()
             dynamic_cast<Notebook*>(m_tabpanel)->InsertBtPage(0, m_plater_page, _L("Plater"), std::string("plater"), icon_size, true);
         else
 #endif
-        m_tabpanel->InsertPage(0, m_plater_page, _L("Platter")); // empty panel just for Platter tab */
+        m_tabpanel->InsertPage(0, m_plater_page, _L("Plater")); // empty panel just for Platter tab */
 #if _USE_CUSTOM_NOTEBOOK
         if (!wxGetApp().tabs_as_menu())
             dynamic_cast<Notebook*>(m_tabpanel)->GetBtnsListCtrl()->InsertSpacer(1, 40);
