@@ -1,0 +1,72 @@
+name: C/C++ Release candidate macos
+
+on:
+  push:
+    branches:
+      - master
+      - rc
+
+jobs:
+  build:
+    runs-on: macos-12
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_P12 }}
+      MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_PASSWD }}
+      MACOS_APP_PWD: ${{ secrets.MACOS_NOTARIZATION_PASS }}
+      MACOS_APP_MAIL: ${{ secrets.MACOS_NOTARIZATION_USER }}
+      MACOS_APP_DEVELOPER_ID: ${{ vars.MACOS_APP_DEVELOPER_ID }}
+      MACOS_APP_TEAM_ID: ${{ vars.MACOS_APP_TEAM_ID }}
+      MACOS_KEYCHAIN_TEMP_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_TEMP_PASSWORD }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: 'master'
+    - name: build deps & slicer
+      run: ./BuildMacOS.sh
+    - name: copy zstd
+      run: cp /usr/local/opt/zstd/lib/libzstd.1.dylib ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app/Contents/MacOS/libzstd.1.dylib
+    - name: relink zstd
+      run: install_name_tool -change /usr/local/opt/zstd/lib/libzstd.1.dylib  @executable_path/libzstd.1.dylib ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app/Contents/MacOS/SliCR-3D-V2
+    - name: Codesign executable conf
+      run: |
+        echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+        security create-keychain -p "$MACOS_KEYCHAIN_TEMP_PASSWORD" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "$MACOS_KEYCHAIN_TEMP_PASSWORD" build.keychain
+        security set-keychain-settings -lut 21600 build.keychain
+        security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
+    - name: verify certificate presence
+      run: security find-identity -v
+    - name: register codesign
+      run: |
+        security set-key-partition-list -S apple-tool:,apple:,codesign:,notarytool: -s -k "$MACOS_KEYCHAIN_TEMP_PASSWORD" build.keychain
+    - name: run codesign on exe
+      run: |
+        /usr/bin/codesign --options=runtime --force -s "$MACOS_APP_DEVELOPER_ID" ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app/Contents/MacOS/libzstd.1.dylib
+        /usr/bin/codesign --options=runtime --force -s "$MACOS_APP_DEVELOPER_ID" ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app/Contents/MacOS/SliCR-3D-V2 -v
+        codesign -vvv --deep --strict ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app/Contents/MacOS/SliCR-3D-V2
+        codesign -dvv ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app/Contents/MacOS/SliCR-3D-V2
+    - name: create the dmg
+      run: |
+        hdiutil create -ov -fs HFS+ -volname SliCR-3D-V2 -srcfolder "build/pack/SliCR-3D-V2" temp.dmg
+        hdiutil convert temp.dmg -format UDZO -o SliCR-3D-V2.dmg
+    - name: run codesign on the dmg
+      run: |
+        /usr/bin/codesign -s "$MACOS_APP_DEVELOPER_ID" SliCR-3D-V2.dmg -v
+        codesign -vvv --deep --strict SliCR-3D-V2.dmg
+        codesign -dvv SliCR-3D-V2.dmg
+    - name: run codesign on app
+      run: |
+        /usr/bin/codesign --force -s "$MACOS_APP_DEVELOPER_ID" ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app -v
+        codesign -vvv --deep --strict ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app
+        codesign -dvv ./build/pack/SliCR-3D-V2/SliCR-3D-V2.app
+    - name: Upload App artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: SliCR-3D-V2-mp-rc_macos.app
+        path: build/pack/SliCR-3D-V2/SliCR-3D-V2.app
+    - name: Upload DMG artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: SliCR-3D-V2-mp-rc_macos.dmg
+        path: SliCR-3D-V2.dmg
