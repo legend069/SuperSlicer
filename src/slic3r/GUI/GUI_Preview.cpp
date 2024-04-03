@@ -239,6 +239,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
 
     wxGetApp().UpdateDarkUI(m_bottom_toolbar_panel = new wxPanel(this));
     m_label_view_type = new wxStaticText(m_bottom_toolbar_panel, wxID_ANY, _L("View"));
+    
 #ifdef _WIN32
     wxGetApp().UpdateDarkUI(m_choice_view_type = new BitmapComboBox(m_bottom_toolbar_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY));
 #else

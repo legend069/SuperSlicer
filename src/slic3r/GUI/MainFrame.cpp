@@ -207,14 +207,9 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_S
     Fit();
 
     const wxSize min_size = wxGetApp().get_min_size(); //wxSize(76*wxGetApp().em_unit(), 49*wxGetApp().em_unit());
-#if __APPLE__
-    // Using SetMinSize() on Mac messes up the window position in some cases
-    // cf. https://groups.google.com/forum/#!topic/wx-users/yUKPBBfXWO0
-    SetSize(min_size/*wxSize(760, 490)*/);
-#else
     SetMinSize(min_size/*wxSize(760, 490)*/);
     SetSize(GetMinSize());
-#endif
+
     Layout();
 
     update_title();
@@ -668,8 +663,8 @@ void MainFrame::update_layout()
         m_plater->Layout();
         if (!wxGetApp().tabs_as_menu()) {
             Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
-            notebook->InsertBtPage(0, m_plater, _L("3D view"), std::string("tab_editor_menu"), icon_size, true);
-            notebook->InsertFakeBtPage(1, 0, _L("Gcode preview"), std::string("tab_preview_menu"), icon_size, false);
+            notebook->InsertBtPage(0, m_plater, _L("3D View"), std::string("tab_editor_menu"), icon_size, true);
+            notebook->InsertFakeBtPage(1, 0, _L("Gcode Preview"), std::string("tab_preview_menu"), icon_size, false);
             notebook->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
 
             notebook->GetBtnsListCtrl()->InsertSpacer(3, 40);
@@ -682,14 +677,13 @@ void MainFrame::update_layout()
                 });
             notebook->GetBtnsListCtrl()->GetPageButton(1)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
                                                                     this->m_plater->Show();
-
-                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
-                    this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
+                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
+                    this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                     this->m_plater->select_view_3D("Preview");
                     this->m_plater->refresh_print();
                 } else
                     this->m_plater->select_view_3D("Preview");
-                //this->select_tab(MainFrame::ETabType::tpPlaterPreview); // select Plater
+
                 });
             
             notebook->GetBtnsListCtrl()->GetPageButton(2)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent &event) {
@@ -699,7 +693,8 @@ void MainFrame::update_layout()
 
                 });
         }
-
+        
+        
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 1);
 
         m_webView->Raise();
@@ -722,7 +717,7 @@ void MainFrame::update_layout()
         wxPanel* first_panel = new wxPanel(m_tabpanel);
 
         m_tabpanel->InsertPage(0, first_panel, _L("3D view"));
-        m_tabpanel->InsertPage(1, new wxPanel(m_tabpanel), _L("GCode preview"));
+        m_tabpanel->InsertPage(1, new wxPanel(m_tabpanel), _L("GCode Preview"));
         m_tabpanel->InsertPage(2, m_webView, _L("Device"));
 
 
@@ -1009,6 +1004,7 @@ void MainFrame::init_tabpanel()
 {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on Windows 10
     // with multiple high resolution displays connected.
+
 #if _USE_CUSTOM_NOTEBOOK
     if (wxGetApp().tabs_as_menu()) {
         m_tabpanel = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_TOP | wxTAB_TRAVERSAL | wxNB_NOPAGETHEME);
@@ -1023,6 +1019,8 @@ void MainFrame::init_tabpanel()
 #ifndef __WXOSX__ // Don't call SetFont under OSX to avoid name cutting in ObjectList
     m_tabpanel->SetFont(Slic3r::GUI::wxGetApp().normal_font());
 #endif
+    
+    
     m_tabpanel->Hide();
     m_settings_dialog.set_tabpanel(m_tabpanel);
 
@@ -1112,14 +1110,18 @@ void MainFrame::init_tabpanel()
             switch (bt_idx_sel) {
                 case 0: 
                     this->m_plater->select_view_3D("3D");
+                    
                 case 1:
-                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
-                        this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
+                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
+                            this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
+                            this->m_plater->select_view_3D("Preview");
+                            this->m_plater->refresh_print();
+                    } else {
                         this->m_plater->select_view_3D("Preview");
-                        this->m_plater->refresh_print();
-                    } else
-                        this->m_plater->select_view_3D("Preview");
+                    }
+                    
                      break;
+                    
                 case 2:
                     DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
                     if (!selected_printer_config) {

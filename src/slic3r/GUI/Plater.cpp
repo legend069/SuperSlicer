@@ -31,6 +31,7 @@
 #include <wx/richtooltip.h>
 #include <wx/custombgwin.h>
 #include <wx/popupwin.h>
+#include <wx/grid.h>
 #endif
 
 #include "libslic3r/libslic3r.h"
@@ -390,17 +391,16 @@ void FreqChangedParams::init()
     
     DynamicPrintConfig printer_config = tab_printer->get_config()->full_print_config();
     DynamicPrintConfig conf = tab_print->m_preset_bundle->full_config();
-    DynamicPrintConfig &selected_config = tab_printer->m_presets->get_selected_preset().config;
 
     std::vector<PageShp> pages;
-    size_t nozzle_diameters = dynamic_cast<const ConfigOptionFloats *>(selected_config.option("nozzle_diameter"))->values.size();
 
     if(tab_print != nullptr) {
         pages.clear();
         pages = tab_print->create_pages("freq_fff_2_nozzles.ui");
     }
 
-    if (!pages.empty()) {        
+    
+    if (!pages.empty()) {
         m_og->set_config(config);
         m_og->hide_labels();
 
@@ -477,7 +477,7 @@ void FreqChangedParams::init()
 
         //current_group->m_on_change = on_change;
         m_og->activate();
-        m_sizer->Add(m_og->sizer, 0, wxEXPAND);
+        m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
     }
 
 
@@ -752,13 +752,13 @@ Sidebar::Sidebar(Plater *parent)
     init_combo(&p->combo_sla_material,  _L("SLA material"),       Preset::TYPE_SLA_MATERIAL,  false);
     init_combo(&p->combo_printer,       _L("Printer"),            Preset::TYPE_PRINTER,       false);
 
-    const int margin_5  = int(0.5*wxGetApp().em_unit());// 5;
+    const int margin_5  = int(0.7*wxGetApp().em_unit());// 5;
 
     p->sizer_params = new wxBoxSizer(wxVERTICAL);
 
     // Frequently changed parameters
     p->frequently_changed_parameters = new FreqChangedParams(p->scrolled);
-    p->sizer_params->Add(p->frequently_changed_parameters->get_sizer(), 0, wxEXPAND | wxTOP | wxBOTTOM, wxOSX ? 1 : margin_5);
+    p->sizer_params->Add(p->frequently_changed_parameters->get_sizer(), 1, wxLEFT | wxBOTTOM | wxTOP | wxEXPAND, wxOSX ? 1 : margin_5);
     
     // Object List
     p->object_list = new ObjectList(p->scrolled);

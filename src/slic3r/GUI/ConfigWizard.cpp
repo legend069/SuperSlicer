@@ -565,32 +565,35 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
 
         static bool warningAdded = false;
         
-        if (!warningAdded && vendor.name == "CR-3D") {
-            wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
-
-            wxStaticText *warningText = new wxStaticText(this, wxID_ANY, "Warning: ");
-            warningText->SetFont(wxFont(wxFontInfo(10)).Bold());
-            warningText->SetForegroundColour(wxColour(255, 0, 0));
-            sizer->Add(warningText);
-
-            wxStaticText *infoText =
+        const t_config_option_keys families = vendor.families();
+        for (const std::string &family : families) {
+            if (family == "C-Serie" || !warningAdded) {
+                wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
+                
+                wxStaticText *warningText = new wxStaticText(this, wxID_ANY, "Warning: ");
+                warningText->SetFont(wxFont(wxFontInfo(10)).Bold());
+                warningText->SetForegroundColour(wxColour(255, 0, 0));
+                sizer->Add(warningText);
+                
+                wxStaticText *infoText =
                 new wxStaticText(this,
                                  wxID_ANY,
                                  "Older devices manufactured before November 2023 require absolute extrusion.  ");
-            infoText->SetFont(wxFont(wxFontInfo(10).Bold()));
-            sizer->Add(infoText);
-
-            wxHyperlinkCtrl *hyperlink = new wxHyperlinkCtrl(this, wxID_ANY, "Find more information here.",
-                                                             "https://github.com/CR-3D/SliCR-3D-V2/blob/master/resources/profiles/CR3D/ReadMe.md", wxDefaultPosition, wxDefaultSize,
-                                                             wxHL_DEFAULT_STYLE | wxNO_BORDER);
-            hyperlink->SetNormalColour(wxColour(0, 0, 255));
-            hyperlink->SetFont(wxFont(wxFontInfo(9).FaceName("Arial")));
-            sizer->Add(hyperlink, 0, wxALIGN_CENTER_VERTICAL);
-
-            append(sizer);
-          warningAdded = true;
+                infoText->SetFont(wxFont(wxFontInfo(10).Bold()));
+                sizer->Add(infoText);
+                
+                wxHyperlinkCtrl *hyperlink = new wxHyperlinkCtrl(this, wxID_ANY, "Find more information here.",
+                                                                 "https://github.com/CR-3D/SliCR-3D-V2/blob/master/resources/profiles/CR3D/ReadMe.md", wxDefaultPosition, wxDefaultSize,
+                                                                 wxHL_DEFAULT_STYLE | wxNO_BORDER);
+                hyperlink->SetNormalColour(wxColour(0, 0, 255));
+                hyperlink->SetFont(wxFont(wxFontInfo(9).FaceName("Arial")));
+                sizer->Add(hyperlink, 0, wxALIGN_CENTER_VERTICAL);
+                
+                append(sizer);
+                warningAdded = true;
+            }
         }
-
+        
         const auto picker_title = family.empty() ? wxString() : from_u8((boost::format(_utf8(L("%s Family"))) % family).str());
         uint8_t max_cols = MAX_COLS;
         if (vendor.family_2_line_size.find(family) != vendor.family_2_line_size.end())
