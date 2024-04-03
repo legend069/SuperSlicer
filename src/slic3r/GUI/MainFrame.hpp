@@ -149,7 +149,6 @@ public:
 
     enum class TabPosition : uint8_t {
         tpPlater,
-        tpPlaterPreview,
         tpPlaterGCode,
         tpLastPlater,
         tpDevice,

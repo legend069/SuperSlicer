@@ -361,13 +361,12 @@ static void append_tab_menu_items_to_menubar(wxMenuBar* bar, PrinterTechnology p
     bool has_marker = false;
     if (layout == MainFrame::ESettingsLayout::Tabs) {
         bar->Append(new wxMenu(), pref() + _L("3D view") + suff());
-        bar->Append(new wxMenu(), _L("Slicing Preview"));
         bar->Append(new wxMenu(),  _L("Gcode preview"));
         bar->Append(new wxMenu(),  _L("Device"));
         has_marker = true;
         // Add separator
         bar->Append(new wxMenu(), "          ");
-        bar->EnableTop(MAINFRAME_MENU_ITEM_COUNT + 4, false);
+        bar->EnableTop(MAINFRAME_MENU_ITEM_COUNT + 3, false);
     } else if (layout == MainFrame::ESettingsLayout::Old) {
         bar->Append(new wxMenu(), pref() + _L("Platter") + suff());
         has_marker = true;
@@ -430,10 +429,10 @@ static MainFrame::TabPosition get_tab_bt_selected(wxMenuBar* bar, MainFrame::ESe
         }
     }
     
-    if (idx_selected < 0) return MainFrame::TabPosition::tpLastPlater;
+    if (idx_selected < 0) return MainFrame::TabPosition::tpPlaterGCode;
     if (layout == MainFrame::ESettingsLayout::Old) {
-        if (idx_selected == 0) return MainFrame::TabPosition::tpLastPlater;
-        return MainFrame::TabPosition((uint8_t)MainFrame::TabPosition::tpLastPlater + (uint8_t)idx_selected);
+        if (idx_selected == 0) return MainFrame::TabPosition::tpPlaterGCode;
+        return MainFrame::TabPosition((uint8_t)MainFrame::TabPosition::tpPlaterGCode + (uint8_t)idx_selected);
     } else if (layout == MainFrame::ESettingsLayout::Tabs) {
         return MainFrame::TabPosition((uint8_t)MainFrame::TabPosition::tpPlater + (uint8_t)idx_selected);
     } else if (layout == MainFrame::ESettingsLayout::Dlg) {
@@ -463,11 +462,9 @@ static void add_tabs_as_menu(wxMenuBar* bar, MainFrame* main_frame, wxWindow* ba
 
         const wxString& title = menu->GetTitle();
         if (title == _L("Platter"))
-            main_frame->select_tab(MainFrame::TabPosition::tpLastPlater);
+            main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
         else if (title == _L("3D view"))
             main_frame->select_tab(MainFrame::TabPosition::tpPlater);
-        else if (title == _L("Sliced preview"))
-            main_frame->select_tab(MainFrame::TabPosition::tpPlaterPreview);
         else if (title == _L("Gcode preview"))
             main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
         else if (title == _L("Device"))
@@ -673,9 +670,8 @@ void MainFrame::update_layout()
         if (!wxGetApp().tabs_as_menu()) {
             Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
             notebook->InsertBtPage(0, m_plater, _L("3D view"), std::string("tab_editor_menu"), icon_size, true);
-            notebook->InsertFakeBtPage(1, 0, _L("Slice Preview"), std::string("layers"), icon_size, false);
-            notebook->InsertFakeBtPage(2, 0, _L("Gcode preview"), std::string("tab_preview_menu"), icon_size, false);
-            notebook->InsertBtPage(3, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
+            notebook->InsertFakeBtPage(1, 0, _L("Gcode preview"), std::string("tab_preview_menu"), icon_size, false);
+            notebook->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
 
             notebook->GetBtnsListCtrl()->InsertSpacer(4, 40);
             notebook->GetBtnsListCtrl()->GetPageButton(0)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
@@ -696,17 +692,8 @@ void MainFrame::update_layout()
                     this->m_plater->select_view_3D("Preview");
                 //this->select_tab(MainFrame::ETabType::tpPlaterPreview); // select Plater
                 });
-            notebook->GetBtnsListCtrl()->GetPageButton(2)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
-                                                                    this->m_plater->Show();
-                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
-                    this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
-                    this->m_plater->select_view_3D("Preview");
-                    this->m_plater->refresh_print();
-                } else
-                    this->m_plater->select_view_3D("Preview");
-
-                });
-            notebook->GetBtnsListCtrl()->GetPageButton(3)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent &event) {
+            
+            notebook->GetBtnsListCtrl()->GetPageButton(2)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent &event) {
                      this->m_plater->Hide();
                      m_webView->Show();
                      m_webView->Enable();
@@ -736,16 +723,14 @@ void MainFrame::update_layout()
         wxPanel* first_panel = new wxPanel(m_tabpanel);
 
         m_tabpanel->InsertPage(0, first_panel, _L("3D view"));
-        m_tabpanel->InsertPage(1, new wxPanel(m_tabpanel), _L("Sliced preview"));
-        m_tabpanel->InsertPage(2, new wxPanel(m_tabpanel), _L("GCode preview"));
-        m_tabpanel->InsertPage(3, m_webView, _L("Device"));
+        m_tabpanel->InsertPage(1, new wxPanel(m_tabpanel), _L("GCode preview"));
+        m_tabpanel->InsertPage(2, m_webView, _L("Device"));
 
 
         if (m_tabpanel->GetPageCount() == 7) {
             m_tabpanel->GetPage(0)->SetSizer(new wxBoxSizer(wxVERTICAL));
             m_tabpanel->GetPage(1)->SetSizer(new wxBoxSizer(wxVERTICAL));
             m_tabpanel->GetPage(2)->SetSizer(new wxBoxSizer(wxVERTICAL));
-            m_tabpanel->GetPage(3)->SetSizer(new wxBoxSizer(wxVERTICAL));
             update_icon();
         }
 
@@ -1051,10 +1036,29 @@ void MainFrame::init_tabpanel()
     // icons for m_tabpanel tabs
     wxImageList* img_list = nullptr;
     if (icon_size >= 8) {
-        std::vector<std::string> icon_list =  { "tab_editor_menu", "layers", "tab_preview_menu", "tab_device_active", "cog", "spool_cog",  "printer_cog",  "resin_cog",    "sla_printer_cog" };
+        std::vector<std::string> icon_list =  {
+            "tab_editor_menu",
+            "tab_preview_menu",
+            "tab_device_active",
+            "cog",
+            "spool_cog",
+            "printer_cog",
+            "resin_cog",
+            "sla_printer_cog"
+        };
+        
         if (icon_size < 16)
-            icon_list = {"tab_editor_menu", "layers", "tab_preview_menu", "tab_device_active", "cog",
-                         "spool",       "printer", "resin",        "sla_printer"};
+            icon_list = {
+                "tab_editor_menu",
+                "tab_preview_menu",
+                "tab_device_active",
+                "cog",
+                "spool",
+                "printer",
+                "resin",
+                "sla_printer"
+            };
+        
         for (std::string icon_name : icon_list) {
             const wxBitmap& bmp = create_scaled_bitmap(icon_name, this, icon_size);
             if (img_list == nullptr)
@@ -1118,17 +1122,10 @@ void MainFrame::init_tabpanel()
                         this->m_plater->select_view_3D("Preview");
                      break;
                 case 2:
-                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
-                        this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
-                        this->m_plater->select_view_3D("Preview");
-                        this->m_plater->refresh_print();
-                    }
-                    break;
-                case 3:
                     DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
                     if (!selected_printer_config) {
                         // No physical printer found
-                        wxMessageBox("No physical printer found.", "Warning", wxICON_WARNING | wxOK);
+                       // wxMessageBox("No physical printer found.", "Warning", wxICON_WARNING | wxOK);
                     }
 
                     m_webView->Show();
@@ -1153,17 +1150,17 @@ void MainFrame::init_tabpanel()
             size_t new_tab = m_tabpanel->GetSelection();
 
             size_t max = 0;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 4; i++)
                 max = std::max(max, m_tabpanel->GetPage(i)->GetSizer()->GetItemCount());
-#ifdef __APPLE__
+#if __APPLE__
             BOOST_LOG_TRIVIAL(debug) << " 1 - hide & clear the sizers: " << max << "->";
 #endif
             for(int i=0;i<3;i++)
                 m_tabpanel->GetPage(i)->GetSizer()->Clear();
             max = 0;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 4; i++)
                 max = std::max(max, m_tabpanel->GetPage(i)->GetSizer()->GetItemCount());
-#ifdef __APPLE__
+#if __APPLE__
             BOOST_LOG_TRIVIAL(debug) << max << "\n";
 #endif
             m_plater->Reparent(m_tabpanel->GetCurrentPage());
@@ -1208,7 +1205,7 @@ void MainFrame::init_tabpanel()
 
 #endif
         } else {
-            select_tab(MainFrame::TabPosition::tpLastPlater); // select Plater
+            select_tab(MainFrame::TabPosition::tpPlaterGCode); // select Plater
             m_last_selected_plater_tab = 999;
         }
     });
@@ -1506,7 +1503,7 @@ bool MainFrame::can_change_view() const
     case ESettingsLayout::Old:
     case ESettingsLayout::Tabs: {
         int page_id = m_tabpanel->GetSelection();
-        return page_id != wxNOT_FOUND && selected_tab() <= TabPosition::tpLastPlater;
+        return page_id != wxNOT_FOUND && selected_tab() <= TabPosition::tpPlaterGCode;
     }
     case ESettingsLayout::GCodeViewer: { return true; }
     }
@@ -1943,14 +1940,14 @@ void MainFrame::init_menubar_as_editor()
     auto windowMenu = new wxMenu();
     {
         if (m_plater) {
-            append_menu_item(windowMenu, wxID_HIGHEST + 1, _L("3D &Platter Tab") + "\tCtrl+1", _L("Show the editor of the input models"),
+            append_menu_item(windowMenu, wxID_HIGHEST + 1, _L("3D &Plater Tab") + "\tCtrl+1", _L("Show the editor of the input models"),
                 [this](wxCommandEvent&) { select_tab(TabPosition::tpPlater); }, "tab_editor_menu", nullptr,
                 []() {return true; }, this);
-            m_layerpreview_menu_item = append_menu_item(windowMenu, wxID_HIGHEST + 2, _L("Layer previe&w Tab") + "\tCtrl+2", _L("Show the layers from the slicing process"),
-                [this](wxCommandEvent&) { select_tab(TabPosition::tpPlaterPreview); }, "layers", nullptr,
-                []() {return true; }, this);
-            append_menu_item(windowMenu, wxID_HIGHEST + 3, _L("GCode Pre&view Tab") + "\tCtrl+3", _L("Show the preview of the gcode output"),
+            append_menu_item(windowMenu, wxID_HIGHEST + 2, _L("GCode Pre&view Tab") + "\tCtrl+2", _L("Show the preview of the gcode output"),
                 [this](wxCommandEvent&) { select_tab(TabPosition::tpPlaterGCode); }, "tab_preview_menu", nullptr,
+                []() {return true; }, this);
+            append_menu_item(windowMenu, wxID_HIGHEST + 2, _L("Device Tab") + "\tCtrl+3", _L("Show the device tab"),
+                [this](wxCommandEvent&) { select_tab(TabPosition::tpDevice); }, "tab_device_active", nullptr,
                 []() {return true; }, this);
             windowMenu->AppendSeparator();
         }
@@ -2573,7 +2570,7 @@ MainFrame::TabPosition MainFrame::next_preview_tab()
     if (m_layout == ESettingsLayout::Tabs) {
         MainFrame::TabPosition current_tab = selected_tab();
         MainFrame::TabPosition next_tab = MainFrame::TabPosition(uint8_t(current_tab) + 1);
-        if (next_tab == MainFrame::TabPosition::tpLastPlater) next_tab = MainFrame::TabPosition::tpPlater;
+        if (next_tab == MainFrame::TabPosition::tpPlaterGCode) next_tab = MainFrame::TabPosition::tpPlater;
         select_tab(next_tab, true);
         return next_tab;
     } else {
@@ -2610,7 +2607,7 @@ MainFrame::TabPosition MainFrame::selected_tab() const
             //get the selected button, not the selected panel
             bt_idx_sel = notebook->GetBtSelection();
         }
-        if (bt_idx_sel < 3) {
+        if (bt_idx_sel < 4) {
             return TabPosition((uint8_t)TabPosition::tpPlater + bt_idx_sel);
         } else {
             return TabPosition((uint8_t) TabPosition::tpPrintSettings + bt_idx_sel - 3);
@@ -2661,11 +2658,11 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
     auto select = [this, tab](bool was_hidden) {
         // when tab == -1, it means we should show the last selected tab
         size_t new_selection = 0;
-        if (tab <= TabPosition::tpLastPlater) {
+        if (tab <= TabPosition::tpPlaterGCode) {
             //select plater
             new_selection = (uint8_t)tab;
-            if (tab == TabPosition::tpLastPlater)
-                new_selection = m_last_selected_plater_tab > 2 ? 0 : m_last_selected_plater_tab;
+            if (tab == TabPosition::tpPlaterGCode)
+                new_selection = m_last_selected_plater_tab > 3 ? 0 : m_last_selected_plater_tab;
             if (m_layout != ESettingsLayout::Tabs)
                 new_selection = 0;
 
@@ -2676,7 +2673,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 new_selection = m_last_selected_setting_tab > 2 ? 0 : m_last_selected_setting_tab;
             //push to the correct position
             if (m_layout == ESettingsLayout::Tabs)
-                new_selection = new_selection + 2;
+                new_selection = new_selection + 1;
             else if (m_layout != ESettingsLayout::Dlg)
                 new_selection = new_selection + 1;
         }
@@ -2697,7 +2694,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             if (Tab* cur_tab = dynamic_cast<Tab*>(m_tabpanel->GetPage(page_idx)))
               //  update_marker_for_tabs_menu((m_layout != ESettingsLayout::Dlg ? m_menubar : m_settings_dialog.menubar()), cur_tab->title(), new_selection, m_layout);
                 ;
-            else if (tab == TabPosition::tpLastPlater && m_layout == ESettingsLayout::Old)
+            else if (tab == TabPosition::tpPlaterGCode && m_layout == ESettingsLayout::Old)
                 m_plater->get_current_canvas3D()->render();
             else if (m_layout != ESettingsLayout::Dlg)
                 //update_marker_for_tabs_menu( m_menubar, "", new_selection, m_layout);
@@ -2708,22 +2705,22 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
 
                 if (last_sel > 0 && page_idx < 3 && (page_idx == m_last_selected_plater_tab || m_last_selected_plater_tab > 2)) {
                     // hack to set a correct refresh of the app (can't find anythign else that worked) when going from settings to last plater
-                    if (tab == TabPosition::tpPlater || (tab == TabPosition::tpLastPlater && m_last_selected_plater_tab == 0)) {
+                    if (tab == TabPosition::tpPlater || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
                         this->m_plater->select_view_3D("Preview");
                     } else {
                         this->m_plater->select_view_3D("3D");
                     }
                 }
-                if (tab == TabPosition::tpPlater || (tab == TabPosition::tpLastPlater && m_last_selected_plater_tab == 0)) {
+                if (tab == TabPosition::tpPlater || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
                     this->m_plater->select_view_3D("3D");
-                } else if (tab == TabPosition::tpPlaterPreview || (tab == TabPosition::tpLastPlater && m_last_selected_plater_tab == 1)) {
+                } else if (tab == TabPosition::tpPlaterPreview || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 1)) {
                     if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
                         this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
                         this->m_plater->select_view_3D("Preview");
                         this->m_plater->refresh_print();
                     } else
                         this->m_plater->select_view_3D("Preview");
-                } else if (tab == TabPosition::tpPlaterGCode || (tab == TabPosition::tpLastPlater && m_last_selected_plater_tab == 2)) {
+                } else if (tab == TabPosition::tpPlaterGCode || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 2)) {
                     if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
                         this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                         this->m_plater->select_view_3D("Preview");
@@ -2739,7 +2736,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                // notebook->SetBtSelection(new_selection);
         }
 #endif
-        if (tab == TabPosition::tpLastPlater && m_layout == ESettingsLayout::Old)
+        if (tab == TabPosition::tpPlaterGCode && m_layout == ESettingsLayout::Old)
             m_plater->canvas3D()->render();
         else if (was_hidden) {
             Tab* cur_tab = dynamic_cast<Tab*>(m_tabpanel->GetPage(new_selection));
@@ -2748,10 +2745,12 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
         }
     };
 
-    if (m_layout != ESettingsLayout::Tabs) {
-        if (tab == TabPosition::tpPlater || (tab == TabPosition::tpLastPlater && m_last_selected_plater_tab == 0)) {
+    if (m_layout == ESettingsLayout::Tabs) {
+        if (tab == TabPosition::tpPlater || 
+           (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
             m_plater->select_view_3D("3D");
-        } else if (tab == TabPosition::tpPlaterPreview || (tab == TabPosition::tpLastPlater && m_last_selected_plater_tab == 1)) {
+        } else if (tab == TabPosition::tpPlaterGCode ||
+                  (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 1)) {
             m_plater->select_view_3D("Preview");
         
         }
@@ -2760,7 +2759,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
     if (m_layout == ESettingsLayout::Dlg) {
         if (keep_tab_type)
             return;
-        if (tab <= TabPosition::tpLastPlater) {
+        if (tab <= TabPosition::tpPlaterGCode) {
             if (m_settings_dialog.IsShown())
                 this->SetFocus();
             // plater should be focused for correct navigation inside search window
@@ -2796,13 +2795,13 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
     else if (m_layout == ESettingsLayout::Hidden) {
         if (keep_tab_type && m_tabpanel->GetSelection()>0)
             return;
-        m_main_sizer->Show(m_plater, tab <= TabPosition::tpLastPlater);
+        m_main_sizer->Show(m_plater, tab <= TabPosition::tpPlaterGCode);
         tabpanel_was_hidden = !m_main_sizer->IsShown(m_tabpanel);
         select(tabpanel_was_hidden);
-        m_main_sizer->Show(m_tabpanel, tab > TabPosition::tpLastPlater);
+        m_main_sizer->Show(m_tabpanel, tab > TabPosition::tpPlaterGCode);
 
         // plater should be focused for correct navigation inside search window
-        if (tab <= TabPosition::tpLastPlater /*&& m_plater->canvas3D()->is_search_pressed()*/)
+        if (tab <= TabPosition::tpPlaterGCode /*&& m_plater->canvas3D()->is_search_pressed()*/)
             m_plater->SetFocus();
         Layout();
     }
@@ -2821,16 +2820,16 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
         Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
         //get the selected button, not the selected panel
         int bt_idx_sel = notebook->GetBtSelection();
-        if (keep_tab_type && ((bt_idx_sel >= 3 && tab <= TabPosition::tpLastPlater) || (bt_idx_sel < 3 && tab > TabPosition::tpLastPlater))) {
+        if (keep_tab_type && ((bt_idx_sel >= 3 && tab <= TabPosition::tpPlaterGCode) || (bt_idx_sel < 3 && tab > TabPosition::tpPlaterGCode))) {
 #else
-        if (keep_tab_type && ( (m_tabpanel->GetSelection() >=3 && tab <= TabPosition::tpLastPlater) || (m_tabpanel->GetSelection() < 3 && tab > TabPosition::tpLastPlater))) {
+        if (keep_tab_type && ( (m_tabpanel->GetSelection() >=3 && tab <= TabPosition::tpPlaterGCode) || (m_tabpanel->GetSelection() < 3 && tab > TabPosition::tpPlaterGCode))) {
 #endif
             return;
         } else {
             select(false);
-#ifndef _USE_CUSTOM_NOTEBOOK
+#if _USE_CUSTOM_NOTEBOOK
             //force update if change from plater to plater (as it doesn't change the real tab, have to tell him to really update
-            if (m_tabpanel->GetSelection() != int(tab) && m_tabpanel->GetSelection() < int(TabPosition::tpLastPlater)) {
+            if (m_tabpanel->GetSelection() != int(tab) && m_tabpanel->GetSelection() < int(TabPosition::tpPlaterGCode)) {
                 wxBookCtrlEvent evt = wxBookCtrlEvent(wxEVT_BOOKCTRL_PAGE_CHANGED);
                 evt.SetOldSelection(m_tabpanel->GetSelection());
                 wxPostEvent(m_tabpanel->GetEventHandler(), evt);
@@ -3016,12 +3015,9 @@ SettingsDialog::SettingsDialog(MainFrame* mainframe)
             if ((evt.GetModifiers() & wxMOD_CONTROL) != 0) {
                 switch (evt.GetKeyCode()) {
                 case '1': { m_main_frame->select_tab(MainFrame::TabPosition::tpPlater); break; }
-                case '2': { m_main_frame->select_tab(MainFrame::TabPosition::tpPlaterPreview); break; }
-                case '3': { m_main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode); break; }
-                case '4': {
-                    m_main_frame->select_tab(MainFrame::TabPosition::tpPrintSettings);
-                    break;
-                }
+                case '2': { m_main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode); break; }
+                case '3': { m_main_frame->select_tab(MainFrame::TabPosition::tpDevice); break; }
+                case '4': { m_main_frame->select_tab(MainFrame::TabPosition::tpPrintSettings); break; }
                 case '5': { m_main_frame->select_tab(MainFrame::TabPosition::tpFilamentSettings); break; }
                 case '6': { m_main_frame->select_tab(MainFrame::TabPosition::tpPrinterSettings); break; }
 #ifdef __APPLE__

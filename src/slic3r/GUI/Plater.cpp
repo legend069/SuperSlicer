@@ -3474,11 +3474,11 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         } else if (wxGetApp().app_config->get("auto_switch_preview") == "1") {
             main_frame->select_tab(MainFrame::TabPosition::tpPlater, true);
             // auto_switch_preview == 2 means "force tab change only if already on a platter one"
-        } else if (wxGetApp().app_config->get("auto_switch_preview") == "2" || main_frame->selected_tab() < MainFrame::TabPosition::tpLastPlater) {
+        } else if (wxGetApp().app_config->get("auto_switch_preview") == "2" || main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) {
             if (this->preview->can_display_gcode())
                 main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
             else if (this->preview->can_display_volume() && background_process.running()) // don't switch to plater3D if you modify a gcode settign and you don't have background processing
-                main_frame->select_tab(MainFrame::TabPosition::tpPlaterPreview, true);
+                main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
             else
                 main_frame->select_tab(MainFrame::TabPosition::tpPlater, true);
         }
@@ -4216,9 +4216,9 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
 
 void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
 {
-    if( ( wxGetApp().app_config->get("auto_switch_preview") == "1" || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpLastPlater) )
+    if( ( wxGetApp().app_config->get("auto_switch_preview") == "1" || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) )
         && !this->preview->can_display_gcode())
-        main_frame->select_tab(MainFrame::TabPosition::tpPlaterPreview);
+        main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
 
     if (view3D->is_dragging()) // updating scene now would interfere with the gizmo dragging
         delayed_scene_refresh = true;
@@ -4313,7 +4313,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     // auto_switch_preview == 2 means "force tab change only if already on a plater one"
     // auto_switch_preview == 3 means "force tab change only if for gcode"
     if (wxGetApp().app_config->get("auto_switch_preview") == "1" 
-        || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpLastPlater) 
+        || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) 
         || wxGetApp().app_config->get("auto_switch_preview") == "3")
         main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
 

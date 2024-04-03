@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>@SLIC3R_APP_KEY@</string>
+  <string>SliCR-3D-V2</string>
   <key>CFBundleGetInfoString</key>
-  <string>@SLIC3R_APP_NAME@ Copyright (C) 2011-2020 Alessandro Ranellucci, (C) 2016-2022 Prusa Reseach, (C) 2018-2022 Remi Durand</string>
+  <string>SliCR-3D-V2 Copyright (C) 2011-2020 Alessandro Ranellucci, (C) 2016-2022 Prusa Reseach, (C) 2018-2022 Remi Durand</string>
   <key>CFBundleIconFile</key>
-  <string>@SLIC3R_APP_KEY@.icns</string>
+  <string>SliCR-3D-V2.icns</string>
   <key>CFBundleName</key>
-  <string>@SLIC3R_APP_KEY@</string>
+  <string>SliCR-3D-V2</string>
   <key>CFBundleShortVersionString</key>
-  <string>@SLIC3R_APP_NAME@ @SLIC3R_BUILD_ID@</string>
+  <string>SliCR-3D-V2 SliCR-3D-V2_2.5.59.3_2024-03-16</string>
   <key>CFBundleIdentifier</key>
-  <string>org.@SLIC3R_APP_KEY@/</string>
+  <string>org.SliCR-3D-V2/</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
@@ -21,7 +21,7 @@
   <key>CFBundleSignature</key>
   <string>????</string>
   <key>CFBundleVersion</key>
-  <string>@SLIC3R_BUILD_ID@</string>
+  <string>SliCR-3D-V2_2.5.59.3_2024-03-16</string>
   <key>CFBundleDocumentTypes</key>
   <array>
     <dict>
@@ -48,7 +48,7 @@
         <string>OBJ</string>
       </array>
       <key>CFBundleTypeIconFile</key>
-      <string>@SLIC3R_BUILD_ID@.icns</string>
+      <string>SliCR-3D-V2_2.5.59.3_2024-03-16.icns</string>
       <key>CFBundleTypeName</key>
       <string>STL</string>
       <key>CFBundleTypeRole</key>
@@ -65,7 +65,7 @@
         <string>AMF</string>
       </array>
       <key>CFBundleTypeIconFile</key>
-      <string>@SLIC3R_BUILD_ID@.icns</string>
+      <string>SliCR-3D-V2_2.5.59.3_2024-03-16.icns</string>
       <key>CFBundleTypeName</key>
       <string>AMF</string>
       <key>CFBundleTypeRole</key>
@@ -82,7 +82,7 @@
         <string>3MF</string>
       </array>
       <key>CFBundleTypeIconFile</key>
-      <string>@SLIC3R_BUILD_ID@.icns</string>
+      <string>SliCR-3D-V2_2.5.59.3_2024-03-16.icns</string>
       <key>CFBundleTypeName</key>
       <string>3MF</string>
       <key>CFBundleTypeRole</key>
@@ -121,5 +121,9 @@
     <key>ASAN_OPTIONS</key>
     <string>detect_container_overflow=0</string>
   </dict>
+  <key>NSAllowsArbitraryLoads</key>
+  <true/>
+  <key>NSAllowsArbitraryLoadsInWebContent</key>
+  <true/>
 </dict>
 </plist>

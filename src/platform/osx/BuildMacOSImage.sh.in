@@ -38,15 +38,12 @@ echo -n "[9/9] Generating MacOS app..."
     # copy Resources
     cp -Rf ../resources pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/Resources
     cp pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/Resources/icons/@SLIC3R_APP_KEY@.icns pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/resources/@SLIC3R_APP_KEY@.icns
-    cp src/Info.date.plist pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/Info.plist
-    echo -n -e 'APPL????\x0a' > PkgInfo
-    cp PkgInfo pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/PkgInfo
-    # remove unneeded po from resources
-    find pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/Resources/localization -name "*.po" -type f -delete
+    cp src/Info.plist pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/Info.plist
 
     # copy bin and do not let it lower case
     cp -f src/@SLIC3R_APP_CMD@ pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/MacOS/@SLIC3R_APP_KEY@
     chmod u+x pack/@SLIC3R_APP_KEY@/@SLIC3R_APP_KEY@.app/Contents/MacOS/@SLIC3R_APP_KEY@
+    
 } &> $ROOT/Build.log # Capture all command output
 echo "done"
 
@@ -57,8 +54,9 @@ echo -n "Creating DMG Image for distribution..."
     tar -cvf @SLIC3R_APP_KEY@.tar pack/@SLIC3R_APP_KEY@
 
     # create dmg
-    hdiutil create -ov -fs HFS+ -volname "@SLIC3R_APP_KEY@" -srcfolder "pack/@SLIC3R_APP_KEY@" temp.dmg
+    hdiutil create -ov -fs APFS -volname "@SLIC3R_APP_KEY@" -srcfolder "pack/@SLIC3R_APP_KEY@" temp.dmg
     hdiutil convert temp.dmg -format UDZO -o @SLIC3R_APP_KEY@.dmg
+    codesign -s "Apple Development: Stefan Weiss (6FX9BJW9YU)" @SLIC3R_APP_KEY@.dmg
     popd
 } &> $ROOT/Build.log # Capture all command output
 echo "done"

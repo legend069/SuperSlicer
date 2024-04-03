@@ -130,11 +130,10 @@ void Field::PostInitialize()
                 MainFrame::TabPosition tab_id = MainFrame::TabPosition::Any;
                 switch (evt.GetKeyCode()) {
                 case '1': { tab_id = MainFrame::TabPosition::tpPlater; break; }
-                case '2': { tab_id = MainFrame::TabPosition::tpPlaterPreview; break; }
-                case '3': { tab_id = MainFrame::TabPosition::tpPlaterGCode; break; }
-                case '4': { tab_id = MainFrame::TabPosition::tpPrintSettings; break; }
-                case '5': { tab_id = MainFrame::TabPosition::tpFilamentSettings; break; }
-                case '6': { tab_id = MainFrame::TabPosition::tpPrinterSettings; break; }
+                case '2': { tab_id = MainFrame::TabPosition::tpPlaterGCode; break; }
+                case '3': { tab_id = MainFrame::TabPosition::tpPrintSettings; break; }
+                case '4': { tab_id = MainFrame::TabPosition::tpFilamentSettings; break; }
+                case '5': { tab_id = MainFrame::TabPosition::tpPrinterSettings; break; }
 #ifdef __APPLE__
 				case 'f':
 #else /* __APPLE__ */
