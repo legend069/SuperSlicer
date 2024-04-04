@@ -758,7 +758,10 @@ Sidebar::Sidebar(Plater *parent)
 
     // Frequently changed parameters
     p->frequently_changed_parameters = new FreqChangedParams(p->scrolled);
-    p->sizer_params->Add(p->frequently_changed_parameters->get_sizer(), 1, wxLEFT | wxBOTTOM | wxTOP | wxEXPAND, wxOSX ? 1 : margin_5);
+    p->sizer_params->Add(p->frequently_changed_parameters->get_sizer(), 
+                         0, 
+                         wxEXPAND | wxTOP | wxBOTTOM,
+                         wxOSX ? 1 : margin_5);
     
     // Object List
     p->object_list = new ObjectList(p->scrolled);

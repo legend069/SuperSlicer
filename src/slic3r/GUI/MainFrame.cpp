@@ -669,14 +669,13 @@ void MainFrame::update_layout()
 
             notebook->GetBtnsListCtrl()->InsertSpacer(3, 40);
             notebook->GetBtnsListCtrl()->GetPageButton(0)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
-                                                                    this->m_plater->Show();
-
+                this->m_plater->Show();
                 this->m_plater->select_view_3D("3D");
                 //not that useful
                 //this->select_tab(MainFrame::ETabType::tpPlater); // select Plater
                 });
             notebook->GetBtnsListCtrl()->GetPageButton(1)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
-                                                                    this->m_plater->Show();
+                    this->m_plater->Show();
                 if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
                     this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                     this->m_plater->select_view_3D("Preview");
@@ -1110,7 +1109,7 @@ void MainFrame::init_tabpanel()
             switch (bt_idx_sel) {
                 case 0: 
                     this->m_plater->select_view_3D("3D");
-                    
+
                 case 1:
                     if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
                             this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
@@ -1125,8 +1124,8 @@ void MainFrame::init_tabpanel()
                 case 2:
                     DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
                     if (!selected_printer_config) {
-                        // No physical printer found
-                       // wxMessageBox("No physical printer found.", "Warning", wxICON_WARNING | wxOK);
+                        // No physical printer found, show blank screen for now
+
                     }
 
                     m_webView->Show();
@@ -2663,7 +2662,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             //select plater
             new_selection = (uint8_t)tab;
             if (tab == TabPosition::tpPlaterGCode)
-                new_selection = m_last_selected_plater_tab > 3 ? 0 : m_last_selected_plater_tab;
+                new_selection = m_last_selected_plater_tab > 2 ? 0 : m_last_selected_plater_tab;
             if (m_layout != ESettingsLayout::Tabs)
                 new_selection = 0;
 
