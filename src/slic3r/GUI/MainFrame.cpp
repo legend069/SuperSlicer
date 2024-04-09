@@ -360,7 +360,7 @@ static void append_tab_menu_items_to_menubar(wxMenuBar* bar, PrinterTechnology p
         has_marker = true;
         // Add separator
         bar->Append(new wxMenu(), "          ");
-        bar->EnableTop(MAINFRAME_MENU_ITEM_COUNT + 3, false);
+        bar->EnableTop(MAINFRAME_MENU_ITEM_COUNT + 4, false);
     } else if (layout == MainFrame::ESettingsLayout::Old) {
         bar->Append(new wxMenu(), pref() + _L("Platter") + suff());
         has_marker = true;
@@ -386,7 +386,7 @@ static void update_marker_for_tabs_menu(wxMenuBar* bar, const wxString& title, i
         to_remove = 5;
         if (idx > 0) idx++;
     } else if (layout == MainFrame::ESettingsLayout::Tabs) {
-        to_remove = 6;
+        to_remove = 7;
         if (idx > 2) idx++;
     }
     for (size_t id = items_cnt - to_remove; id < items_cnt; id++) {
@@ -664,7 +664,7 @@ void MainFrame::update_layout()
         if (!wxGetApp().tabs_as_menu()) {
             Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
             notebook->InsertBtPage(0, m_plater, _L("3D View"), std::string("tab_editor_menu"), icon_size, true);
-            notebook->InsertFakeBtPage(1, 0, _L("Gcode Preview"), std::string("tab_preview_menu"), icon_size, false);
+            notebook->InsertBtPage(1, m_plater, _L("Gcode Preview"), std::string("tab_preview_menu"), icon_size, false);
             notebook->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
 
             notebook->GetBtnsListCtrl()->InsertSpacer(3, 40);
@@ -1104,7 +1104,7 @@ void MainFrame::init_tabpanel()
             } else {
                 Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
                 //get the selected button, not the selected panel
-                bt_idx_sel = notebook->GetBtSelection();
+                bt_idx_sel = notebook->GetBtSelection() - 1;
             }
 
             switch (bt_idx_sel) {
@@ -2663,9 +2663,9 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             //select plater
             new_selection = (uint8_t)tab;
             if (tab == TabPosition::tpPlaterGCode)
-                new_selection = m_last_selected_plater_tab > 3 ? 0 : m_last_selected_plater_tab;
+                new_selection = (uint8_t)TabPosition::tpPlater;
             if (m_layout != ESettingsLayout::Tabs)
-                new_selection = 0;
+                new_selection = (uint8_t)TabPosition::tpPlater;
 
         } else if (tab <= TabPosition::tpLastSettings) {
             //select setting
