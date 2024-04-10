@@ -1074,11 +1074,7 @@ void MainFrame::init_tabpanel()
         if (m_tabpanel_stop_event)
             return;
 
-        //m_devicePanel = new wxPanel(this);
-        wxBoxSizer *mainSizer   = new wxBoxSizer(wxVERTICAL); // Vertical sizer
-
         wxWindow *panel = m_tabpanel->GetCurrentPage();
-        int       sel   = m_tabpanel->GetSelection();
 
         m_last_selected_tab = m_tabpanel->GetSelection();
 
