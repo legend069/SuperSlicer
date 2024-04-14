@@ -27,8 +27,7 @@ protected:
     wxComboBox* paIncrement;//increment PA by this value -user manual entry~~ or have drop down box ?
     wxComboBox* erPa;       //extrusion role Pressure/Linear Advance -user choice select
     wxComboBox* nbRuns;
-    wxCheckBox* enableST;
-    // add checkbox/s for "smooth_time"
+    wxCheckBox* enableST;   // checkbox for "smooth_time" - klipper only feature?
 
 };
 

@@ -16,7 +16,7 @@
 #include "Jobs/ArrangeJob.hpp"
 #include <unordered_map>
 
-
+#pragma optimize("", off)
 #if ENABLE_SCROLLABLE
 static wxSize get_screen_size(wxWindow* window)
 {
@@ -130,36 +130,39 @@ void CalibrationPressureAdvDialog::create_buttons(wxStdDialogButtonSizer* button
 
     std::string prefix = (gcfMarlinFirmware == flavor) ? " LA " : ((gcfKlipper == flavor || gcfRepRap == flavor) ? " PA " : "unsupported firmware type");
 
-    
-    buttons->Add(new wxStaticText(this, wxID_ANY, _L("Number of tests: ")));
-    buttons->Add(nbRuns);
-    buttons->AddSpacer(15);
-    buttons->Add(new wxStaticText(this, wxID_ANY, _L("First Layers" + prefix + "value: ")));
-    buttons->Add(firstPa);
-    buttons->AddSpacer(15);
-    buttons->Add(new wxStaticText(this, wxID_ANY, _L("Starting" + prefix + "value: ")));
-    buttons->Add(startPa);
-    buttons->AddSpacer(15);
-    buttons->Add(new wxStaticText(this, wxID_ANY, _L("Ending" + prefix + "value: ")));
-    buttons->Add(endPa);
-    buttons->AddSpacer(15);
-    buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix + "increments: ")));
-    buttons->Add(paIncrement);
-    buttons->AddSpacer(15);
-    buttons->Add(new wxStaticText(this, wxID_ANY, _L("Extrusion role: ")));
-    buttons->Add(erPa);
-    if (gcfKlipper == flavor) {
+    if (prefix != "unsupported firmware type"){
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Number of tests: ")));
+        buttons->Add(nbRuns);
         buttons->AddSpacer(15);
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Smooth time: ")));
-        buttons->Add(enableST);
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L("First Layers" + prefix + "value: ")));
+        buttons->Add(firstPa);
+        buttons->AddSpacer(15);
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Starting" + prefix + "value: ")));
+        buttons->Add(startPa);
+        buttons->AddSpacer(15);
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Ending" + prefix + "value: ")));
+        buttons->Add(endPa);
+        buttons->AddSpacer(15);
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix + "increments: ")));
+        buttons->Add(paIncrement);
+        buttons->AddSpacer(15);
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Extrusion role: ")));
+        buttons->Add(erPa);
+        if (gcfKlipper == flavor) {
+            buttons->AddSpacer(15);
+            buttons->Add(new wxStaticText(this, wxID_ANY, _L("Smooth time: ")));
+            buttons->Add(enableST);
+        }
+        buttons->AddSpacer(25);
+
+        wxButton* bt = new wxButton(this, wxID_FILE1, _L("Generate"));
+        bt->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::create_geometry, this);
+        buttons->Add(bt);
+        //this->CenterOnParent();
     }
-    buttons->AddSpacer(25);
-
-
-    wxButton* bt = new wxButton(this, wxID_FILE1, _L("Generate"));
-    bt->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::create_geometry, this);
-    buttons->Add(bt);
-    //this->CenterOnParent();
+    else{
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix)));
+    }
 }
 
 void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
@@ -440,13 +443,15 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
         double initial_number_x = 2.06;//fusion=2.063 mm
         double initial_number_y = 4.12;//fusion=4.125 mm
         double initial_border_x = 1.6;//fusion= 1.6mm
+        double initial_point_xy = 0.69;//fusion = 0.687 mm
 
         double z_scaled_model_height = initial_model_height * (first_layer_height / initial_model_height);
         double xy_scaled_90_bend_x = initial_90_bend_x * er_width_to_scale; 
         double xy_scaled_y = initial_90_bend_y * er_width_to_scale;
         double xy_scaled_x = initial_border_x * er_width_to_scale; //maybe the right border x can be scaled with numbers ?
-        double xy_scaled_number_x = initial_number_x * er_width_to_scale; 
-        double xy_scaled_number_y = initial_number_y * er_width_to_scale;
+        double xy_scaled_number_x = initial_number_x * xyzScale * er_width_to_scale;
+        double xy_scaled_number_y = initial_number_y * xyzScale * er_width_to_scale;
+        double xy_scaled_point_xy = initial_point_xy * xyzScale * er_width_to_scale;
 
 
         double thickness_offset = nozzle_diameter * er_width_to_scale * 2;
@@ -462,6 +467,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
             // BUG: output error if first layer height is lower than base layer height
             //      this can cause the numbers to not "show up" on the preview because the z scale is calculated wrong.
             // ie; first_layer_height=0.1 and base_layer_height =0.20
+            //BUG: if first/base layer height are both .02 numbers don't show up when sliced. doesn't happen with windows, it did for linux ?
         
 
         
@@ -507,104 +513,121 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
             }
         }
         else{//not verify
-            for (int nb_bends = 0; nb_bends <= countincrements -1; nb_bends++){
+            for (int nb_bends = 0; nb_bends < countincrements; nb_bends++){
+                //const double magical_transformation_y_pos = 10.47;
 
                 pressure_tower.back().push_back(add_part(model.objects[objs_idx[id_item]], 
                         (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "scaled_with_nozzle_size" / bend_90_nozzle_size_3mf).string(),
                         Vec3d{ -0.8, double(nb_bends) * (thickness_offset*2) *2 , xyzScale - base_layer_height }, Vec3d{ er_width_to_scale, er_width_to_scale, z_scale_90_bend }));
                 
-                Eigen::Vector3d modelPosition(-0.8, double(nb_bends) * (thickness_offset*2) *2, xyzScale - base_layer_height );
+                Eigen::Vector3d modelPosition(-0.8, (double(nb_bends) * (thickness_offset*2) *2) , xyzScale - base_layer_height );
                 bend_90_positions.push_back(modelPosition);
             }
         }
 
-        for (int nb_bends = 0; nb_bends <= countincrements;nb_bends++){
-            bool enable_old_border = true;
-            if(enable_old_border == true){
-                if(nb_bends == countincrements / 2 ) {//half way point load borders
+        for (int nb_bends = 0; nb_bends < countincrements;nb_bends++){
 
-                    double offset_y = 2 * thickness_offset * 2;
-                    const double magical_transformation_x_pos = 20.6;//what is this, and how is this calculated ? >:(
-                    const double magical_transformation_y_pos = 10.47;//load a model without moving its pos to find see what it is.the number doesn't seem to change regardless of layer heights/nozzle size
-                    Eigen::Vector3d bend_pos_first = bend_90_positions[0];
-                    Eigen::Vector3d bend_pos_mid = bend_90_positions[nb_bends];
-                    Eigen::Vector3d bend_pos_last = bend_90_positions[countincrements-1];
+            if(nb_bends == 1 ) {//only load once. this onyl determines when the borders get loaded, keeping at top of list makes it easier to scroll down to. it can't be '0' since it needs the numbers positions!
 
-                    double left_border_pos_x = (-xy_scaled_90_bend_x / 2) + (xy_scaled_x / 2);
-                    double total_height = (bend_pos_first.y() + magical_transformation_y_pos) + (bend_pos_last.y()+ magical_transformation_y_pos) - 0.8 + offset_y;
-                    double scaled_border_y = ((total_height / initial_90_bend_y) *100) + offset_y;
+                double offset_y = 2 * thickness_offset * 2;
+                double offset_x = 2;
 
-                    double right_pos_border_x = xy_scaled_90_bend_x-(xy_scaled_x / 2);
-                    double scaled_y = (initial_border_x*(xy_scaled_x * 1.5)) / initial_90_bend_y;
-                    double right_border_scaled_x = (xy_scaled_90_bend_x / initial_border_x) * 100 + (xy_scaled_x * 2) ;//maybe scale with numbers?
-                    double bottom_border_pos_x = (initial_border_x * right_border_scaled_x * 0.01) / 2 -0.8;
+                const double magical_transformation_x_pos = 20.6;//what is this, and how is this calculated ? >:(
+                const double magical_transformation_y_pos = 10.47;//load a model without moving its pos to find see what it is.the number doesn't seem to change regardless of layer heights/nozzle size
+                Eigen::Vector3d bend_pos_first = bend_90_positions[0];
+                Eigen::Vector3d bend_pos_mid = bend_90_positions[countincrements/2];
+                Eigen::Vector3d bend_pos_last = bend_90_positions[countincrements-1];
 
-                    //----------
-                    add_part(model.objects[objs_idx[id_item]], 
-                        (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                        Vec3d{ left_border_pos_x + magical_transformation_x_pos, bend_pos_mid.y(), new_z_world_coords }, 
-                                        /*scale*/Vec3d{ xy_scaled_x * 1.5, scaled_border_y*0.01, z_scale_factor }); // Left border
-                    //----------
-                    add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),//maybe the right border x can be scaled with numbers ?
-                        Vec3d{ right_pos_border_x + magical_transformation_x_pos , bend_pos_mid.y(), new_z_world_coords }, 
-                                        /*scale*/Vec3d{ right_border_scaled_x*0.01, scaled_border_y*0.01 , z_scale_factor });// right border
-                    //----------
-                    add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                        Vec3d{ bottom_border_pos_x + magical_transformation_x_pos , bend_pos_first.y() - (offset_y / 1.8) - magical_transformation_y_pos , new_z_world_coords }, 
-                                        /*scale*/Vec3d{ (right_border_scaled_x*2)*0.01, scaled_y, z_scale_factor });//bottom border
-                    //----------
-                    add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                        Vec3d{ bottom_border_pos_x + magical_transformation_x_pos , bend_pos_last.y() - magical_transformation_y_pos + xy_scaled_y +(offset_y/2), new_z_world_coords }, 
-                                        /*scale*/Vec3d{ (right_border_scaled_x*2)*0.01, scaled_y, z_scale_factor });//top border
-                    //  position in printer coords are half of scaled size
-                    //  scale model in percentage from original models xy values!
-                    //----------
-                }
-            }
-        }
-
-
-
-        if (extrusion_role != "Verify") {
-            for (int nb_bends = 0; nb_bends < countincrements; nb_bends++){
-
-                if (nb_bends % 2 == 1) { // Skip generating every second number
-                    continue;
-                }
-
-                Eigen::Vector3d bend_90_pos = bend_90_positions[nb_bends];
-                const double magical_transformation_num_x_pos = 1.03;
-                const double magical_transformation_num_y_pos = -2.06;
-                const double magical_transformation_z_pos = 0.12;//0.1 is the transformation value, but set slightly higher so numbers would be "inside" right border
-
-                double bend_90_y = bend_90_pos.y() - magical_transformation_num_y_pos;
-                double bend_90_x = bend_90_pos.x() + magical_transformation_num_x_pos;
-                double xpos_initial = bend_90_x + magical_transformation_num_x_pos + (xy_scaled_90_bend_x/2);
-                double ypos = bend_90_y + xy_scaled_y -(xy_scaled_number_y/2);
-                double xpos = xpos_initial;
+                Eigen::Vector3d numer_pos_first = number_positions[0];
+                Eigen::Vector3d numer_pos_last = number_positions[6];
+                double total_width = numer_pos_first.x() + numer_pos_last.x() + xy_scaled_number_x;
                 
-                std::string pa_values_string = std::to_string(pa_values[nb_bends]);
-                std::string threemf =".3mf";
-            
-                for (int j = 0; j < 7; ++j) {//not sure how the code will respond with a positive array list? ie ; 100.2 this moves decimal point thus breaking the code from loading model since "..3mf" not a real file
+                double scaled_border_x = (total_width - numer_pos_first.x()) / initial_border_x;
 
-                    std::string numered3mfpath = pa_values_string[j] + threemf;
+                double left_border_pos_x = (-xy_scaled_90_bend_x / 2) + (xy_scaled_x / 2);
+                double total_height = bend_pos_first.y() + bend_pos_last.y() + xy_scaled_y;
+
+                double scaled_border_y = ((total_height / initial_90_bend_y) *100) + offset_y;
+
+                double right_pos_border_x = xy_scaled_90_bend_x-(xy_scaled_x / 2);
+                double scaled_y = (initial_border_x*(xy_scaled_x * 1.5)) / initial_90_bend_y;
+                double right_border_scaled_x = (xy_scaled_90_bend_x / initial_border_x) * 100 + (xy_scaled_x * 2) ;//maybe scale with numbers?
+                double bottom_border_pos_x = (initial_border_x * right_border_scaled_x * 0.01) / 2 -0.8;
+
+                //----------
+                add_part(model.objects[objs_idx[id_item]], 
+                    (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                    Vec3d{ left_border_pos_x + magical_transformation_x_pos, bend_pos_mid.y(), new_z_world_coords }, 
+                                    /*scale*/Vec3d{ xy_scaled_x * 1.5, scaled_border_y*0.01, z_scale_factor }); // Left border
+                //----------
+                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),//maybe the right border x can be scaled with numbers ?
+                    Vec3d{ right_pos_border_x + magical_transformation_x_pos , bend_pos_mid.y(), new_z_world_coords }, //need to fix numbers before i start on this.
+                                    /*scale*/Vec3d{ right_border_scaled_x*0.01, scaled_border_y*0.01 , z_scale_factor });// right border //target for default input paramters = 14.78
+                
+                bool enable_top_bottom = true;
+                if(enable_top_bottom == true){//remove later
+                //----------
+                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                    Vec3d{ bottom_border_pos_x + magical_transformation_x_pos , bend_pos_first.y() - (xy_scaled_y /1.8), new_z_world_coords },
+                                    /*scale*/Vec3d{ (right_border_scaled_x*2)*0.01, scaled_y, z_scale_factor });//bottom border
+                //----------
+                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                    Vec3d{ bottom_border_pos_x + magical_transformation_x_pos , bend_pos_last.y() + (xy_scaled_y /1.8) , new_z_world_coords },
+                                    /*scale*/Vec3d{ (right_border_scaled_x*2)*0.01, scaled_y, z_scale_factor });//top border
+                }     
+                //  position in printer coords are half of scaled size!
+                //  scale model in percentage from original models xy values!
+                //----------
+            }
+        //}
+
+            if (extrusion_role != "Verify") {// possible to load the words for each ER role?
+
+                    if (nb_bends % 2 == 1) { // Skip generating every second number
+                        continue;
+                    }
+
+                    Eigen::Vector3d bend_90_pos = bend_90_positions[nb_bends];
+                    const double magical_transformation_y_pos = 10.47;
+                    const double magical_transformation_num_x_pos = 1.03;
+                    const double magical_transformation_num_y_pos = 2.06;// -2.03
+                    const double magical_transformation_z_pos = 0.12;//0.1 is the transformation value, but set slightly higher so numbers would be "inside" right border this might be dependant on z_scale_factor
+
+                    double bend_90_y = bend_90_pos.y() + magical_transformation_y_pos + (xy_scaled_y/2);
+                    double bend_90_x = bend_90_pos.x() + magical_transformation_num_x_pos;
+                    double xpos_initial = bend_90_x + (xy_scaled_90_bend_x/2) - xy_scaled_number_x + nozzle_diameter;
+                    double ypos_inital = bend_90_y /*+ (xy_scaled_number_y/2)*/;
+                    double ypos_point = bend_90_y - (xy_scaled_number_y/2) - nozzle_diameter;
+
+                    double xpos = xpos_initial;
+                    double ypos = ypos_inital;
                     
-                    if (pa_values_string[j] == '.') {
+                    std::string pa_values_string = std::to_string(pa_values[nb_bends]);
+                    std::string threemf =".3mf";
+                
+                    for (int j = 0; j < 7; ++j) {//not sure how the code will respond with a positive array list? ie ; 100.2 this moves decimal point thus breaking the code from loading model since "..3mf" not a real file
 
-                        add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "point.3mf").string(),
-                            Vec3d{ xpos + xy_scaled_number_x + xyzScale + nozzle_diameter , ypos - xy_scaled_number_y , z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale, xyzScale+(xyzScale/2), z_scale_factor });
+                        std::string numered3mfpath = pa_values_string[j] + threemf;
+                        
+                        if (pa_values_string[j] == '.') {
 
-                        xpos = xpos + xy_scaled_number_x + xyzScale + nozzle_diameter;
+                            add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "point.3mf").string(),
+                                Vec3d{ xpos + xy_scaled_number_x + nozzle_diameter , ypos_point, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale, xyzScale+(xyzScale/2), z_scale_factor });
+
+                            Eigen::Vector3d modelPosition(xpos + xy_scaled_number_x + nozzle_diameter + magical_transformation_num_x_pos, ypos_point, z_scaled_model_height - magical_transformation_z_pos );
+                            number_positions.push_back(modelPosition);
+                            xpos = xpos + xy_scaled_point_xy + (nozzle_diameter * 2 );
+                        }
+                        else if (std::isdigit(pa_values_string[j])) {
+                            
+                            add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / numered3mfpath).string(),
+                                Vec3d{ xpos + xy_scaled_number_x + nozzle_diameter, ypos, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_factor });
+                            
+                            Eigen::Vector3d modelPosition(xpos + xy_scaled_number_x + nozzle_diameter + magical_transformation_num_x_pos, ypos, z_scaled_model_height - magical_transformation_z_pos );
+                            number_positions.push_back(modelPosition);
+                            xpos = xpos + xy_scaled_number_x + nozzle_diameter;
+                        }
                     }
-                    else if (std::isdigit(pa_values_string[j])) {
-                        
-                        add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / numered3mfpath).string(),
-                            Vec3d{ xpos + xyzScale + xy_scaled_number_x + nozzle_diameter, ypos + nozzle_diameter, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale, xyzScale, z_scale_factor });
-                        
-                        xpos = xpos + xyzScale + xy_scaled_number_x + nozzle_diameter;
-                    }
-                }
             }
         }
     }
@@ -670,7 +693,6 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                     er_speed = default_er_speed;
                     er_accel = default_er_accel;
                 }
-
             }
 
             std::string set_advance_prefix ="";
@@ -704,10 +726,10 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
             model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
             model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("gap_fill_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
             if (extrusion_role == "Verify") {
-                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix +"\n; " + er_role ));//user manual type in values
+                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + "\n; " + er_role ));//user manual type in values
             }
             else{
-                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part])));
+                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + "\n; " + extrusion_role ));
             }
             num_part++;
         }
@@ -777,3 +799,4 @@ double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, dou
 
 } // namespace GUI
 } // namespace Slic3r
+#pragma optimize("", on)
