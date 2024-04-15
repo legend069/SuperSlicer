@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - pressure_advance
-  workflow_dispatch:
-
+      - nightly_dev
 jobs:
   build:
 
