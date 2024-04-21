@@ -448,7 +448,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
         double z_scaled_model_height = initial_model_height * (first_layer_height / initial_model_height);
         double xy_scaled_90_bend_x = initial_90_bend_x * er_width_to_scale; 
         double xy_scaled_y = initial_90_bend_y * er_width_to_scale;
-        double xy_scaled_x = initial_border_x * er_width_to_scale; //maybe the right border x can be scaled with numbers ?
+        double xy_scaled_x = initial_border_x * er_width_to_scale;
         double xy_scaled_number_x = initial_number_x * xyzScale * er_width_to_scale;
         double xy_scaled_number_y = initial_number_y * xyzScale * er_width_to_scale;
         double xy_scaled_point_xy = initial_point_xy * xyzScale * er_width_to_scale;
@@ -527,7 +527,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
         for (int nb_bends = 0; nb_bends < countincrements;nb_bends++){
 
-            if(nb_bends == 1 ) {//only load once. this onyl determines when the borders get loaded, keeping at top of list makes it easier to scroll down to. it can't be '0' since it needs the numbers positions!
+            if(nb_bends == 1 && extrusion_role != "Verify") {//only load once. this onyl determines when the borders get loaded, keeping at top of list makes it easier to scroll down to. it can't be '0' since it needs the numbers positions!
 
                 double offset_y = 2 * thickness_offset * 2;
                 double offset_x = 2;
@@ -538,20 +538,21 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                 Eigen::Vector3d bend_pos_mid = bend_90_positions[countincrements/2];
                 Eigen::Vector3d bend_pos_last = bend_90_positions[countincrements-1];
 
-                Eigen::Vector3d numer_pos_first = number_positions[0];
-                Eigen::Vector3d numer_pos_last = number_positions[6];
-                double total_width = numer_pos_first.x() + numer_pos_last.x() + xy_scaled_number_x;
-                
-                double scaled_border_x = (total_width - numer_pos_first.x()) / initial_border_x;
+                Eigen::Vector3d number_pos_first = number_positions[0];
+                Eigen::Vector3d number_pos_mid = number_positions[3];
+                Eigen::Vector3d number_pos_last = number_positions[6];
+                double numbers_total_width = (number_pos_last.x() + (xy_scaled_number_x / 2)) - (number_pos_first.x() - (xy_scaled_number_x / 2));
+                //double scaled_border_x = numbers_total_width + xy_scaled_number_x;
+                double scaled_border_x_percentage = ((numbers_total_width + xy_scaled_number_x) / initial_border_x) * 100;
 
                 double left_border_pos_x = (-xy_scaled_90_bend_x / 2) + (xy_scaled_x / 2);
                 double total_height = bend_pos_first.y() + bend_pos_last.y() + xy_scaled_y;
 
                 double scaled_border_y = ((total_height / initial_90_bend_y) *100) + offset_y;
 
-                double right_pos_border_x = xy_scaled_90_bend_x-(xy_scaled_x / 2);
+                double right_pos_border_x = number_pos_mid.x();
                 double scaled_y = (initial_border_x*(xy_scaled_x * 1.5)) / initial_90_bend_y;
-                double right_border_scaled_x = (xy_scaled_90_bend_x / initial_border_x) * 100 + (xy_scaled_x * 2) ;//maybe scale with numbers?
+                double right_border_scaled_x = (xy_scaled_90_bend_x / initial_border_x) * 100 + (xy_scaled_x * 2) ;
                 double bottom_border_pos_x = (initial_border_x * right_border_scaled_x * 0.01) / 2 -0.8;
 
                 //----------
@@ -560,9 +561,9 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                     Vec3d{ left_border_pos_x + magical_transformation_x_pos, bend_pos_mid.y(), new_z_world_coords }, 
                                     /*scale*/Vec3d{ xy_scaled_x * 1.5, scaled_border_y*0.01, z_scale_factor }); // Left border
                 //----------
-                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),//maybe the right border x can be scaled with numbers ?
-                    Vec3d{ right_pos_border_x + magical_transformation_x_pos , bend_pos_mid.y(), new_z_world_coords }, //need to fix numbers before i start on this.
-                                    /*scale*/Vec3d{ right_border_scaled_x*0.01, scaled_border_y*0.01 , z_scale_factor });// right border //target for default input paramters = 14.78
+                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                    Vec3d{ right_pos_border_x + magical_transformation_x_pos , bend_pos_mid.y(), new_z_world_coords },
+                                    /*scale*/Vec3d{ scaled_border_x_percentage*0.01 , scaled_border_y*0.01 , z_scale_factor });// right border
                 
                 bool enable_top_bottom = true;
                 if(enable_top_bottom == true){//remove later
@@ -583,51 +584,51 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
             if (extrusion_role != "Verify") {// possible to load the words for each ER role?
 
-                    if (nb_bends % 2 == 1) { // Skip generating every second number
-                        continue;
-                    }
+                if (nb_bends % 2 == 1) { // Skip generating every second number
+                    continue;
+                }
 
-                    Eigen::Vector3d bend_90_pos = bend_90_positions[nb_bends];
-                    const double magical_transformation_y_pos = 10.47;
-                    const double magical_transformation_num_x_pos = 1.03;
-                    const double magical_transformation_num_y_pos = 2.06;// -2.03
-                    const double magical_transformation_z_pos = 0.12;//0.1 is the transformation value, but set slightly higher so numbers would be "inside" right border this might be dependant on z_scale_factor
+                Eigen::Vector3d bend_90_pos = bend_90_positions[nb_bends];
+                const double magical_transformation_y_pos = 10.47;
+                const double magical_transformation_num_x_pos = 1.03;
+                const double magical_transformation_num_y_pos = 2.06;// -2.03
+                const double magical_transformation_z_pos = 0.12;//0.1 is the transformation value, but set slightly higher so numbers would be "inside" right border this might be dependant on z_scale_factor
 
-                    double bend_90_y = bend_90_pos.y() + magical_transformation_y_pos + (xy_scaled_y/2);
-                    double bend_90_x = bend_90_pos.x() + magical_transformation_num_x_pos;
-                    double xpos_initial = bend_90_x + (xy_scaled_90_bend_x/2) - xy_scaled_number_x + nozzle_diameter;
-                    double ypos_inital = bend_90_y /*+ (xy_scaled_number_y/2)*/;
-                    double ypos_point = bend_90_y - (xy_scaled_number_y/2) - nozzle_diameter;
+                double bend_90_y = bend_90_pos.y() + magical_transformation_y_pos + (xy_scaled_y/2);
+                double bend_90_x = bend_90_pos.x() + magical_transformation_num_x_pos;
+                double xpos_initial = bend_90_x + (xy_scaled_90_bend_x/2) - xy_scaled_number_x + nozzle_diameter;
+                double ypos_inital = bend_90_y /*+ (xy_scaled_number_y/2)*/;
+                double ypos_point = bend_90_y - (xy_scaled_number_y/2) - nozzle_diameter;
 
-                    double xpos = xpos_initial;
-                    double ypos = ypos_inital;
-                    
-                    std::string pa_values_string = std::to_string(pa_values[nb_bends]);
-                    std::string threemf =".3mf";
+                double xpos = xpos_initial;
+                double ypos = ypos_inital;
                 
-                    for (int j = 0; j < 7; ++j) {//not sure how the code will respond with a positive array list? ie ; 100.2 this moves decimal point thus breaking the code from loading model since "..3mf" not a real file
+                std::string pa_values_string = std::to_string(pa_values[nb_bends]);
+                std::string threemf =".3mf";
+            
+                for (int j = 0; j < 7; ++j) {//not sure how the code will respond with a positive array list? ie ; 100.2 this moves decimal point thus breaking the code from loading model since "..3mf" not a real file
 
-                        std::string numered3mfpath = pa_values_string[j] + threemf;
-                        
-                        if (pa_values_string[j] == '.') {
+                    std::string numered3mfpath = pa_values_string[j] + threemf;
+                    
+                    if (pa_values_string[j] == '.') {
 
-                            add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "point.3mf").string(),
-                                Vec3d{ xpos + xy_scaled_number_x + nozzle_diameter , ypos_point, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale, xyzScale+(xyzScale/2), z_scale_factor });
+                        add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "point.3mf").string(),
+                            Vec3d{ xpos + xy_scaled_number_x + nozzle_diameter , ypos_point, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale * er_width_to_scale, xyzScale+(xyzScale/2), z_scale_factor });
 
-                            Eigen::Vector3d modelPosition(xpos + xy_scaled_number_x + nozzle_diameter + magical_transformation_num_x_pos, ypos_point, z_scaled_model_height - magical_transformation_z_pos );
-                            number_positions.push_back(modelPosition);
-                            xpos = xpos + xy_scaled_point_xy + (nozzle_diameter * 2 );
-                        }
-                        else if (std::isdigit(pa_values_string[j])) {
-                            
-                            add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / numered3mfpath).string(),
-                                Vec3d{ xpos + xy_scaled_number_x + nozzle_diameter, ypos, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_factor });
-                            
-                            Eigen::Vector3d modelPosition(xpos + xy_scaled_number_x + nozzle_diameter + magical_transformation_num_x_pos, ypos, z_scaled_model_height - magical_transformation_z_pos );
-                            number_positions.push_back(modelPosition);
-                            xpos = xpos + xy_scaled_number_x + nozzle_diameter;
-                        }
+                        Eigen::Vector3d modelPosition(xpos + xy_scaled_number_x + nozzle_diameter + magical_transformation_num_x_pos, ypos_point, z_scaled_model_height - magical_transformation_z_pos );
+                        number_positions.push_back(modelPosition);
+                        xpos = xpos + xy_scaled_point_xy + (nozzle_diameter * 2 );
                     }
+                    else if (std::isdigit(pa_values_string[j])) {
+                        
+                        add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / numered3mfpath).string(),
+                            Vec3d{ xpos + xy_scaled_number_x + nozzle_diameter, ypos, z_scaled_model_height - magical_transformation_z_pos }, Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_factor });
+                        
+                        Eigen::Vector3d modelPosition(xpos + xy_scaled_number_x + nozzle_diameter + magical_transformation_num_x_pos, ypos, z_scaled_model_height - magical_transformation_z_pos );
+                        number_positions.push_back(modelPosition);
+                        xpos = xpos + xy_scaled_number_x + nozzle_diameter;
+                    }
+                }
             }
         }
     }
