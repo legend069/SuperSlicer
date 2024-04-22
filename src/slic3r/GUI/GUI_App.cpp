@@ -281,7 +281,7 @@ private:
             version = _L("Version") + " " + std::string(SLIC3R_VERSION_FULL);
 
             // credits infornation
-            credits = _L("SliCR-3D V2 is a skinned version of Slic3r, based on PrusaSlicer by Prusa, SuperSlicer by merill and the original Slic3r by Alessandro Ranellucci & the RepRap community.") + "\n\n" +
+            credits = _L("SliCR-3D is a skinned version of Slic3r, based on PrusaSlicer by Prusa, SuperSlicer by merill and the original Slic3r by Alessandro Ranellucci & the RepRap community.") + "\n\n" +
                         title + " " + _L("is licensed under the") + " " + _L("GNU Affero General Public License, version 3") + ".\n\n" +
                         _L("Contributions by Vojtech Bubnik, Enrico Turri, Durand Remi, Oleksandra Iushchenko, Tamas Meszaros, Lukas Matena, Vojtech Kral, David Kocik and numerous others.");
 
@@ -1321,9 +1321,10 @@ bool GUI_App::on_init_inner()
     mainframe = new MainFrame();
     // hide settings tabs after first Layout
     if (is_editor())
-        mainframe->select_tab(MainFrame::TabPosition::tpLastPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
     else
-        mainframe->select_tab(MainFrame::TabPosition::tpPlaterGCode);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
+
 
     sidebar().obj_list()->init_objects(); // propagate model objects to object list
 //     update_mode(); // !!! do that later

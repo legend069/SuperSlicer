@@ -1104,7 +1104,7 @@ void MainFrame::init_tabpanel()
 
             switch (bt_idx_sel) {
                 case 0: 
-                    this->m_plater->select_view_3D("3D");
+                    this->m_plater->select_view_3D("3D"); 
 
                 case 1:
                     if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
@@ -2659,12 +2659,12 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 new_selection = (uint8_t)TabPosition::tpPlater;
 
         } else if (tab <= TabPosition::tpPrinterSettings) {
-            //select setting
+            // select setting
             new_selection = (uint8_t) tab - (uint8_t) TabPosition::tpPrintSettings;
             if (tab == TabPosition::tpLastSettings)
                 new_selection = m_last_selected_setting_tab > 2 ? 0 : m_last_selected_setting_tab;
 
-            //push to the correct position
+            // push to the correct position
             if (m_layout == ESettingsLayout::Tabs)
                 new_selection = new_selection + 3;
             else if (m_layout != ESettingsLayout::Dlg)

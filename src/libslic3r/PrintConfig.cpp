@@ -2282,34 +2282,31 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("%");
     def->min = 0;
     def->max = 100;
+
     def->enum_values.push_back("0");
-    def->enum_values.push_back("4");
-    def->enum_values.push_back("5.5");
-    def->enum_values.push_back("7.5");
+    def->enum_values.push_back("5");
     def->enum_values.push_back("10");
-    def->enum_values.push_back("13");
-    def->enum_values.push_back("18");
-    def->enum_values.push_back("23");
-    def->enum_values.push_back("31");
-    def->enum_values.push_back("42");
+    def->enum_values.push_back("15");
+    def->enum_values.push_back("20");
+    def->enum_values.push_back("25");
+    def->enum_values.push_back("30");
+    def->enum_values.push_back("35");
+    def->enum_values.push_back("40");
+    def->enum_values.push_back("45");
+    def->enum_values.push_back("50");
     def->enum_values.push_back("55");
+    def->enum_values.push_back("60");
+    def->enum_values.push_back("65");
+    def->enum_values.push_back("70");
     def->enum_values.push_back("75");
+    def->enum_values.push_back("80");
+    def->enum_values.push_back("85");
+    def->enum_values.push_back("90");
+    def->enum_values.push_back("95");
     def->enum_values.push_back("100");
-    def->enum_labels.push_back("0");
-    def->enum_labels.push_back("4");
-    def->enum_labels.push_back("5.5");
-    def->enum_labels.push_back("7.5");
-    def->enum_labels.push_back("10");
-    def->enum_labels.push_back("13");
-    def->enum_labels.push_back("18");
-    def->enum_labels.push_back("23");
-    def->enum_labels.push_back("31");
-    def->enum_labels.push_back("42");
-    def->enum_labels.push_back("55");
-    def->enum_labels.push_back("75");
-    def->enum_labels.push_back("100");
+
     def->mode = comSimpleAE | comPrusa;
-    def->set_default_value(new ConfigOptionPercent(18));
+    def->set_default_value(new ConfigOptionPercent(20));
 
     def = this->add("fill_pattern", coEnum);
     def->label = L("Pattern");
@@ -3420,7 +3417,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Use only as safeguards"));
     def->enum_labels.push_back(L("Disable"));
     def->mode = comAdvancedE | comPrusa;
-    def->set_default_value(new ConfigOptionEnum<MachineLimitsUsage>(MachineLimitsUsage::TimeEstimateOnly));
+    def->set_default_value(new ConfigOptionEnum<MachineLimitsUsage>(MachineLimitsUsage::Ignore));
 
     {
         struct AxisDefault {

@@ -4221,7 +4221,7 @@ void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
 {
     if( ( wxGetApp().app_config->get("auto_switch_preview") == "1" || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) )
         && !this->preview->can_display_gcode())
-        main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
+        main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
 
     if (view3D->is_dragging()) // updating scene now would interfere with the gizmo dragging
         delayed_scene_refresh = true;
@@ -4318,7 +4318,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     if (wxGetApp().app_config->get("auto_switch_preview") == "1" 
         || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) 
         || wxGetApp().app_config->get("auto_switch_preview") == "3")
-        main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
+        main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
 
     // Reset the "export G-code path" name, so that the automatic background processing will be enabled again.
     this->background_process.reset_export();

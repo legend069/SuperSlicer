@@ -123,7 +123,7 @@ void CalibrationOverBridgeDialog::create_geometry(bool over_bridge) {
         model.objects[objs_idx[i]]->config.set_key_value("perimeters", new ConfigOptionInt(2));
         model.objects[objs_idx[i]]->config.set_key_value("bottom_solid_layers", new ConfigOptionInt(0));
         model.objects[objs_idx[i]]->config.set_key_value("top_solid_layers", new ConfigOptionInt(3));
-        model.objects[objs_idx[i]]->config.set_key_value("fill_density", new ConfigOptionPercent(5.5));
+        model.objects[objs_idx[i]]->config.set_key_value("fill_density", new ConfigOptionPercent(5));
         model.objects[objs_idx[i]]->config.set_key_value("fill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
         model.objects[objs_idx[i]]->config.set_key_value("infill_dense", new ConfigOptionBool(false));
         model.objects[objs_idx[i]]->config.set_key_value("ironing", new ConfigOptionBool(false));
