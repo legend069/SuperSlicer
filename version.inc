@@ -8,10 +8,10 @@ set(SLIC3R_APP_KEY "SliCR-3D-V2")
 # exe name of the slicer, should be lowercase and valid in all os
 set(SLIC3R_APP_CMD "SliCR-3D-V2")
 # versions
-set(SLIC3R_VERSION "2.5.59")
-set(SLIC3R_VERSION_FULL "2.5.59.3")
+set(SLIC3R_VERSION "2.6.0")
+set(SLIC3R_VERSION_FULL "2.6.0.0")
 set(SLIC3R_BUILD_ID "${SLIC3R_APP_KEY}_${SLIC3R_VERSION_FULL}_2024-03-16")
-set(SLIC3R_RC_VERSION "2,5,59,3")
+set(SLIC3R_RC_VERSION "2,6,00,0")
 set(SLIC3R_RC_VERSION_DOTS "${SLIC3R_VERSION_FULL}")
 
 # Same as the slicer name but for gcodeviewer
@@ -20,7 +20,7 @@ set(GCODEVIEWER_APP_KEY "${SLIC3R_APP_KEY}-gcodeviewer")
 set(GCODEVIEWER_APP_CMD "${SLIC3R_APP_CMD}-gcodeviewer")
 
 # string to be added after the SLIC3R_APP_NAME on some places
-set(SLIC3R_BASED_ON " based on PrusaSlicer")
+set(SLIC3R_BASED_ON " based on PrusaSlicer and SuperSlicer")
 # to get he github repo
 set(SLIC3R_GITHUB "supermerill/SuperSlicer")
 # download url

@@ -2731,7 +2731,13 @@ PageShp TabFilament::create_filament_overrides_page()
 
     const int extruder_idx = 0; // #ys_FIXME
 
-    for (const std::string opt_key : {  "filament_retract_before_wipe",
+    for (const std::string opt_key :  {
+                                        "filament_retract_layer_change", 
+                                        "filament_wipe", 
+                                        "filament_wipe_inside_end", 
+                                        "filament_wipe_inside_start",
+                                        "filament_wipe_only_crossing",
+                                        "filament_retract_before_wipe",
                                         "filament_retract_length",
                                         "filament_retract_lift",
                                         "filament_retract_lift_above",
@@ -2741,14 +2747,9 @@ PageShp TabFilament::create_filament_overrides_page()
                                         "filament_retract_restart_extra",
                                         "filament_retract_before_travel",
                                         "filament_retract_lift_before_travel",
-                                        "filament_retract_layer_change",
                                         "filament_seam_gap",
-                                        "filament_wipe",
                                         "filament_wipe_extra_perimeter",
                                         "filament_wipe_inside_depth",
-                                        "filament_wipe_inside_end",
-                                        "filament_wipe_inside_start",
-                                        "filament_wipe_only_crossing",
                                         "filament_wipe_speed"
                                      })
         append_single_option_line(opt_key, extruder_idx);

@@ -2540,27 +2540,6 @@ void MainFrame::load_config(const DynamicPrintConfig& config)
 #endif
 }
 
-void MainFrame::select_tab(Tab* tab)
-{
-    if (!tab)
-        return;
-    TabPosition tab_type = TabPosition::tpLastSettings;
-    switch (tab->type()) {
-    case Preset::Type::TYPE_FFF_FILAMENT:
-    case Preset::Type::TYPE_SLA_MATERIAL:
-        tab_type = TabPosition::tpFilamentSettings;
-        break;
-    case Preset::Type::TYPE_FFF_PRINT:
-    case Preset::Type::TYPE_SLA_PRINT: tab_type = TabPosition::tpPrintSettings;
-        break;
-    case Preset::Type::TYPE_PRINTER:
-        tab_type = TabPosition::tpPrinterSettings;
-        break;
-    }
-    select_tab(tab_type);
-
-}
-
 MainFrame::TabPosition MainFrame::next_preview_tab()
 {
     if (m_layout == ESettingsLayout::Tabs) {
@@ -2639,6 +2618,23 @@ MainFrame::TabPosition MainFrame::selected_tab() const
     return TabPosition::tpPlater;
 }
 
+
+void MainFrame::select_tab(Tab *tab)
+{
+    if (!tab)
+        return;
+    TabPosition tab_type = TabPosition::tpLastSettings;
+    switch (tab->type()) {
+    case Preset::Type::TYPE_FFF_FILAMENT:
+    case Preset::Type::TYPE_SLA_MATERIAL: tab_type = TabPosition::tpFilamentSettings; break;
+    case Preset::Type::TYPE_FFF_PRINT:
+    case Preset::Type::TYPE_SLA_PRINT: tab_type = TabPosition::tpPrintSettings; break;
+    case Preset::Type::TYPE_PRINTER: tab_type = TabPosition::tpPrinterSettings; break;
+    }
+    select_tab(tab_type);
+}
+
+
 void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
 {
     bool tabpanel_was_hidden = false;
@@ -2662,16 +2658,17 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             if (m_layout != ESettingsLayout::Tabs)
                 new_selection = (uint8_t)TabPosition::tpPlater;
 
-        } else if (tab <= TabPosition::tpLastSettings) {
+        } else if (tab <= TabPosition::tpPrinterSettings) {
             //select setting
             new_selection = (uint8_t) tab - (uint8_t) TabPosition::tpPrintSettings;
             if (tab == TabPosition::tpLastSettings)
                 new_selection = m_last_selected_setting_tab > 2 ? 0 : m_last_selected_setting_tab;
+
             //push to the correct position
             if (m_layout == ESettingsLayout::Tabs)
-                new_selection = new_selection + 1;
+                new_selection = new_selection + 3;
             else if (m_layout != ESettingsLayout::Dlg)
-                new_selection = new_selection + 1;
+                new_selection = new_selection + 3;
         }
 
 #if _USE_CUSTOM_NOTEBOOK

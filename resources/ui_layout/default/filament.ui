@@ -7,19 +7,24 @@ group:filament_spool_weight_event:Filament
 	setting:filament_density
 	setting:filament_cost
 	setting:filament_spool_weight
+
 group:Temperature °C
+	setting:chamber_temperature
+
 	line:Extruder
 		setting:first_layer_temperature
 		setting:temperature
 	end_line
+
 	line:Bed
 		setting:first_layer_bed_temperature
 		setting:label:Other layers:bed_temperature
 	end_line
-	setting:chamber_temperature
+
 group:Filament properties
-	setting:width$7:filament_type
 	setting:filament_soluble
+
+	setting:width$7:filament_type
 	setting:filament_shrink
 	setting:filament_max_overlap
 group:Print speed override
@@ -66,10 +71,12 @@ group:Behavior
 page:Multimaterial:funnel
 group:Multimaterial toolchange temperature 
 	setting:filament_enable_toolchange_temp
-	setting:filament_toolchange_temp 
 	setting:filament_use_fast_skinnydip
 	setting:filament_enable_toolchange_part_fan
+
+	setting:filament_toolchange_temp 
 	setting:filament_toolchange_part_fan_speed
+	
 group:Multimaterial toolchange string reduction
 	setting:filament_use_skinnydip 
 	setting:filament_skinnydip_distance
