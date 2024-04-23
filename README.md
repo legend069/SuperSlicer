@@ -1,25 +1,25 @@
 
-[![you can get this shield at shields.io](https://img.shields.io/discord/771316156203270154?color=7289da&logo=discord&logoColor=white)](https://github.com/supermerill/SuperSlicer/issues/611#issuecomment-907833287) [![you can get this shield at shields.io](https://img.shields.io/reddit/subreddit-subscribers/slic3r)](https://reddit.com/r/slic3r) [![you can get this shield at shields.io](https://img.shields.io/github/discussions/supermerill/superslicer)](https://github.com/supermerill/SuperSlicer/discussions)
+[![you can get this shield at shields.io](https://img.shields.io/discord/771316156203270154?color=7289da&logo=discord&logoColor=white)](https://github.com/supermerill/SliCR-3D/issues/611#issuecomment-907833287) [![you can get this shield at shields.io](https://img.shields.io/reddit/subreddit-subscribers/slic3r)](https://reddit.com/r/slic3r) [![you can get this shield at shields.io](https://img.shields.io/github/discussions/supermerill/SliCR-3D)](https://github.com/supermerill/SliCR-3D/discussions)
 
-[![Packaging status](https://repology.org/badge/tiny-repos/superslicer.svg)](https://repology.org/project/superslicer/versions) [![you can get this shield at shields.io](https://img.shields.io/chocolatey/v/superslicer)](https://community.chocolatey.org/packages/superslicer) [![you can get this shield at shields.io](https://img.shields.io/homebrew/cask/v/superslicer)](https://formulae.brew.sh/cask/superslicer) [![you can get this shield at shields.io](https://img.shields.io/archlinux/v/extra/x86_64/superslicer)](https://archlinux.org/packages/extra/x86_64/superslicer/)
-# SuperSlicer
+[![Packaging status](https://repology.org/badge/tiny-repos/SliCR-3D.svg)](https://repology.org/project/SliCR-3D/versions) [![you can get this shield at shields.io](https://img.shields.io/chocolatey/v/SliCR-3D)](https://community.chocolatey.org/packages/SliCR-3D) [![you can get this shield at shields.io](https://img.shields.io/homebrew/cask/v/SliCR-3D)](https://formulae.brew.sh/cask/SliCR-3D) [![you can get this shield at shields.io](https://img.shields.io/archlinux/v/extra/x86_64/SliCR-3D)](https://archlinux.org/packages/extra/x86_64/SliCR-3D/)
+# SliCR-3D
 
-**A PrusaSlicer fork (which is a slic3r fork)** (previously Slic3r++)
+**A SuperSlicer & PrusaSlicer fork (which is a slic3r fork)** (previously Slic3r++)
 
-Prebuilt Windows, Linux and macOS 64-bit releases are available through the [git releases page](https://github.com/supermerill/SuperSlicer/releases). The Linux & macOS builds aren't tested (by me), just compiled, so please report any bugs that may occur during use.  
+Prebuilt Windows, Linux and macOS 64-bit releases are available through the [git releases page](https://github.com/supermerill/SliCR-3D/releases). The Linux & macOS builds aren't tested (by me), just compiled, so please report any bugs that may occur during use.  
 For **installers**, check the badges above. Windows users can use chocolatey or scoop.  
-Nightly builds are available through the [git actions page](https://github.com/supermerill/SuperSlicer/actions). Click on the build for your platform and then on the archive name (`nightly_win64` or `SuperSlicer-gtk2.AppImage` or `nightly_macos.dmg`) in the "Artifacts" section in the top right corner.
+Nightly builds are available through the [git actions page](https://github.com/supermerill/SliCR-3D/actions). Click on the build for your platform and then on the archive name (`nightly_win64` or `SliCR-3D-gtk2.AppImage` or `nightly_macos.dmg`) in the "Artifacts" section in the top right corner.
 
-SuperSlicer takes 3D models (STL, OBJ, AMF) and converts them into G-code
+SliCR-3D takes 3D models (STL, OBJ, AMF) and converts them into G-code
 instructions for FFF printers or PNG layers for mSLA 3D printers. It's compatible with any modern printer based on the RepRap toolchain which is running a firmware based on Marlin, Prusa, Klipper, etc.
 
-SuperSlicer is based on [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research.
+SliCR-3D is based on [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research and on [SuperSlicer](https://github.com/supermerill/SuperSlicer) by supermerill.
 PrusaSlicer is based on [Slic3r](https://github.com/Slic3r/Slic3r) by Alessandro Ranellucci and the RepRap community.
 
-See the [wiki](https://github.com/supermerill/SuperSlicer/wiki) and
+See the [wiki](https://github.com/supermerill/SliCR-3D/wiki) and
 the [documentation directory](doc/) for information about compilation.
 
-### What are SuperSlicer main features? main new features/differences?
+### What are SliCR-3D main features? main new features/differences?
 
 * Custom-made generated calibration tests.
 * new settings to fine-tune the top surface quality, like 'only one perimeter on top'.
@@ -35,11 +35,12 @@ the [documentation directory](doc/) for information about compilation.
 * Many other little options and corrections (like the filled concentric pattern).
 * It has also all the current slic3rPE/PrusaSlicer features.
 
-### Complete changelog [here](https://github.com/supermerill/SuperSlicer/wiki)
+
+### Complete changelog [here](https://github.com/supermerill/SliCR-3D/wiki)
 
 See the wiki for examples.
 
-### What are SuperSlicer / PrusaSlicer / Slic3r's main features?
+### What are SliCR-3D / PrusaSlicer / Slic3r's main features?
 
 Key features are:
 
@@ -98,8 +99,8 @@ changes. This way we can ensure that nobody wastes their time and no conflicts a
 
 ## License and attribution
 
-SuperSlicer is licensed under the _GNU Affero General Public License, version 3_.
-SuperSlicer is based on PrusaSlicer by PrusaResearch.
+SliCR-3D is licensed under the _GNU Affero General Public License, version 3_.
+SliCR-3D is based on PrusaSlicer by PrusaResearch.
 
 PrusaSlicer is licensed under the _GNU Affero General Public License, version 3_.
 PrusaSlicer is owned by Prusa Research.
