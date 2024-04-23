@@ -1,14 +1,14 @@
 
-[![you can get this shield at shields.io](https://img.shields.io/discord/771316156203270154?color=7289da&logo=discord&logoColor=white)](https://github.com/supermerill/SliCR-3D/issues/611#issuecomment-907833287) [![you can get this shield at shields.io](https://img.shields.io/reddit/subreddit-subscribers/slic3r)](https://reddit.com/r/slic3r) [![you can get this shield at shields.io](https://img.shields.io/github/discussions/supermerill/SliCR-3D)](https://github.com/supermerill/SliCR-3D/discussions)
+[![you can get this shield at shields.io](https://img.shields.io/discord/771316156203270154?color=7289da&logo=discord&logoColor=white)](https://github.com/supermerill/SliCR-3D/issues/611#issuecomment-907833287) ![Website](https://img.shields.io/website?url=https%3A%2F%2Fwww.cr3d.de&up_message=ONLINE&down_message=OFFLINE&style=flat&label=CR3D&color=%231a7476)
 
-[![Packaging status](https://repology.org/badge/tiny-repos/SliCR-3D.svg)](https://repology.org/project/SliCR-3D/versions) [![you can get this shield at shields.io](https://img.shields.io/chocolatey/v/SliCR-3D)](https://community.chocolatey.org/packages/SliCR-3D) [![you can get this shield at shields.io](https://img.shields.io/homebrew/cask/v/SliCR-3D)](https://formulae.brew.sh/cask/SliCR-3D) [![you can get this shield at shields.io](https://img.shields.io/archlinux/v/extra/x86_64/SliCR-3D)](https://archlinux.org/packages/extra/x86_64/SliCR-3D/)
+
 # SliCR-3D
 
 **A SuperSlicer & PrusaSlicer fork (which is a slic3r fork)** (previously Slic3r++)
 
-Prebuilt Windows, Linux and macOS 64-bit releases are available through the [git releases page](https://github.com/supermerill/SliCR-3D/releases). The Linux & macOS builds aren't tested (by me), just compiled, so please report any bugs that may occur during use.  
+Prebuilt Windows, Linux and macOS 64-bit releases are available through the [git releases page](https://github.com/CR-3D/SliCR-3D/releases). The Linux & macOS builds aren't tested (by me), just compiled, so please report any bugs that may occur during use.  
 For **installers**, check the badges above. Windows users can use chocolatey or scoop.  
-Nightly builds are available through the [git actions page](https://github.com/supermerill/SliCR-3D/actions). Click on the build for your platform and then on the archive name (`nightly_win64` or `SliCR-3D-gtk2.AppImage` or `nightly_macos.dmg`) in the "Artifacts" section in the top right corner.
+Nightly builds are available through the [git actions page](https://github.com/CR-3D/SliCR-3D/actions). Click on the build for your platform and then on the archive name (`nightly_win64` or `SliCR-3D-gtk2.AppImage` or `nightly_macos.dmg`) in the "Artifacts" section in the top right corner.
 
 SliCR-3D takes 3D models (STL, OBJ, AMF) and converts them into G-code
 instructions for FFF printers or PNG layers for mSLA 3D printers. It's compatible with any modern printer based on the RepRap toolchain which is running a firmware based on Marlin, Prusa, Klipper, etc.
