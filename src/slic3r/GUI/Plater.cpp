@@ -530,14 +530,11 @@ void FreqChangedParams::Show(bool visible) {
 
 void FreqChangedParams::Show(PrinterTechnology tech)
 {
-    const bool is_wdb_shown = m_wiping_dialog_button->IsShown();
+    const bool is_wdb_shown = false;
     m_og->Show( (tech & PrinterTechnology::ptFFF) != 0);
     for (auto& entry : m_og_other)
         entry.second->Show( (entry.first & tech) != 0);
 
-    // correct showing of the FreqChangedParams sizer when m_wiping_dialog_button is hidden 
-    if ((tech & PrinterTechnology::ptFFF) != 0 && !is_wdb_shown)
-        m_wiping_dialog_button->Hide();
 }
 
 ConfigOptionsGroup* FreqChangedParams::get_og(PrinterTechnology tech)
@@ -760,7 +757,7 @@ Sidebar::Sidebar(Plater *parent)
     p->frequently_changed_parameters = new FreqChangedParams(p->scrolled);
     p->sizer_params->Add(p->frequently_changed_parameters->get_sizer(), 
                          0, 
-                         wxEXPAND | wxTOP | wxBOTTOM,
+                         wxLEFT | wxEXPAND | wxALIGN_CENTER,
                          wxOSX ? 1 : margin_5);
     
     // Object List

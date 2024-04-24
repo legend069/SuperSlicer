@@ -1098,6 +1098,7 @@ void Tab::reload_config()
     for (PageShp page : m_pages) {
         if (page.get() != m_active_page) {
             DynamicPrintConfig config = static_cast<TabPrinter *>(this)->m_preset_bundle->full_config();
+            
             if (config.has("nozzle_diameter")) {
                 size_t nozzle_diameters_count = static_cast<ConfigOptionFloats *>(config.option("nozzle_diameter"))->values.size();
 
@@ -1110,6 +1111,8 @@ void Tab::reload_config()
                 // ask for activated the preset even if the gui isn't created, as the script may want to modify the conf.
                 group->update_script_presets(true);
                 }
+            } else if (config.has("is_extruder_used")) {
+                std::cout << "Found;";
             }
         }
     }

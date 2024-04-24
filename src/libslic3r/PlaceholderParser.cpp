@@ -170,724 +170,727 @@ namespace px = boost::phoenix;
 
 namespace client
 {
-    template<typename Iterator>
-    struct OptWithPos {
-        OptWithPos() {}
-        OptWithPos(ConfigOptionConstPtr opt, boost::iterator_range<Iterator> it_range) : opt(opt), it_range(it_range) {}
-        ConfigOptionConstPtr             opt = nullptr;
-        boost::iterator_range<Iterator>  it_range;
-    };
+template<typename Iterator>
+struct OptWithPos {
+    OptWithPos() {}
+    OptWithPos(ConfigOptionConstPtr opt, boost::iterator_range<Iterator> it_range) : opt(opt), it_range(it_range) {}
+    ConfigOptionConstPtr             opt = nullptr;
+    boost::iterator_range<Iterator>  it_range;
+};
 
-    template<typename ITERATOR>
-    std::ostream& operator<<(std::ostream& os, OptWithPos<ITERATOR> const& opt)
+template<typename ITERATOR>
+std::ostream& operator<<(std::ostream& os, OptWithPos<ITERATOR> const& opt)
+{
+    os << std::string(opt.it_range.begin(), opt.it_range.end());
+    return os;
+}
+
+template<typename Iterator>
+struct expr
+{
+    expr() : type(TYPE_EMPTY) {}
+    explicit expr(bool b) : type(TYPE_BOOL) { data.b = b; }
+    explicit expr(bool b, const Iterator &it_begin, const Iterator &it_end) : type(TYPE_BOOL), it_range(it_begin, it_end) { data.b = b; }
+    explicit expr(int i) : type(TYPE_INT) { data.i = i; }
+    explicit expr(int i, const Iterator &it_begin, const Iterator &it_end) : type(TYPE_INT), it_range(it_begin, it_end) { data.i = i; }
+    explicit expr(double d) : type(TYPE_DOUBLE) { data.d = d; }
+    explicit expr(double d, const Iterator &it_begin, const Iterator &it_end) : type(TYPE_DOUBLE), it_range(it_begin, it_end) { data.d = d; }
+    explicit expr(const char *s) : type(TYPE_STRING) { data.s = new std::string(s); }
+    explicit expr(const std::string &s) : type(TYPE_STRING) { data.s = new std::string(s); }
+    explicit expr(const std::string &s, const Iterator &it_begin, const Iterator &it_end) :
+    type(TYPE_STRING), it_range(it_begin, it_end) { data.s = new std::string(s); }
+    expr(const expr &rhs) : type(rhs.type), it_range(rhs.it_range)
+    { if (rhs.type == TYPE_STRING) data.s = new std::string(*rhs.data.s); else data.set(rhs.data); }
+    explicit expr(expr &&rhs) : type(rhs.type), it_range(rhs.it_range)
+    { data.set(rhs.data); rhs.type = TYPE_EMPTY; }
+    explicit expr(expr &&rhs, const Iterator &it_begin, const Iterator &it_end) : type(rhs.type), it_range(it_begin, it_end)
+    { data.set(rhs.data); rhs.type = TYPE_EMPTY; }
+    ~expr() { this->reset(); }
+    
+    expr &operator=(const expr &rhs)
     {
-        os << std::string(opt.it_range.begin(), opt.it_range.end());
-        return os;
+        this->type      = rhs.type;
+        this->it_range  = rhs.it_range;
+        if (rhs.type == TYPE_STRING)
+            this->data.s = new std::string(*rhs.data.s);
+        else
+            this->data.set(rhs.data);
+        return *this;
     }
-
-    template<typename Iterator>
-    struct expr
+    
+    expr &operator=(expr &&rhs)
     {
-                 expr() : type(TYPE_EMPTY) {}
-        explicit expr(bool b) : type(TYPE_BOOL) { data.b = b; }
-        explicit expr(bool b, const Iterator &it_begin, const Iterator &it_end) : type(TYPE_BOOL), it_range(it_begin, it_end) { data.b = b; }
-        explicit expr(int i) : type(TYPE_INT) { data.i = i; }
-        explicit expr(int i, const Iterator &it_begin, const Iterator &it_end) : type(TYPE_INT), it_range(it_begin, it_end) { data.i = i; }
-        explicit expr(double d) : type(TYPE_DOUBLE) { data.d = d; }
-        explicit expr(double d, const Iterator &it_begin, const Iterator &it_end) : type(TYPE_DOUBLE), it_range(it_begin, it_end) { data.d = d; }
-        explicit expr(const char *s) : type(TYPE_STRING) { data.s = new std::string(s); }
-        explicit expr(const std::string &s) : type(TYPE_STRING) { data.s = new std::string(s); }
-        explicit expr(const std::string &s, const Iterator &it_begin, const Iterator &it_end) : 
-            type(TYPE_STRING), it_range(it_begin, it_end) { data.s = new std::string(s); }
-                 expr(const expr &rhs) : type(rhs.type), it_range(rhs.it_range)
-            { if (rhs.type == TYPE_STRING) data.s = new std::string(*rhs.data.s); else data.set(rhs.data); }
-        explicit expr(expr &&rhs) : type(rhs.type), it_range(rhs.it_range)
-            { data.set(rhs.data); rhs.type = TYPE_EMPTY; }
-        explicit expr(expr &&rhs, const Iterator &it_begin, const Iterator &it_end) : type(rhs.type), it_range(it_begin, it_end)
-            { data.set(rhs.data); rhs.type = TYPE_EMPTY; }
-        ~expr() { this->reset(); }
-
-        expr &operator=(const expr &rhs) 
-        { 
-            this->type      = rhs.type;
-            this->it_range  = rhs.it_range;
-            if (rhs.type == TYPE_STRING) 
-                this->data.s = new std::string(*rhs.data.s);
-            else 
-                this->data.set(rhs.data);
-            return *this; 
-        }
-
-        expr &operator=(expr &&rhs) 
-        { 
-            type            = rhs.type;
-            this->it_range  = rhs.it_range;
-            data.set(rhs.data);
-            rhs.type        = TYPE_EMPTY;
-            return *this;
-        }
-
-        void                reset()   
-        { 
-            if (this->type == TYPE_STRING) 
-                delete data.s;
-            this->type = TYPE_EMPTY;
-        }
-
-        bool&               b()       { return data.b; }
-        bool                b() const { return data.b; }
-        void                set_b(bool v) { this->reset(); this->data.b = v; this->type = TYPE_BOOL; }
-        int&                i()       { return data.i; }
-        int                 i() const { return data.i; }
-        void                set_i(int v) { this->reset(); this->data.i = v; this->type = TYPE_INT; }
-        int                 as_i() const { return (this->type == TYPE_INT) ? this->i() : int(this->d()); }
-        int                 as_i_rounded() const { return (this->type == TYPE_INT) ? this->i() : int(std::round(this->d())); }
-        double&             d()       { return data.d; }
-        double              d() const { return data.d; }
-        void                set_d(double v) { this->reset(); this->data.d = v; this->type = TYPE_DOUBLE; }
-        double              as_d() const { return (this->type == TYPE_DOUBLE) ? this->d() : double(this->i()); }
-        std::string&        s()       { return *data.s; }
-        const std::string&  s() const { return *data.s; }
-        void                set_s(const std::string &s) { this->reset(); this->data.s = new std::string(s); this->type = TYPE_STRING; }
-        void                set_s(std::string &&s) { this->reset(); this->data.s = new std::string(std::move(s)); this->type = TYPE_STRING; }
-        
-        std::string         to_string() const 
-        {
-            std::string out;
-            switch (type) {
-			case TYPE_BOOL:   out = data.b ? "true" : "false"; break;
+        type            = rhs.type;
+        this->it_range  = rhs.it_range;
+        data.set(rhs.data);
+        rhs.type        = TYPE_EMPTY;
+        return *this;
+    }
+    
+    void                reset()
+    {
+        if (this->type == TYPE_STRING)
+            delete data.s;
+        this->type = TYPE_EMPTY;
+    }
+    
+    bool&               b()       { return data.b; }
+    bool                b() const { return data.b; }
+    void                set_b(bool v) { this->reset(); this->data.b = v; this->type = TYPE_BOOL; }
+    int&                i()       { return data.i; }
+    int                 i() const { return data.i; }
+    void                set_i(int v) { this->reset(); this->data.i = v; this->type = TYPE_INT; }
+    int                 as_i() const { return (this->type == TYPE_INT) ? this->i() : int(this->d()); }
+    int                 as_i_rounded() const { return (this->type == TYPE_INT) ? this->i() : int(std::round(this->d())); }
+    double&             d()       { return data.d; }
+    double              d() const { return data.d; }
+    void                set_d(double v) { this->reset(); this->data.d = v; this->type = TYPE_DOUBLE; }
+    double              as_d() const { return (this->type == TYPE_DOUBLE) ? this->d() : double(this->i()); }
+    std::string&        s()       { return *data.s; }
+    const std::string&  s() const { return *data.s; }
+    void                set_s(const std::string &s) { this->reset(); this->data.s = new std::string(s); this->type = TYPE_STRING; }
+    void                set_s(std::string &&s) { this->reset(); this->data.s = new std::string(std::move(s)); this->type = TYPE_STRING; }
+    
+    std::string         to_string() const
+    {
+        std::string out;
+        switch (type) {
+            case TYPE_BOOL:   out = data.b ? "true" : "false"; break;
             case TYPE_INT:    out = std::to_string(data.i); break;
-            case TYPE_DOUBLE: 
+            case TYPE_DOUBLE:
 #if 0
                 // The default converter produces trailing zeros after the decimal point.
-				out = std::to_string(data.d);
+                out = std::to_string(data.d);
 #else
                 // ostringstream default converter produces no trailing zeros after the decimal point.
                 // It seems to be doing what the old boost::to_string() did.
-				{
-					std::ostringstream ss;
-					ss << data.d;
-					out = ss.str();
-				}
+            {
+                std::ostringstream ss;
+                ss << data.d;
+                out = ss.str();
+            }
 #endif
-				break;
+                break;
             case TYPE_STRING: out = *data.s; break;
             default:          break;
-            }
-            return out;
         }
-
-        union Data {
-            // Raw image of the other data members.
-            // The C++ compiler will consider a possible aliasing of char* with any other union member,
-            // therefore copying the raw data is safe.
-            char         raw[8];
-            bool         b;
-            int          i;
-            double       d;
-            std::string *s;
-
-            // Copy the largest member variable through char*, which will alias with all other union members by default.
-            void set(const Data &rhs) { memcpy(this->raw, rhs.raw, sizeof(rhs.raw)); }
-        } data;
-
-        enum Type {
-            TYPE_EMPTY = 0,
-            TYPE_BOOL,
-            TYPE_INT,
-            TYPE_DOUBLE,
-            TYPE_STRING,
-        };
-
-        Type type;
-
-        // Range of input iterators covering this expression.
-        // Used for throwing parse exceptions.
-        boost::iterator_range<Iterator>  it_range;
-
-        expr unary_minus(const Iterator start_pos) const
-        { 
-            switch (this->type) {
+        return out;
+    }
+    
+    union Data {
+        // Raw image of the other data members.
+        // The C++ compiler will consider a possible aliasing of char* with any other union member,
+        // therefore copying the raw data is safe.
+        char         raw[8];
+        bool         b;
+        int          i;
+        double       d;
+        std::string *s;
+        
+        // Copy the largest member variable through char*, which will alias with all other union members by default.
+        void set(const Data &rhs) { memcpy(this->raw, rhs.raw, sizeof(rhs.raw)); }
+    } data;
+    
+    enum Type {
+        TYPE_EMPTY = 0,
+        TYPE_BOOL,
+        TYPE_INT,
+        TYPE_DOUBLE,
+        TYPE_STRING,
+    };
+    
+    Type type;
+    
+    // Range of input iterators covering this expression.
+    // Used for throwing parse exceptions.
+    boost::iterator_range<Iterator>  it_range;
+    
+    expr unary_minus(const Iterator start_pos) const
+    {
+        switch (this->type) {
             case TYPE_INT :
                 return expr<Iterator>(- this->i(), start_pos, this->it_range.end());
             case TYPE_DOUBLE:
-                return expr<Iterator>(- this->d(), start_pos, this->it_range.end()); 
+                return expr<Iterator>(- this->d(), start_pos, this->it_range.end());
             default:
                 this->throw_exception("Cannot apply unary minus operator.");
-            }
-            assert(false);
-            // Suppress compiler warnings.
-            return expr();
         }
-
-        expr unary_integer(const Iterator start_pos) const
-        { 
-            switch (this->type) {
+        assert(false);
+        // Suppress compiler warnings.
+        return expr();
+    }
+    
+    expr unary_integer(const Iterator start_pos) const
+    {
+        switch (this->type) {
             case TYPE_INT:
                 return expr<Iterator>(this->i(), start_pos, this->it_range.end());
             case TYPE_DOUBLE:
-                return expr<Iterator>(static_cast<int>(this->d()), start_pos, this->it_range.end()); 
+                return expr<Iterator>(static_cast<int>(this->d()), start_pos, this->it_range.end());
             default:
                 this->throw_exception("Cannot convert to integer.");
-            }
-            assert(false);
-            // Suppress compiler warnings.
-            return expr();
         }
-
-        expr round(const Iterator start_pos) const
-        { 
-            switch (this->type) {
+        assert(false);
+        // Suppress compiler warnings.
+        return expr();
+    }
+    
+    expr round(const Iterator start_pos) const
+    {
+        switch (this->type) {
             case TYPE_INT:
                 return expr<Iterator>(this->i(), start_pos, this->it_range.end());
             case TYPE_DOUBLE:
                 return expr<Iterator>(static_cast<int>(std::round(this->d())), start_pos, this->it_range.end());
             default:
                 this->throw_exception("Cannot round a non-numeric value.");
-            }
-            assert(false);
-            // Suppress compiler warnings.
-            return expr();
         }
-
-        expr unary_not(const Iterator start_pos) const
-        { 
-            switch (this->type) {
+        assert(false);
+        // Suppress compiler warnings.
+        return expr();
+    }
+    
+    expr unary_not(const Iterator start_pos) const
+    {
+        switch (this->type) {
             case TYPE_BOOL:
                 return expr<Iterator>(! this->b(), start_pos, this->it_range.end());
             default:
                 this->throw_exception("Cannot apply a not operator.");
-            }
-            assert(false);
-            // Suppress compiler warnings.
-            return expr();
         }
-
-        expr &operator+=(const expr &rhs)
-        { 
-            if (this->type == TYPE_STRING) {
-                // Convert the right hand side to string and append.
-                *this->data.s += rhs.to_string();
-            } else if (rhs.type == TYPE_STRING) {
-                // Conver the left hand side to string, append rhs.
-                this->data.s = new std::string(this->to_string() + rhs.s());
-                this->type = TYPE_STRING;
-            } else {
-                const char *err_msg = "Cannot add non-numeric types.";
-                this->throw_if_not_numeric(err_msg);
-                rhs.throw_if_not_numeric(err_msg);
-                if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
-                    double d = this->as_d() + rhs.as_d();
-                    this->data.d = d;
-                    this->type = TYPE_DOUBLE;
-                } else
-                    this->data.i += rhs.i();
-            }
-            this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
-            return *this;
-        }
-
-        expr &operator-=(const expr &rhs)
-        { 
-            const char *err_msg = "Cannot subtract non-numeric types.";
-            this->throw_if_not_numeric(err_msg);
-            rhs.throw_if_not_numeric(err_msg);
-            if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
-                double d = this->as_d() - rhs.as_d();
-                this->data.d = d;
-                this->type = TYPE_DOUBLE;
-            } else
-                this->data.i -= rhs.i();
-            this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
-            return *this;
-        }
-
-        expr &operator*=(const expr &rhs)
-        { 
-            const char *err_msg = "Cannot multiply with non-numeric type.";
-            this->throw_if_not_numeric(err_msg);
-            rhs.throw_if_not_numeric(err_msg);
-            if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
-                double d = this->as_d() * rhs.as_d();
-                this->data.d = d;
-                this->type = TYPE_DOUBLE;
-            } else
-                this->data.i *= rhs.i();
-            this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
-            return *this;
-        }
-
-        expr &operator/=(const expr &rhs)
-        {
-            this->throw_if_not_numeric("Cannot divide a non-numeric type.");
-            rhs.throw_if_not_numeric("Cannot divide with a non-numeric type.");
-            if ((rhs.type == TYPE_INT) ? (rhs.i() == 0) : (rhs.d() == 0.))
-                rhs.throw_exception("Division by zero");
-            if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
-                double d = this->as_d() / rhs.as_d();
-                this->data.d = d;
-                this->type = TYPE_DOUBLE;
-            } else
-                this->data.i /= rhs.i();
-            this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
-            return *this;
-        }
-
-        expr &operator%=(const expr &rhs)
-        {
-            this->throw_if_not_numeric("Cannot divide a non-numeric type.");
-            rhs.throw_if_not_numeric("Cannot divide with a non-numeric type.");
-            if ((rhs.type == TYPE_INT) ? (rhs.i() == 0) : (rhs.d() == 0.))
-                rhs.throw_exception("Division by zero");
-            if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
-                double d = std::fmod(this->as_d(), rhs.as_d());
-                this->data.d = d;
-                this->type = TYPE_DOUBLE;
-            } else
-                this->data.i %= rhs.i();
-            this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
-            return *this;
-        }
-
-        static void to_string2(expr &self, std::string &out)
-        {
-            out = self.to_string();
-        }
-
-        static void evaluate_boolean(expr &self, bool &out)
-        {
-            if (self.type != TYPE_BOOL)
-                self.throw_exception("Not a boolean expression");
-            out = self.b();
-        }
-
-        static void evaluate_boolean_to_string(expr &self, std::string &out)
-        {
-            if (self.type != TYPE_BOOL)
-                self.throw_exception("Not a boolean expression");
-            out = self.b() ? "true" : "false";
-        }
-
-        // Is lhs==rhs? Store the result into lhs.
-        static void compare_op(expr &lhs, expr &rhs, char op, bool invert)
-        {
-            bool value = false;
-            if ((lhs.type == TYPE_INT || lhs.type == TYPE_DOUBLE) &&
-                (rhs.type == TYPE_INT || rhs.type == TYPE_DOUBLE)) {
-                // Both types are numeric.
-                switch (op) {
-                    case '=':
-                        value = (lhs.type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) ? 
-                            (std::abs(lhs.as_d() - rhs.as_d()) < 1e-8) : (lhs.i() == rhs.i());
-                        break;
-                    case '<':
-                        value = (lhs.type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) ? 
-                            (lhs.as_d() < rhs.as_d()) : (lhs.i() < rhs.i());
-                        break;
-                    case '>':
-                    default:
-                        value = (lhs.type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) ? 
-                            (lhs.as_d() > rhs.as_d()) : (lhs.i() > rhs.i());
-                        break;
-                }
-            } else if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
-                // Both type are bool.
-                if (op != '=')
-                    boost::throw_exception(qi::expectation_failure<Iterator>(
-                        lhs.it_range.begin(), rhs.it_range.end(), spirit::info("*Cannot compare the types.")));
-                value = lhs.b() == rhs.b();
-            } else if (lhs.type == TYPE_STRING || rhs.type == TYPE_STRING) {
-                // One type is string, the other could be converted to string.
-                value = (op == '=') ? (lhs.to_string() == rhs.to_string()) : 
-                        (op == '<') ? (lhs.to_string() < rhs.to_string()) : (lhs.to_string() > rhs.to_string());
-            } else {
-                boost::throw_exception(qi::expectation_failure<Iterator>(
-                    lhs.it_range.begin(), rhs.it_range.end(), spirit::info("*Cannot compare the types.")));
-            }
-            lhs.type = TYPE_BOOL;
-            lhs.data.b = invert ? ! value : value;
-        }
-        // Compare operators, store the result into lhs.
-        static void equal    (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '=', false); }
-        static void not_equal(expr &lhs, expr &rhs) { compare_op(lhs, rhs, '=', true ); }
-        static void lower    (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '<', false); }
-        static void greater  (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '>', false); }
-        static void leq      (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '>', true ); }
-        static void geq      (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '<', true ); }
-
-        static void throw_if_not_numeric(const expr &param)
-        {
-            const char *err_msg = "Not a numeric type.";
-            param.throw_if_not_numeric(err_msg);            
-        }
-
-        enum Function2ParamsType {
-            FUNCTION_MIN,
-            FUNCTION_MAX,
-        };
-        // Store the result into param1.
-        static void function_2params(expr &param1, expr &param2, Function2ParamsType fun)
-        { 
-            throw_if_not_numeric(param1);
-            throw_if_not_numeric(param2);
-            if (param1.type == TYPE_DOUBLE || param2.type == TYPE_DOUBLE) {
-                double d = 0.;
-                switch (fun) {
-                    case FUNCTION_MIN:  d = std::min(param1.as_d(), param2.as_d()); break;
-                    case FUNCTION_MAX:  d = std::max(param1.as_d(), param2.as_d()); break;
-                    default: param1.throw_exception("Internal error: invalid function");
-                }
-                param1.data.d = d;
-                param1.type = TYPE_DOUBLE;
-            } else {
-                int i = 0;
-                switch (fun) {
-                    case FUNCTION_MIN:  i = std::min(param1.as_i(), param2.as_i()); break;
-                    case FUNCTION_MAX:  i = std::max(param1.as_i(), param2.as_i()); break;
-                    default: param1.throw_exception("Internal error: invalid function");
-                }
-                param1.data.i = i;
-                param1.type = TYPE_INT;
-            }
-        }
-        // Store the result into param1.
-        static void min(expr &param1, expr &param2) { function_2params(param1, param2, FUNCTION_MIN); }
-        static void max(expr &param1, expr &param2) { function_2params(param1, param2, FUNCTION_MAX); }
-
-        // Store the result into param1.
-        static void random(expr &param1, expr &param2, std::mt19937 &rng)
-        { 
-            throw_if_not_numeric(param1);
-            throw_if_not_numeric(param2);
-            if (param1.type == TYPE_DOUBLE || param2.type == TYPE_DOUBLE) {
-                param1.data.d = std::uniform_real_distribution<>(param1.as_d(), param2.as_d())(rng);
-                param1.type   = TYPE_DOUBLE;
-            } else {
-                param1.data.i = std::uniform_int_distribution<>(param1.as_i(), param2.as_i())(rng);
-                param1.type   = TYPE_INT;
-            }
-        }
-
-        // Store the result into param1.
-        // param3 is optional
-        template<bool leading_zeros>
-        static void digits(expr &param1, expr &param2, expr &param3)
-        { 
-            throw_if_not_numeric(param1);
-            if (param2.type != TYPE_INT)
-                param2.throw_exception("digits: second parameter must be integer");
-            bool has_decimals = param3.type != TYPE_EMPTY;
-            if (has_decimals && param3.type != TYPE_INT)
-                param3.throw_exception("digits: third parameter must be integer");
-
-            char buf[256];
-            int  ndigits = std::clamp(param2.as_i(), 0, 64);
-            if (has_decimals) {
-                // Format as double.
-                int decimals = std::clamp(param3.as_i(), 0, 64);
-                sprintf(buf, leading_zeros ? "%0*.*lf" : "%*.*lf", ndigits, decimals, param1.as_d());
-            } else
-                // Format as int.
-                sprintf(buf, leading_zeros ? "%0*d" : "%*d", ndigits, param1.as_i_rounded());
-            param1.set_s(buf);
-        }
-
-        static void regex_op(expr &lhs, boost::iterator_range<Iterator> &rhs, char op)
-        {
-            const std::string *subject  = nullptr;
-            if (lhs.type == TYPE_STRING) {
-                // One type is string, the other could be converted to string.
-                subject = &lhs.s();
-            } else {
-                lhs.throw_exception("Left hand side of a regex match must be a string.");
-            }
-            try {
-                std::string pattern(++ rhs.begin(), -- rhs.end());
-                bool result = SLIC3R_REGEX_NAMESPACE::regex_match(*subject, SLIC3R_REGEX_NAMESPACE::regex(pattern));
-                if (op == '!')
-                    result = ! result;
-                lhs.reset();
-                lhs.type = TYPE_BOOL;
-                lhs.data.b = result;
-            } catch (SLIC3R_REGEX_NAMESPACE::regex_error &ex) {
-                // Syntax error in the regular expression
-                boost::throw_exception(qi::expectation_failure<Iterator>(
-                    rhs.begin(), rhs.end(), spirit::info(std::string("*Regular expression compilation failed: ") + ex.what())));
-            }
-        }
-
-        static void regex_matches     (expr &lhs, boost::iterator_range<Iterator> &rhs) { return regex_op(lhs, rhs, '='); }
-        static void regex_doesnt_match(expr &lhs, boost::iterator_range<Iterator> &rhs) { return regex_op(lhs, rhs, '!'); }
-
-        static void logical_op(expr &lhs, expr &rhs, char op)
-        {
-            bool value = false;
-            if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
-                value = (op == '|') ? (lhs.b() || rhs.b()) : (lhs.b() && rhs.b());
-            } else {
-                boost::throw_exception(qi::expectation_failure<Iterator>(
-                    lhs.it_range.begin(), rhs.it_range.end(), spirit::info("*Cannot apply logical operation to non-boolean operators.")));
-            }
-            lhs.type   = TYPE_BOOL;
-            lhs.data.b = value;
-        }
-        static void logical_or (expr &lhs, expr &rhs) { logical_op(lhs, rhs, '|'); }
-        static void logical_and(expr &lhs, expr &rhs) { logical_op(lhs, rhs, '&'); }
-
-        static void ternary_op(expr &lhs, expr &rhs1, expr &rhs2)
-        {
-            if (lhs.type != TYPE_BOOL)
-                lhs.throw_exception("Not a boolean expression");
-            if (lhs.b())
-                lhs = std::move(rhs1);
-            else
-                lhs = std::move(rhs2);
-        }
-
-        static void set_if(bool &cond, bool &not_yet_consumed, std::string &str_in, std::string &str_out)
-        {
-            if (cond && not_yet_consumed) {
-                str_out = str_in;
-                not_yet_consumed = false;
-            }
-        }
-
-        void throw_exception(const char *message) const 
-        {
-            boost::throw_exception(qi::expectation_failure<Iterator>(
-                this->it_range.begin(), this->it_range.end(), spirit::info(std::string("*") + message)));
-        }
-
-        void throw_if_not_numeric(const char *message) const 
-        {
-            if (this->type != TYPE_INT && this->type != TYPE_DOUBLE)
-                this->throw_exception(message);
-        }
-    };
-
-    template<typename ITERATOR>
-    std::ostream& operator<<(std::ostream &os, const expr<ITERATOR> &expression)
+        assert(false);
+        // Suppress compiler warnings.
+        return expr();
+    }
+    
+    expr &operator+=(const expr &rhs)
     {
-        typedef expr<ITERATOR> Expr;
-        os << std::string(expression.it_range.begin(), expression.it_range.end()) << " - ";
-        switch (expression.type) {
+        if (this->type == TYPE_STRING) {
+            // Convert the right hand side to string and append.
+            *this->data.s += rhs.to_string();
+        } else if (rhs.type == TYPE_STRING) {
+            // Conver the left hand side to string, append rhs.
+            this->data.s = new std::string(this->to_string() + rhs.s());
+            this->type = TYPE_STRING;
+        } else {
+            const char *err_msg = "Cannot add non-numeric types.";
+            this->throw_if_not_numeric(err_msg);
+            rhs.throw_if_not_numeric(err_msg);
+            if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
+                double d = this->as_d() + rhs.as_d();
+                this->data.d = d;
+                this->type = TYPE_DOUBLE;
+            } else
+                this->data.i += rhs.i();
+        }
+        this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
+        return *this;
+    }
+    
+    expr &operator-=(const expr &rhs)
+    {
+        const char *err_msg = "Cannot subtract non-numeric types.";
+        this->throw_if_not_numeric(err_msg);
+        rhs.throw_if_not_numeric(err_msg);
+        if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
+            double d = this->as_d() - rhs.as_d();
+            this->data.d = d;
+            this->type = TYPE_DOUBLE;
+        } else
+            this->data.i -= rhs.i();
+        this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
+        return *this;
+    }
+    
+    expr &operator*=(const expr &rhs)
+    {
+        const char *err_msg = "Cannot multiply with non-numeric type.";
+        this->throw_if_not_numeric(err_msg);
+        rhs.throw_if_not_numeric(err_msg);
+        if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
+            double d = this->as_d() * rhs.as_d();
+            this->data.d = d;
+            this->type = TYPE_DOUBLE;
+        } else
+            this->data.i *= rhs.i();
+        this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
+        return *this;
+    }
+    
+    expr &operator/=(const expr &rhs)
+    {
+        this->throw_if_not_numeric("Cannot divide a non-numeric type.");
+        rhs.throw_if_not_numeric("Cannot divide with a non-numeric type.");
+        if ((rhs.type == TYPE_INT) ? (rhs.i() == 0) : (rhs.d() == 0.))
+            rhs.throw_exception("Division by zero");
+        if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
+            double d = this->as_d() / rhs.as_d();
+            this->data.d = d;
+            this->type = TYPE_DOUBLE;
+        } else
+            this->data.i /= rhs.i();
+        this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
+        return *this;
+    }
+    
+    expr &operator%=(const expr &rhs)
+    {
+        this->throw_if_not_numeric("Cannot divide a non-numeric type.");
+        rhs.throw_if_not_numeric("Cannot divide with a non-numeric type.");
+        if ((rhs.type == TYPE_INT) ? (rhs.i() == 0) : (rhs.d() == 0.))
+            rhs.throw_exception("Division by zero");
+        if (this->type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) {
+            double d = std::fmod(this->as_d(), rhs.as_d());
+            this->data.d = d;
+            this->type = TYPE_DOUBLE;
+        } else
+            this->data.i %= rhs.i();
+        this->it_range = boost::iterator_range<Iterator>(this->it_range.begin(), rhs.it_range.end());
+        return *this;
+    }
+    
+    static void to_string2(expr &self, std::string &out)
+    {
+        out = self.to_string();
+    }
+    
+    static void evaluate_boolean(expr &self, bool &out)
+    {
+        if (self.type != TYPE_BOOL)
+            self.throw_exception("Not a boolean expression");
+        out = self.b();
+    }
+    
+    static void evaluate_boolean_to_string(expr &self, std::string &out)
+    {
+        if (self.type != TYPE_BOOL)
+            self.throw_exception("Not a boolean expression");
+        out = self.b() ? "true" : "false";
+    }
+    
+    // Is lhs==rhs? Store the result into lhs.
+    static void compare_op(expr &lhs, expr &rhs, char op, bool invert)
+    {
+        bool value = false;
+        if ((lhs.type == TYPE_INT || lhs.type == TYPE_DOUBLE) &&
+            (rhs.type == TYPE_INT || rhs.type == TYPE_DOUBLE)) {
+            // Both types are numeric.
+            switch (op) {
+                case '=':
+                    value = (lhs.type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) ?
+                    (std::abs(lhs.as_d() - rhs.as_d()) < 1e-8) : (lhs.i() == rhs.i());
+                    break;
+                case '<':
+                    value = (lhs.type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) ?
+                    (lhs.as_d() < rhs.as_d()) : (lhs.i() < rhs.i());
+                    break;
+                case '>':
+                default:
+                    value = (lhs.type == TYPE_DOUBLE || rhs.type == TYPE_DOUBLE) ?
+                    (lhs.as_d() > rhs.as_d()) : (lhs.i() > rhs.i());
+                    break;
+            }
+        } else if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
+            // Both type are bool.
+            if (op != '=')
+                boost::throw_exception(qi::expectation_failure<Iterator>(
+                                                                         lhs.it_range.begin(), rhs.it_range.end(), spirit::info("*Cannot compare the types.")));
+            value = lhs.b() == rhs.b();
+        } else if (lhs.type == TYPE_STRING || rhs.type == TYPE_STRING) {
+            // One type is string, the other could be converted to string.
+            value = (op == '=') ? (lhs.to_string() == rhs.to_string()) :
+            (op == '<') ? (lhs.to_string() < rhs.to_string()) : (lhs.to_string() > rhs.to_string());
+        } else {
+            boost::throw_exception(qi::expectation_failure<Iterator>(
+                                                                     lhs.it_range.begin(), rhs.it_range.end(), spirit::info("*Cannot compare the types.")));
+        }
+        lhs.type = TYPE_BOOL;
+        lhs.data.b = invert ? ! value : value;
+    }
+    // Compare operators, store the result into lhs.
+    static void equal    (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '=', false); }
+    static void not_equal(expr &lhs, expr &rhs) { compare_op(lhs, rhs, '=', true ); }
+    static void lower    (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '<', false); }
+    static void greater  (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '>', false); }
+    static void leq      (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '>', true ); }
+    static void geq      (expr &lhs, expr &rhs) { compare_op(lhs, rhs, '<', true ); }
+    
+    static void throw_if_not_numeric(const expr &param)
+    {
+        const char *err_msg = "Not a numeric type.";
+        param.throw_if_not_numeric(err_msg);
+    }
+    
+    enum Function2ParamsType {
+        FUNCTION_MIN,
+        FUNCTION_MAX,
+    };
+    // Store the result into param1.
+    static void function_2params(expr &param1, expr &param2, Function2ParamsType fun)
+    {
+        throw_if_not_numeric(param1);
+        throw_if_not_numeric(param2);
+        if (param1.type == TYPE_DOUBLE || param2.type == TYPE_DOUBLE) {
+            double d = 0.;
+            switch (fun) {
+                case FUNCTION_MIN:  d = std::min(param1.as_d(), param2.as_d()); break;
+                case FUNCTION_MAX:  d = std::max(param1.as_d(), param2.as_d()); break;
+                default: param1.throw_exception("Internal error: invalid function");
+            }
+            param1.data.d = d;
+            param1.type = TYPE_DOUBLE;
+        } else {
+            int i = 0;
+            switch (fun) {
+                case FUNCTION_MIN:  i = std::min(param1.as_i(), param2.as_i()); break;
+                case FUNCTION_MAX:  i = std::max(param1.as_i(), param2.as_i()); break;
+                default: param1.throw_exception("Internal error: invalid function");
+            }
+            param1.data.i = i;
+            param1.type = TYPE_INT;
+        }
+    }
+    // Store the result into param1.
+    static void min(expr &param1, expr &param2) { function_2params(param1, param2, FUNCTION_MIN); }
+    static void max(expr &param1, expr &param2) { function_2params(param1, param2, FUNCTION_MAX); }
+    
+    // Store the result into param1.
+    static void random(expr &param1, expr &param2, std::mt19937 &rng)
+    {
+        throw_if_not_numeric(param1);
+        throw_if_not_numeric(param2);
+        if (param1.type == TYPE_DOUBLE || param2.type == TYPE_DOUBLE) {
+            param1.data.d = std::uniform_real_distribution<>(param1.as_d(), param2.as_d())(rng);
+            param1.type   = TYPE_DOUBLE;
+        } else {
+            param1.data.i = std::uniform_int_distribution<>(param1.as_i(), param2.as_i())(rng);
+            param1.type   = TYPE_INT;
+        }
+    }
+    
+    // Store the result into param1.
+    // param3 is optional
+    template<bool leading_zeros>
+    static void digits(expr &param1, expr &param2, expr &param3)
+    {
+        throw_if_not_numeric(param1);
+        if (param2.type != TYPE_INT)
+            param2.throw_exception("digits: second parameter must be integer");
+        bool has_decimals = param3.type != TYPE_EMPTY;
+        if (has_decimals && param3.type != TYPE_INT)
+            param3.throw_exception("digits: third parameter must be integer");
+        
+        char buf[256];
+        int  ndigits = std::clamp(param2.as_i(), 0, 64);
+        if (has_decimals) {
+            // Format as double.
+            int decimals = std::clamp(param3.as_i(), 0, 64);
+            sprintf(buf, leading_zeros ? "%0*.*lf" : "%*.*lf", ndigits, decimals, param1.as_d());
+        } else
+            // Format as int.
+            sprintf(buf, leading_zeros ? "%0*d" : "%*d", ndigits, param1.as_i_rounded());
+        param1.set_s(buf);
+    }
+    
+    static void regex_op(expr &lhs, boost::iterator_range<Iterator> &rhs, char op)
+    {
+        const std::string *subject  = nullptr;
+        if (lhs.type == TYPE_STRING) {
+            // One type is string, the other could be converted to string.
+            subject = &lhs.s();
+        } else {
+            lhs.throw_exception("Left hand side of a regex match must be a string.");
+        }
+        try {
+            std::string pattern(++ rhs.begin(), -- rhs.end());
+            bool result = SLIC3R_REGEX_NAMESPACE::regex_match(*subject, SLIC3R_REGEX_NAMESPACE::regex(pattern));
+            if (op == '!')
+                result = ! result;
+            lhs.reset();
+            lhs.type = TYPE_BOOL;
+            lhs.data.b = result;
+        } catch (SLIC3R_REGEX_NAMESPACE::regex_error &ex) {
+            // Syntax error in the regular expression
+            boost::throw_exception(qi::expectation_failure<Iterator>(
+                                                                     rhs.begin(), rhs.end(), spirit::info(std::string("*Regular expression compilation failed: ") + ex.what())));
+        }
+    }
+    
+    static void regex_matches     (expr &lhs, boost::iterator_range<Iterator> &rhs) { return regex_op(lhs, rhs, '='); }
+    static void regex_doesnt_match(expr &lhs, boost::iterator_range<Iterator> &rhs) { return regex_op(lhs, rhs, '!'); }
+    
+    static void logical_op(expr &lhs, expr &rhs, char op)
+    {
+        bool value = false;
+        if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
+            value = (op == '|') ? (lhs.b() || rhs.b()) : (lhs.b() && rhs.b());
+        } else {
+            boost::throw_exception(qi::expectation_failure<Iterator>(
+                                                                     lhs.it_range.begin(), rhs.it_range.end(), spirit::info("*Cannot apply logical operation to non-boolean operators.")));
+        }
+        lhs.type   = TYPE_BOOL;
+        lhs.data.b = value;
+    }
+    static void logical_or (expr &lhs, expr &rhs) { logical_op(lhs, rhs, '|'); }
+    static void logical_and(expr &lhs, expr &rhs) { logical_op(lhs, rhs, '&'); }
+    
+    static void ternary_op(expr &lhs, expr &rhs1, expr &rhs2)
+    {
+        if (lhs.type != TYPE_BOOL)
+            lhs.throw_exception("Not a boolean expression");
+        if (lhs.b())
+            lhs = std::move(rhs1);
+        else
+            lhs = std::move(rhs2);
+    }
+    
+    static void set_if(bool &cond, bool &not_yet_consumed, std::string &str_in, std::string &str_out)
+    {
+        if (cond && not_yet_consumed) {
+            str_out = str_in;
+            not_yet_consumed = false;
+        }
+    }
+    
+    void throw_exception(const char *message) const
+    {
+        boost::throw_exception(qi::expectation_failure<Iterator>(
+                                                                 this->it_range.begin(), this->it_range.end(), spirit::info(std::string("*") + message)));
+    }
+    
+    void throw_if_not_numeric(const char *message) const
+    {
+        if (this->type != TYPE_INT && this->type != TYPE_DOUBLE)
+            this->throw_exception(message);
+    }
+};
+
+template<typename ITERATOR>
+std::ostream& operator<<(std::ostream &os, const expr<ITERATOR> &expression)
+{
+    typedef expr<ITERATOR> Expr;
+    os << std::string(expression.it_range.begin(), expression.it_range.end()) << " - ";
+    switch (expression.type) {
         case Expr::TYPE_EMPTY:    os << "empty"; break;
         case Expr::TYPE_BOOL:     os << "bool ("   << expression.b() << ")"; break;
         case Expr::TYPE_INT:      os << "int ("    << expression.i() << ")"; break;
         case Expr::TYPE_DOUBLE:   os << "double (" << expression.d() << ")"; break;
         case Expr::TYPE_STRING:   os << "string (" << expression.s() << ")"; break;
         default: os << "unknown";
-        };
-        return os;
-    }
+    };
+    return os;
+}
 
-    struct MyContext : public ConfigOptionResolver {
-    	const DynamicConfig     *external_config        = nullptr;
-        const DynamicConfig     *config                 = nullptr;
-        const DynamicConfig     *config_override        = nullptr;
-        size_t                   current_extruder_id    = 0;
-        PlaceholderParser::ContextData *context_data    = nullptr;
-        // If false, the macro_processor will evaluate a full macro.
-        // If true, the macro processor will evaluate just a boolean condition using the full expressive power of the macro processor.
-        bool                     just_boolean_expression = false;
-        inline static bool       ignore_legacy = false;
-        std::string              error_message;
-
-        static std::map<t_config_option_key, std::unique_ptr<ConfigOption>> checked_vars;
-
-        // Table to translate symbol tag to a human readable error message.
-        static std::map<std::string, std::string> tag_to_error_message;
-
-        static void             evaluate_full_macro(const MyContext *ctx, bool &result) { result = ! ctx->just_boolean_expression; }
-
-        const ConfigOption* 	optptr(const t_config_option_key &opt_key) const override
-        {
-            const ConfigOption *opt = nullptr;
-            if (config_override != nullptr)
-                opt = config_override->option(opt_key);
-            if (opt == nullptr)
-                opt = config->option(opt_key);
-            if (opt == nullptr && external_config != nullptr)
-                opt = external_config->option(opt_key);
-            if (opt == nullptr) {
-                auto it = MyContext::checked_vars.find(opt_key);
-                if (it != MyContext::checked_vars.end())
-                    opt = it->second.get();
-            }
-            return opt;
+struct MyContext : public ConfigOptionResolver {
+    const DynamicConfig     *external_config        = nullptr;
+    const DynamicConfig     *config                 = nullptr;
+    const DynamicConfig     *config_override        = nullptr;
+    size_t                   current_extruder_id    = 0;
+    PlaceholderParser::ContextData *context_data    = nullptr;
+    // If false, the macro_processor will evaluate a full macro.
+    // If true, the macro processor will evaluate just a boolean condition using the full expressive power of the macro processor.
+    bool                     just_boolean_expression = false;
+    inline static bool       ignore_legacy = false;
+    std::string              error_message;
+    
+    static std::map<t_config_option_key, std::unique_ptr<ConfigOption>> checked_vars;
+    
+    // Table to translate symbol tag to a human readable error message.
+    static std::map<std::string, std::string> tag_to_error_message;
+    
+    static void             evaluate_full_macro(const MyContext *ctx, bool &result) { result = ! ctx->just_boolean_expression; }
+    
+    const ConfigOption* 	optptr(const t_config_option_key &opt_key) const override
+    {
+        const ConfigOption *opt = nullptr;
+        if (config_override != nullptr)
+            opt = config_override->option(opt_key);
+        if (opt == nullptr)
+            opt = config->option(opt_key);
+        if (opt == nullptr && external_config != nullptr)
+            opt = external_config->option(opt_key);
+        if (opt == nullptr) {
+            auto it = MyContext::checked_vars.find(opt_key);
+            if (it != MyContext::checked_vars.end())
+                opt = it->second.get();
         }
-
-
-        // copy of ConfigBase::get_computed_value
-        double get_computed_value(const t_config_option_key& opt_key) const
-        {
-            // Get stored option value.
-            const ConfigOption* raw_opt = this->optptr(opt_key);
-            if (raw_opt == nullptr) {
-                std::stringstream ss; ss << "You can't define an option that need " << opt_key << " without defining it!";
-                throw std::runtime_error(ss.str());
+        return opt;
+    }
+    
+    
+    // copy of ConfigBase::get_computed_value
+    double get_computed_value(const t_config_option_key& opt_key) const
+    {
+        // Get stored option value.
+        const ConfigOption* raw_opt = this->optptr(opt_key);
+        if (raw_opt == nullptr) {
+            std::stringstream ss; ss << "You can't define an option that need " << opt_key << " without defining it!";
+            throw std::runtime_error(ss.str());
+        }
+        
+        if (!raw_opt->is_vector()) {
+            if (raw_opt->type() == coFloat)
+                return static_cast<const ConfigOptionFloat*>(raw_opt)->value;
+            if (raw_opt->type() == coInt)
+                return static_cast<const ConfigOptionInt*>(raw_opt)->value;
+            if (raw_opt->type() == coBool)
+                return static_cast<const ConfigOptionBool*>(raw_opt)->value ? 1 : 0;
+            const ConfigOptionDef* opt_def = nullptr;
+            const ConfigOptionPercent* cast_opt = nullptr;
+            if (raw_opt->type() == coFloatOrPercent) {
+                if (!static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->percent)
+                    return static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->value;
+                // Get option definition.
+                opt_def = print_config_def.get(opt_key);
+                cast_opt = static_cast<const ConfigOptionFloatOrPercent*>(raw_opt);
+                assert(opt_def != nullptr);
             }
-
-            if (!raw_opt->is_vector()) {
-                if (raw_opt->type() == coFloat)
-                    return static_cast<const ConfigOptionFloat*>(raw_opt)->value;
-                if (raw_opt->type() == coInt)
-                    return static_cast<const ConfigOptionInt*>(raw_opt)->value;
-                if (raw_opt->type() == coBool)
-                    return static_cast<const ConfigOptionBool*>(raw_opt)->value ? 1 : 0;
-                const ConfigOptionDef* opt_def = nullptr;
-                const ConfigOptionPercent* cast_opt = nullptr;
-                if (raw_opt->type() == coFloatOrPercent) {
-                    if (!static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->percent)
-                        return static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->value;
-                    // Get option definition.
-                    opt_def = print_config_def.get(opt_key);
-                    cast_opt = static_cast<const ConfigOptionFloatOrPercent*>(raw_opt);
-                    assert(opt_def != nullptr);
-                }
-                if (raw_opt->type() == coPercent) {
-                    // Get option definition.
-                    opt_def = print_config_def.get(opt_key);
-                    assert(opt_def != nullptr);
-                    cast_opt = static_cast<const ConfigOptionPercent*>(raw_opt);
-                }
-                if (opt_def != nullptr) {
-                    //if over no other key, it's most probably a simple %
-                    if (opt_def->ratio_over == "")
-                        return cast_opt->get_abs_value(1);
-                    // Compute absolute value over the absolute value of the base option.
-                    //FIXME there are some ratio_over chains, which end with empty ratio_with.
-                    // For example, XXX_extrusion_width parameters are not handled by get_abs_value correctly.
+            if (raw_opt->type() == coPercent) {
+                // Get option definition.
+                opt_def = print_config_def.get(opt_key);
+                assert(opt_def != nullptr);
+                cast_opt = static_cast<const ConfigOptionPercent*>(raw_opt);
+            }
+            if (opt_def != nullptr) {
+                //if over no other key, it's most probably a simple %
+                if (opt_def->ratio_over == "")
+                    return cast_opt->get_abs_value(1);
+                // Compute absolute value over the absolute value of the base option.
+                //FIXME there are some ratio_over chains, which end with empty ratio_with.
+                // For example, XXX_extrusion_width parameters are not handled by get_abs_value correctly.
+                if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")
+                    return cast_opt->get_abs_value(this->get_computed_value(opt_def->ratio_over));
+                
+                std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has no valid ratio_over to compute of";
+                throw ConfigurationError(ss.str());
+            }
+        } else {
+            // check if it's an extruder_id array
+            const ConfigOptionVectorBase* vector_opt = static_cast<const ConfigOptionVectorBase*>(raw_opt);
+            if (vector_opt->is_extruder_size()) {
+                
+                if (raw_opt->type() == coFloats || raw_opt->type() == coInts || raw_opt->type() == coBools)
+                    return vector_opt->getFloat(int(current_extruder_id));
+                if (raw_opt->type() == coFloatsOrPercents) {
+                    const ConfigOptionFloatsOrPercents* opt_fl_per = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
+                    if (!opt_fl_per->values[current_extruder_id].percent)
+                        return opt_fl_per->values[current_extruder_id].value;
+                    
+                    const ConfigOptionDef* opt_def = print_config_def.get(opt_key);
                     if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")
-                        return cast_opt->get_abs_value(this->get_computed_value(opt_def->ratio_over));
-
+                        return opt_fl_per->get_abs_value(current_extruder_id, this->get_computed_value(opt_def->ratio_over));
                     std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has no valid ratio_over to compute of";
                     throw ConfigurationError(ss.str());
                 }
-            } else {
-                // check if it's an extruder_id array
-                const ConfigOptionVectorBase* vector_opt = static_cast<const ConfigOptionVectorBase*>(raw_opt);
-                if (vector_opt->is_extruder_size()) {
-
-                    if (raw_opt->type() == coFloats || raw_opt->type() == coInts || raw_opt->type() == coBools)
-                        return vector_opt->getFloat(int(current_extruder_id));
-                    if (raw_opt->type() == coFloatsOrPercents) {
-                        const ConfigOptionFloatsOrPercents* opt_fl_per = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
-                        if (!opt_fl_per->values[current_extruder_id].percent)
-                            return opt_fl_per->values[current_extruder_id].value;
-
-                        const ConfigOptionDef* opt_def = print_config_def.get(opt_key);
-                        if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")
-                            return opt_fl_per->get_abs_value(current_extruder_id, this->get_computed_value(opt_def->ratio_over));
-                        std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has no valid ratio_over to compute of";
-                        throw ConfigurationError(ss.str());
-                    }
-                    if (raw_opt->type() == coPercents) {
-                        const ConfigOptionPercents* opt_per = static_cast<const ConfigOptionPercents*>(raw_opt);
-                        const ConfigOptionDef* opt_def = print_config_def.get(opt_key);
-                        if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")
-                            return opt_per->get_abs_value(current_extruder_id, this->get_computed_value(opt_def->ratio_over));
-                        std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has no valid ratio_over to compute of";
-                        throw ConfigurationError(ss.str());
-                    }
+                if (raw_opt->type() == coPercents) {
+                    const ConfigOptionPercents* opt_per = static_cast<const ConfigOptionPercents*>(raw_opt);
+                    const ConfigOptionDef* opt_def = print_config_def.get(opt_key);
+                    if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")
+                        return opt_per->get_abs_value(current_extruder_id, this->get_computed_value(opt_def->ratio_over));
+                    std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has no valid ratio_over to compute of";
+                    throw ConfigurationError(ss.str());
                 }
             }
-            std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has not a valid option type for get_abs_value()";
-            throw ConfigurationError(ss.str());
         }
-
-        const ConfigOption*     resolve_symbol(const std::string &opt_key) const { return this->optptr(opt_key); }
-
-        template <typename Iterator>
-        static void legacy_variable_expansion(
-            const MyContext                 *ctx, 
-            boost::iterator_range<Iterator> &opt_key,
-            std::string                     &output)
-        {
-            std::string         opt_key_str(opt_key.begin(), opt_key.end());
-            if (ignore_legacy) {
-                output = "[" + opt_key_str + "]";
-                return;
-            }
-            const ConfigOption *opt = ctx->resolve_symbol(opt_key_str);
-            size_t              idx = ctx->current_extruder_id;
-            if (opt == nullptr) {
-                // Check whether this is a legacy vector indexing.
-                idx = opt_key_str.rfind('_');
-                if (idx != std::string::npos) {
-                    opt = ctx->resolve_symbol(opt_key_str.substr(0, idx));
-                    if (opt != nullptr) {
-                        if (! opt->is_vector())
-                            ctx->throw_exception("Trying to index a scalar variable", opt_key);
-                        char *endptr = nullptr;
-                        idx = strtol(opt_key_str.c_str() + idx + 1, &endptr, 10);
-                        if (endptr == nullptr || *endptr != 0)
-                            ctx->throw_exception("Invalid vector index", boost::iterator_range<Iterator>(opt_key.begin() + idx + 1, opt_key.end()));
-                    }
+        std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has not a valid option type for get_abs_value()";
+        throw ConfigurationError(ss.str());
+    }
+    
+    const ConfigOption*     resolve_symbol(const std::string &opt_key) const { return this->optptr(opt_key); }
+    
+    template <typename Iterator>
+    static void legacy_variable_expansion(
+                                          const MyContext                 *ctx,
+                                          boost::iterator_range<Iterator> &opt_key,
+                                          std::string                     &output)
+    {
+        std::string         opt_key_str(opt_key.begin(), opt_key.end());
+        if (ignore_legacy) {
+            output = "[" + opt_key_str + "]";
+            return;
+        }
+        const ConfigOption *opt = ctx->resolve_symbol(opt_key_str);
+        size_t              idx = ctx->current_extruder_id;
+        if (opt == nullptr) {
+            // Check whether this is a legacy vector indexing.
+            idx = opt_key_str.rfind('_');
+            if (idx != std::string::npos) {
+                opt = ctx->resolve_symbol(opt_key_str.substr(0, idx));
+                if (opt != nullptr) {
+                    if (! opt->is_vector())
+                        ctx->throw_exception("Trying to index a scalar variable", opt_key);
+                    char *endptr = nullptr;
+                    idx = strtol(opt_key_str.c_str() + idx + 1, &endptr, 10);
+                    if (endptr == nullptr || *endptr != 0)
+                        ctx->throw_exception("Invalid vector index", boost::iterator_range<Iterator>(opt_key.begin() + idx + 1, opt_key.end()));
                 }
             }
-            if (opt == nullptr)
-                ctx->throw_exception("Variable does not exist", boost::iterator_range<Iterator>(opt_key.begin(), opt_key.end()));
-            if (opt->is_scalar())
-                output = opt->serialize();
-            else {
-                const ConfigOptionVectorBase *vec = static_cast<const ConfigOptionVectorBase*>(opt);
-                if (vec->empty())
-                    ctx->throw_exception("Indexing an empty vector variable", opt_key);
-                output = vec->vserialize()[(idx >= vec->size()) ? 0 : idx];
-            }
         }
-
-        template <typename Iterator>
-        static void legacy_variable_expansion2(
-            const MyContext                 *ctx, 
-            boost::iterator_range<Iterator> &opt_key,
-            boost::iterator_range<Iterator> &opt_vector_index,
-            std::string                     &output)
-        {
-            std::string         opt_key_str(opt_key.begin(), opt_key.end());
-            if (ignore_legacy) {
-                output = "[" + opt_key_str + "]";
-                return;
-            }
-            const ConfigOption *opt = ctx->resolve_symbol(opt_key_str);
-            if (opt == nullptr) {
-                // Check whether the opt_key ends with '_'.
-                if (opt_key_str.back() == '_')
-                    opt_key_str.resize(opt_key_str.size() - 1);
-                opt = ctx->resolve_symbol(opt_key_str);
-            }
-            if (opt == nullptr)
-                ctx->throw_exception("Variable does not exist", opt_key);
-            if (! opt->is_vector())
-                ctx->throw_exception("Trying to index a scalar variable", opt_key);
+        if (opt == nullptr)
+            ctx->throw_exception("Variable does not exist", boost::iterator_range<Iterator>(opt_key.begin(), opt_key.end()));
+        if (opt->is_scalar())
+            output = opt->serialize();
+        else {
             const ConfigOptionVectorBase *vec = static_cast<const ConfigOptionVectorBase*>(opt);
             if (vec->empty())
-                ctx->throw_exception("Indexing an empty vector variable", boost::iterator_range<Iterator>(opt_key.begin(), opt_key.end()));
-            const ConfigOption *opt_index = ctx->resolve_symbol(std::string(opt_vector_index.begin(), opt_vector_index.end()));
-            if (opt_index == nullptr)
-                ctx->throw_exception("Variable does not exist", opt_key);
-            if (opt_index->type() != coInt)
-                ctx->throw_exception("Indexing variable has to be integer", opt_key);
-			int idx = opt_index->getInt();
-			if (idx < 0)
-                ctx->throw_exception("Negative vector index", opt_key);
-			output = vec->vserialize()[(idx >= (int)vec->size()) ? 0 : idx];
+                ctx->throw_exception("Indexing an empty vector variable", opt_key);
+            output = vec->vserialize()[(idx >= vec->size()) ? 0 : idx];
         }
-
-        template <typename Iterator>
-        static void resolve_variable(
-            const MyContext                 *ctx,
-            boost::iterator_range<Iterator> &opt_key,
-            OptWithPos<Iterator>            &output)
-        {
-            std::string str_key = std::string(opt_key.begin(), opt_key.end());
-            const ConfigOption *opt = ctx->resolve_symbol(str_key);
+    }
+    
+    template <typename Iterator>
+    static void legacy_variable_expansion2(
+                                           const MyContext                 *ctx,
+                                           boost::iterator_range<Iterator> &opt_key,
+                                           boost::iterator_range<Iterator> &opt_vector_index,
+                                           std::string                     &output)
+    {
+        std::string         opt_key_str(opt_key.begin(), opt_key.end());
+        if (ignore_legacy) {
+            output = "[" + opt_key_str + "]";
+            return;
+        }
+        const ConfigOption *opt = ctx->resolve_symbol(opt_key_str);
+        if (opt == nullptr) {
+            // Check whether the opt_key ends with '_'.
+            if (opt_key_str.back() == '_')
+                opt_key_str.resize(opt_key_str.size() - 1);
+            opt = ctx->resolve_symbol(opt_key_str);
+        }
+        if (opt == nullptr)
+            ctx->throw_exception("Variable does not exist", opt_key);
+        if (! opt->is_vector())
+            ctx->throw_exception("Trying to index a scalar variable", opt_key);
+        const ConfigOptionVectorBase *vec = static_cast<const ConfigOptionVectorBase*>(opt);
+        if (vec->empty())
+            ctx->throw_exception("Indexing an empty vector variable", boost::iterator_range<Iterator>(opt_key.begin(), opt_key.end()));
+        const ConfigOption *opt_index = ctx->resolve_symbol(std::string(opt_vector_index.begin(), opt_vector_index.end()));
+        if (opt_index == nullptr)
+            ctx->throw_exception("Variable does not exist", opt_key);
+        if (opt_index->type() != coInt)
+            ctx->throw_exception("Indexing variable has to be integer", opt_key);
+        int idx = opt_index->getInt();
+        if (idx < 0)
+            ctx->throw_exception("Negative vector index", opt_key);
+        output = vec->vserialize()[(idx >= (int)vec->size()) ? 0 : idx];
+    }
+    
+    template <typename Iterator>
+    static void resolve_variable(
+                                 const MyContext                 *ctx,
+                                 boost::iterator_range<Iterator> &opt_key,
+                                 OptWithPos<Iterator>            &output)
+    {
+        std::string str_key = std::string(opt_key.begin(), opt_key.end());
+        const ConfigOption *opt = ctx->resolve_symbol(str_key);
+        
+        if (opt == nullptr) {
+            opt = ctx->resolve_symbol(str_key);
             if (opt == nullptr)
                 ctx->throw_exception("Not a variable name", opt_key);
-            output.opt = opt;
-            output.it_range = opt_key;
         }
+        output.opt = opt;
+    }
         
         // function to check if a var exist & add a dummy var if not
         template <typename Iterator>

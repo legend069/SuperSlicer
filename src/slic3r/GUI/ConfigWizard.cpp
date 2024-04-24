@@ -1330,9 +1330,9 @@ PageMode::PageMode(ConfigWizard *parent)
         "The other two offer progressively more sophisticated fine-tuning, "
         "they are suitable for advanced and expert users, respectively."), SLIC3R_APP_NAME));
 
-    radio_simple = new wxRadioButton(this, wxID_ANY, _L("Simple mode"));
-    radio_advanced = new wxRadioButton(this, wxID_ANY, _L("Advanced mode"));
-    radio_expert = new wxRadioButton(this, wxID_ANY, _L("Expert mode"));
+    radio_simple = new wxRadioButton(this, wxID_ANY, _L("Simple"));
+    radio_advanced = new wxRadioButton(this, wxID_ANY, _L("Advanced"));
+    radio_expert = new wxRadioButton(this, wxID_ANY, _L("Expert"));
 
     append(radio_simple);
     append(radio_advanced);

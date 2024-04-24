@@ -1423,10 +1423,12 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
             file.write_format("; first layer extrusion width = %.2fmm\n",   region.flow(*first_object, frPerimeter, first_layer_height, 0).width());
         file.write_format("\n");
         this->placeholder_parser().set("num_extruders", int(print.config().nozzle_diameter.values.size()));
+        
         std::vector<unsigned char> is_extruder_used(std::max(size_t(255), print.config().nozzle_diameter.size()), 0);
         for (unsigned int extruder_id : tool_ordering.all_extruders())
             is_extruder_used[extruder_id] = true;
         this->placeholder_parser().set("is_extruder_used", new ConfigOptionBools(is_extruder_used));
+        
     }
     BoundingBoxf3 global_bounding_box;
     size_t nb_items = 0;

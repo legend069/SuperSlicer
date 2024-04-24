@@ -5910,6 +5910,11 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvancedE | comPrusa;
     def->set_default_value(new ConfigOptionFloat(130));
 
+    def = this->add("is_extruder_used", coBools);
+    def->label = L("Is extruder used?");
+    def->tooltip = L("Vector of booleans stating whether a given extruder is used in the print.");
+    def->set_default_value(new ConfigOptionBools {true});
+    
     def = this->add("travel_speed_z", coFloat);
     def->label = L("Z Travel");
     def->full_label = L("Z travel speed");
@@ -6387,7 +6392,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert | comPrusa;
     def->min = 0;
     def->set_default_value(new ConfigOptionFloatOrPercent(85, true));
-
+    
     /////// End of Arachne settings /////
 
     // Declare retract values for filament profile, overriding the printer's extruder profile.
@@ -6433,6 +6438,7 @@ void PrintConfigDef::init_extruder_option_keys()
         "extruder_temperature_offset",
         "max_layer_height",
         "min_layer_height",
+        "is_extruder_used",
         "nozzle_diameter",
         "retract_before_travel",
         "retract_before_wipe",
@@ -8726,6 +8732,7 @@ std::set<const DynamicPrintConfig*> DynamicPrintConfig::value_changed(const t_co
                         something_changed = true;
                     }
                 }
+                
                 //if (opt_key == "support_material_extrusion_width") {
                 //    Flow flow = Flow::new_from_config_width(FlowRole::frSupportMaterial, width_option->value == 0 ? *default_width_option : *width_option, max_nozzle_diameter, layer_height_option->value, 0);
                 //    if (width_option->percent)
