@@ -1651,8 +1651,6 @@ msgstr "Naht"
 msgid "Seam notch"
 msgstr "Nahtkerbe"
 
-
-
 #: src/slic3r/GUI/Gizmos/GLGizmoFdmSupports.cpp:49
 #: src/slic3r/GUI/Gizmos/GLGizmoFdmSupports.cpp:434
 msgid "Block supports"
@@ -1862,8 +1860,6 @@ msgstr "Kamera"
 msgid "Connection length"
 msgstr "Länge der Verbindung"
 
-
-
 #: resources/data/hints.ini: [hint:Camera Views]
 msgid ""
 "Camera Views\n"
@@ -1911,7 +1907,6 @@ msgstr "Abbrechen"
 #: src/slic3r/GUI/FirmwareDialog.cpp:919
 msgid "Cancelling..."
 msgstr "Abbrechen..."
-
 
 #: src/libslic3r/Flow.cpp:61
 #, boost-format
@@ -3272,8 +3267,6 @@ msgstr "Dünne Wände"
 
 msgid "Round corners"
 msgstr "Runde Ecken"
-
-
 
 #: src/libslic3r/PrintConfig.cpp:4521
 msgid ""
@@ -5560,7 +5553,7 @@ msgstr ""
 
 #: src/libslic3r/PrintConfig.cpp:1629
 msgid "How to apply limits"
-msgstr "Wie man Grenzen anwendet"
+msgstr "Grenzanwendung"
 
 #: src/libslic3r/PrintConfig.cpp:1632
 msgid "How to apply the Machine Limits"
@@ -5722,8 +5715,6 @@ msgstr "Anwenden an"
 
 msgid "Wall Transition"
 msgstr "Wandübergang"
-
-
 
 #: src/slic3r/GUI/ExtruderSequenceDialog.cpp:166
 msgid "If enabled, random sequence of the selected extruders will be used."
@@ -7806,8 +7797,6 @@ msgstr "Es werden keine Stützpunkte näher als dieser Schwellenwert platziert."
 
 msgid "Threshold for"
 msgstr "Schwellenwert für"
-
-
 
 #: src/slic3r/GUI/UpdateDialogs.cpp:299
 msgid "No updates available"
@@ -11735,7 +11724,6 @@ msgstr "Objektsortierung"
 msgid "Extruder clearance (mm)"
 msgstr "Extruder Freiraum"
 
-
 msgid "Post-processing milling"
 msgstr "Nachbearbeitungsfräsen"
 
@@ -11873,8 +11861,6 @@ msgstr "Extruder Lüfter Abweichung"
 
 msgid "Seam gap"
 msgstr "Nahtspalt"
-
-
 
 #: src/libslic3r/PrintConfig.cpp:3576
 msgid "Small pillar diameter percent"
