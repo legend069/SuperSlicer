@@ -2141,8 +2141,8 @@ std::vector<Slic3r::GUI::PageShp> Tab::create_pages(std::string setting_type_nam
                     // store current label into full_label if no full_label to prevent rpoblem in the rest of the gui (all empty).
                     if (option.opt.full_label.empty() && !is_script)
                         option.opt.full_label = option.opt.label;
-                    option.opt.label = (params[i].substr(strlen("label$")));
-                    if (is_script && option.opt.full_label.empty()) 
+                    option.opt.label = (params[i].substr(strlen("label$"))) + " ";
+                    if (is_script && option.opt.full_label.empty())
                         option.opt.full_label = option.opt.label;
                     need_to_notified_search = true;
                 }

@@ -2780,11 +2780,6 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops(
     
     // if brim will be printed, reverse the order of perimeters so that
     // we continue inwards after having finished the brim
-    const bool reverse_contour  = (this->layer->id() == 0 && this->object_config->brim_width.value > 0) ||
-                           (this->config->external_perimeters_first.value && this->config->external_perimeters_nothole.value);
-    const bool reverse_hole = (this->layer->id() == 0 && this->object_config->brim_width_interior.value > 0) || 
-                           (this->config->external_perimeters_first.value && this->config->external_perimeters_hole.value);
-
     const bool reverse_contour = (this->layer->id() == 0 && this->object_config->brim_width.value > 0) ||
                                  (this->config->external_perimeters_first.value &&
                                   this->config->external_perimeters_nothole.value);

@@ -770,7 +770,7 @@ struct MyContext : public ConfigOptionResolver {
             if (vector_opt->is_extruder_size()) {
                 
                 if (raw_opt->type() == coFloats || raw_opt->type() == coInts || raw_opt->type() == coBools)
-                    return vector_opt->getFloat(int(current_extruder_id));
+                    return vector_opt->get_float(int(current_extruder_id));
                 if (raw_opt->type() == coFloatsOrPercents) {
                     const ConfigOptionFloatsOrPercents* opt_fl_per = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
                     if (!opt_fl_per->values[current_extruder_id].percent)
@@ -869,7 +869,7 @@ struct MyContext : public ConfigOptionResolver {
             ctx->throw_exception("Variable does not exist", opt_key);
         if (opt_index->type() != coInt)
             ctx->throw_exception("Indexing variable has to be integer", opt_key);
-        int idx = opt_index->getInt();
+        int idx = opt_index->get_int();
         if (idx < 0)
             ctx->throw_exception("Negative vector index", opt_key);
         output = vec->vserialize()[(idx >= (int)vec->size()) ? 0 : idx];

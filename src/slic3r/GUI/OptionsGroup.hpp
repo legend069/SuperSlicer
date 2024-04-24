@@ -270,8 +270,11 @@ public:
 
     bool has_option_def(const std::string &opt_key);
     const Option* get_option_def(const std::string &opt_key);
+
 	//these 'has' and 'get' are about m_opt_map and not m_options. it's the option + id
     bool has_option(const std::string &opt_key, int opt_index = -1);
+    Option get_option(const std::string& opt_key, int opt_index = -1);
+
 	// more like "create option from def" (old "get_option")
 	Option		create_option_from_def(const std::string& opt_key, int opt_index = -1);
 	void		register_to_search(const std::string& opt_key, const ConfigOptionDef& option_def, int opt_index, bool reset);

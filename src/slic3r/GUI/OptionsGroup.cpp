@@ -647,6 +647,20 @@ Option ConfigOptionsGroup::create_option_from_def(const std::string &opt_key, in
     return Option(*m_config->def()->get(opt_key), opt_id);
 }
 
+Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index) {
+
+    if (!m_config->has(opt_key)) {
+        std::cerr << "No" << opt_key << " in ConfigOptionsGroup";
+    }
+
+    std::string opt_id = opt_index == -1 ? opt_key : opt_key + "#" + std::to_string(opt_index);
+    std::pair<std::string, int> pair(opt_key, opt_index);
+    m_opt_map.emplace(opt_id, pair);
+
+    return Option(*m_config->def()->get(opt_key), opt_id);
+}
+
+
 void ConfigOptionsGroup::register_to_search(const std::string& opt_key, const ConfigOptionDef& option_def, int opt_index /*= -1*/, bool reset)
 { // fill group and category values just for options from Settings Tab
     std::string opt_id = opt_index == -1 ? opt_key : opt_key + "#" + std::to_string(opt_index);

@@ -11862,6 +11862,9 @@ msgstr "Extruder Lüfter Abweichung"
 msgid "Seam gap"
 msgstr "Nahtspalt"
 
+msgid "Calibration"
+msgstr "Kalibrierung"
+
 #: src/libslic3r/PrintConfig.cpp:3576
 msgid "Small pillar diameter percent"
 msgstr "Kleiner Pfeilerdurchmesser in Prozent"

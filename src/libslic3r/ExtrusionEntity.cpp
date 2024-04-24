@@ -499,97 +499,54 @@ void ExtrusionPrinter::use(const ExtrusionEntityCollection &collection) {
 }
 
 
-void ExtrusionLength::default_use(const ExtrusionEntity& entity) { dist += entity.length(); };
-void ExtrusionLength::use(const ExtrusionEntityCollection& collection) {
-    for (int i = 0; i < collection.entities().size(); i++) {
-        collection.entities()[i]->visit(*this);
-    }
+void ExtrusionLength::default_use(const ExtrusionEntity &entity) { dist += entity.length(); };
+void ExtrusionLength::use(const ExtrusionEntityCollection &collection)
+{
+    for (int i = 0; i < collection.entities().size(); i++) { collection.entities()[i]->visit(*this); }
 }
 
-double ExtrusionVolume::get(const ExtrusionEntityCollection &coll) {
+double ExtrusionVolume::get(const ExtrusionEntityCollection &coll)
+{
     for (const ExtrusionEntity *entity : coll.entities()) entity->visit(*this);
     return volume;
 }
 
-void ExtrusionModifyFlow::set(ExtrusionEntityCollection &coll) {
+void ExtrusionModifyFlow::set(ExtrusionEntityCollection &coll)
+{
     for (ExtrusionEntity *entity : coll.entities()) entity->visit(*this);
 }
 
-void ExtrusionVisitorRecursiveConst::use(const ExtrusionMultiPath& multipath) {
-    for (const ExtrusionPath& path : multipath.paths) {
-        path.visit(*this);
-    }
+void ExtrusionVisitorRecursiveConst::use(const ExtrusionMultiPath &multipath)
+{
+    for (const ExtrusionPath &path : multipath.paths) { path.visit(*this); }
 }
-void ExtrusionVisitorRecursiveConst::use(const ExtrusionMultiPath3D& multipath3D) {
-    for (const ExtrusionPath3D& path3D : multipath3D.paths) {
-        path3D.visit(*this);
-    }
+void ExtrusionVisitorRecursiveConst::use(const ExtrusionMultiPath3D &multipath3D)
+{
+    for (const ExtrusionPath3D &path3D : multipath3D.paths) { path3D.visit(*this); }
 }
-void ExtrusionVisitorRecursiveConst::use(const ExtrusionLoop& loop) {
-    for (const ExtrusionPath& path : loop.paths) {
-        path.visit(*this);
-    }
+void ExtrusionVisitorRecursiveConst::use(const ExtrusionLoop &loop)
+{
+    for (const ExtrusionPath &path : loop.paths) { path.visit(*this); }
 }
-void ExtrusionVisitorRecursiveConst::use(const ExtrusionEntityCollection& collection) {
-    for (const ExtrusionEntity* entity : collection.entities()) {
-        entity->visit(*this);
-    }
+void ExtrusionVisitorRecursiveConst::use(const ExtrusionEntityCollection &collection)
+{
+    for (const ExtrusionEntity *entity : collection.entities()) { entity->visit(*this); }
 }
-void ExtrusionVisitorRecursive::use(ExtrusionMultiPath& multipath) {
-    for (ExtrusionPath& path : multipath.paths) {
-        path.visit(*this);
-    }
+void ExtrusionVisitorRecursive::use(ExtrusionMultiPath &multipath)
+{
+    for (ExtrusionPath &path : multipath.paths) { path.visit(*this); }
 }
-void ExtrusionVisitorRecursive::use(ExtrusionMultiPath3D& multipath3D) {
-    for (ExtrusionPath3D& path3D : multipath3D.paths) {
-        path3D.visit(*this);
-    }
+void ExtrusionVisitorRecursive::use(ExtrusionMultiPath3D &multipath3D)
+{
+    for (ExtrusionPath3D &path3D : multipath3D.paths) { path3D.visit(*this); }
 }
-void ExtrusionVisitorRecursive::use(ExtrusionLoop& loop) {
-    for (ExtrusionPath& path : loop.paths) {
-        path.visit(*this);
-    }
+void ExtrusionVisitorRecursive::use(ExtrusionLoop &loop)
+{
+    for (ExtrusionPath &path : loop.paths) { path.visit(*this); }
 }
-void ExtrusionVisitorRecursive::use(ExtrusionEntityCollection& collection) {
-    for (ExtrusionEntity* entity : collection.entities()) {
-        entity->visit(*this);
-    }
-}
-
-void HasRoleVisitor::use(const ExtrusionMultiPath& multipath) {
-    for (const ExtrusionPath& path : multipath.paths) {
-        path.visit(*this);
-        if(found) return;
-    }
-}
-void HasRoleVisitor::use(const ExtrusionMultiPath3D& multipath3D) {
-    for (const ExtrusionPath3D& path3D : multipath3D.paths) {
-        path3D.visit(*this);
-        if(found) return;
-    }
-}
-void HasRoleVisitor::use(const ExtrusionLoop& loop) {
-    for (const ExtrusionPath& path : loop.paths) {
-        path.visit(*this);
-        if(found) return;
-    }
-}
-void HasRoleVisitor::use(const ExtrusionEntityCollection& collection) {
-    for (const ExtrusionEntity* entity : collection.entities()) {
-        entity->visit(*this);
-        if(found) return;
-    }
-}
-bool HasRoleVisitor::search(const ExtrusionEntity &entity, HasRoleVisitor&& visitor) {
-    entity.visit(visitor);
-    return visitor.found;
-}
-bool HasRoleVisitor::search(const ExtrusionEntitiesPtr &entities, HasRoleVisitor&& visitor) {
-    for (ExtrusionEntity *ptr : entities) {
-        ptr->visit(visitor);
-        if (visitor.found) return true;
-    }
-    return visitor.found;
+void ExtrusionVisitorRecursive::use(ExtrusionEntityCollection &collection)
+{
+    for (ExtrusionEntity *entity : collection.entities()) { entity->visit(*this); }
 }
 
 void HasRoleVisitor::use(const ExtrusionMultiPath &multipath)
