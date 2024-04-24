@@ -776,15 +776,14 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
         m_support_layers.clear();
     }
 
-SupportLayer* PrintObject::add_support_layer(int id, int interface_id, coordf_t height, coordf_t print_z)
+    void PrintObject::add_support_layer(int id, int interface_id, coordf_t height, coordf_t print_z)
     {
-    m_support_layers.emplace_back(new SupportLayer(id, interface_id, this, height, print_z, -1));
-        return m_support_layers.back();
+        m_support_layers.emplace_back(new SupportLayer(id, interface_id, this, height, print_z, -1));
     }
 
-SupportLayerPtrs::iterator PrintObject::insert_support_layer(SupportLayerPtrs::const_iterator pos, size_t id, size_t interface_id, coordf_t height, coordf_t print_z, coordf_t slice_z)
+    SupportLayerPtrs::iterator PrintObject::insert_support_layer(SupportLayerPtrs::const_iterator pos, size_t id, size_t interface_id, coordf_t height, coordf_t print_z, coordf_t slice_z)
     {
-    return m_support_layers.insert(pos, new SupportLayer(id, interface_id, this, height, print_z, slice_z));
+        return m_support_layers.insert(pos, new SupportLayer(id, interface_id, this, height, print_z, slice_z));
     }
 
     // Called by Print::apply().
@@ -958,7 +957,9 @@ bool PrintObject::invalidate_state_by_config_options(
                 || opt_key == "solid_fill_pattern"
                 || opt_key == "enforce_full_fill_volume"
                 || opt_key == "fill_angle"
+                || opt_key == "fill_angle_cross"
                 || opt_key == "fill_angle_increment"
+                || opt_key == "fill_angle_template"
                 || opt_key == "fill_top_flow_ratio"
                 || opt_key == "fill_smooth_width"
                 || opt_key == "fill_smooth_distribution"
@@ -1050,7 +1051,8 @@ bool PrintObject::invalidate_state_by_config_options(
                 || opt_key == "min_bead_width") {
                 steps.emplace_back(posSlice);
             } else if (
-                opt_key == "bridge_speed"
+                opt_key == "avoid_crossing_top"
+                || opt_key == "bridge_speed"
                 || opt_key == "bridge_speed_internal"
                 || opt_key == "external_perimeter_speed"
                 || opt_key == "external_perimeters_vase"
@@ -1084,8 +1086,6 @@ bool PrintObject::invalidate_state_by_config_options(
                 invalidated |= m_print->invalidate_step(psGCodeExport);
             } else if (
                 opt_key == "brim_inside_holes"
-                || opt_key == "brim_width"
-                || opt_key == "brim_width_interior"
                 || opt_key == "brim_ears"
                 || opt_key == "brim_ears_detection_length"
                 || opt_key == "brim_ears_max_angle"
@@ -1093,6 +1093,14 @@ bool PrintObject::invalidate_state_by_config_options(
                 || opt_key == "brim_per_object"
                 || opt_key == "brim_separation") {
                 invalidated |= m_print->invalidate_step(psSkirtBrim);
+                // Brim is printed below supports, support invalidates brim and skirt.
+                steps.emplace_back(posSupportMaterial);
+            } else if (
+                opt_key == "brim_width"
+                || opt_key == "brim_width_interior") {
+                invalidated |= m_print->invalidate_step(psSkirtBrim);
+                // these two may change the ordering of first layer perimeters
+                steps.emplace_back(posPerimeters);
                 // Brim is printed below supports, support invalidates brim and skirt.
                 steps.emplace_back(posSupportMaterial);
             } else {
@@ -1296,7 +1304,7 @@ bool PrintObject::invalidate_state_by_config_options(
 
         for (const PrintRegion* region : this->m_print->print_regions_mutable()) {
             //count how many surface there are on each one
-            if (region->config().infill_dense.getBool() && region->config().fill_density < 40) {
+            if (region->config().infill_dense.get_bool() && region->config().fill_density < 40) {
                 std::vector<LayerRegion*> layeridx2lregion;
                 std::vector<Surfaces> new_surfaces; //surface store, as you can't modify them when working in //
                 // store the LayerRegion on which we are working
@@ -2542,10 +2550,11 @@ static constexpr const std::initializer_list<const std::string_view> keys_extrud
         if (it->first != key_extruder)
             if (ConfigOption* my_opt = out.option(it->first, false); my_opt != nullptr) {
                 if (one_of(it->first, keys_extruders)) {
+                    assert(dynamic_cast<ConfigOptionInt*>(my_opt));
                     // Ignore "default" extruders.
                     int extruder = static_cast<const ConfigOptionInt*>(it->second.get())->value;
                     if (extruder > 0)
-                        my_opt->setInt(extruder);
+                        static_cast<ConfigOptionInt *>(my_opt)->value = (extruder);
                 } else
                     my_opt->set(it->second.get());
             }

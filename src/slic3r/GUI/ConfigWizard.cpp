@@ -1261,7 +1261,7 @@ PageUpdate::PageUpdate(ConfigWizard *parent)
     , version_check(true)
     , preset_update(true)
 {
-    const AppConfig *app_config = wxGetApp().app_config;
+    const AppConfig *app_config = wxGetApp().app_config.get();
     auto boldfont = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     boldfont.SetWeight(wxFONTWEIGHT_BOLD);
 
@@ -1590,10 +1590,10 @@ void PageDiameters::apply_custom_config(DynamicPrintConfig &config)
     config.option("infill_extrusion_width")->set_phony(true);
     config.option("solid_infill_extrusion_width")->set_phony(true);
     config.option("top_infill_extrusion_width")->set_phony(true);
-    config.set_key_value("perimeter_extrusion_change_odd_layers", new ConfigOptionFloat(0));
-    config.set_key_value("external_perimeter_extrusion_change_odd_layers", new ConfigOptionFloat(0));
-    config.set_key_value("infill_extrusion_change_odd_layers", new ConfigOptionFloat(0));
-    config.set_key_value("solid_infill_extrusion_change_odd_layers", new ConfigOptionFloat(0));
+    config.set_key_value("perimeter_extrusion_change_odd_layers", new ConfigOptionFloatOrPercent(0, false));
+    config.set_key_value("external_perimeter_extrusion_change_odd_layers", new ConfigOptionFloatOrPercent(0, false));
+    config.set_key_value("infill_extrusion_change_odd_layers", new ConfigOptionFloatOrPercent(0, false));
+    config.set_key_value("solid_infill_extrusion_change_odd_layers", new ConfigOptionFloatOrPercent(0, false));
     config.update_phony({});
 }
 
@@ -2050,7 +2050,7 @@ void ConfigWizard::priv::load_vendors()
     bundles = BundleMap::load();
 
     // Load up the set of vendors / models / variants the user has had enabled up till now
-    AppConfig *app_config = wxGetApp().app_config;
+    AppConfig *app_config = wxGetApp().app_config.get();
     appconfig_new.set_vendors(*app_config);
 
     // Initialize the is_visible flag in printer Presets
@@ -3176,7 +3176,7 @@ bool ConfigWizard::run(RunReason reason, StartPage start_page)
 
     if (ShowModal() == wxID_OK) {
         bool apply_keeped_changes = false;
-        if (! p->apply_config(app.app_config, app.preset_bundle, app.preset_updater, apply_keeped_changes))
+        if (! p->apply_config(app.app_config.get(), app.preset_bundle.get(), app.preset_updater.get(), apply_keeped_changes))
             return false;
 
         if (apply_keeped_changes)
