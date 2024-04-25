@@ -1,112 +1,49 @@
-
-[![you can get this shield at shields.io](https://img.shields.io/discord/856802286588002304?color=7289da&logo=discord&logoColor=white)](https://github.com/supermerill/SliCR-3D/issues/611#issuecomment-907833287) ![Website](https://img.shields.io/website?url=https%3A%2F%2Fwww.cr3d.de&up_message=ONLINE&down_message=OFFLINE&style=flat&label=CR3D&color=%231a7476)
-
+[![Discord](https://img.shields.io/discord/856802286588002304?color=7289da&logo=discord&logoColor=white)](https://github.com/supermerill/SliCR-3D/issues/611#issuecomment-907833287) [![Website](https://img.shields.io/website?url=https%3A%2F%2Fwww.cr3d.de&up_message=ONLINE&down_message=OFFLINE&style=flat&label=CR3D&color=%231a7476)](https://www.cr3d.de)
 
 # SliCR-3D
 
-**A SuperSlicer & PrusaSlicer fork (which is a slic3r fork)** (previously Slic3r++)
+**SliCR-3D** is a fork of SuperSlicer and PrusaSlicer, which are both forks of Slic3r. Previously known as Slic3r++.
 
-Prebuilt Windows, Linux and macOS 64-bit releases are available through the [git releases page](https://github.com/CR-3D/SliCR-3D/releases). The Linux & macOS builds aren't tested (by me), just compiled, so please report any bugs that may occur during use.  
-For **installers**, check the badges above. Windows users can use chocolatey or scoop.  
-Nightly builds are available through the [git actions page](https://github.com/CR-3D/SliCR-3D/actions). Click on the build for your platform and then on the archive name (`nightly_win64` or `SliCR-3D-gtk2.AppImage` or `nightly_macos.dmg`) in the "Artifacts" section in the top right corner.
+Prebuilt Windows, Linux, and macOS 64-bit releases are available through the [git releases page](https://github.com/CR-3D/SliCR-3D/releases). Linux & macOS builds are compiled but not extensively tested, so please report any bugs. For installation, check the badges above. Windows users can use chocolatey or scoop. Nightly builds are available through the [git actions page](https://github.com/CR-3D/SliCR-3D/actions). Click on the build for your platform and then on the archive name (`nightly_win64` or `SliCR-3D-gtk2.AppImage` or `nightly_macos.dmg`) in the "Artifacts" section in the top right corner.
 
-SliCR-3D takes 3D models (STL, OBJ, AMF) and converts them into G-code
-instructions for FFF printers or PNG layers for mSLA 3D printers. It's compatible with any modern printer based on the RepRap toolchain which is running a firmware based on Marlin, Prusa, Klipper, etc.
+**SliCR-3D** takes 3D models (STL, OBJ, AMF) and converts them into G-code instructions for FFF printers or PNG layers for mSLA 3D printers. It's compatible with any modern printer based on the RepRap toolchain using firmware such as Marlin, Prusa, Klipper, etc.
 
-SliCR-3D is based on [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research and on [SuperSlicer](https://github.com/supermerill/SuperSlicer) by supermerill.
-PrusaSlicer is based on [Slic3r](https://github.com/Slic3r/Slic3r) by Alessandro Ranellucci and the RepRap community.
+**SliCR-3D** is based on [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research and [SuperSlicer](https://github.com/supermerill/SuperSlicer) by supermerill, which are both based on [Slic3r](https://github.com/Slic3r/Slic3r) by Alessandro Ranellucci and the RepRap community.
 
-See the [wiki](https://github.com/supermerill/SliCR-3D/wiki) and
-the [documentation directory](doc/) for information about compilation.
+For detailed compilation instructions, refer to the [wiki](https://github.com/CR-3D/SliCR-3D/wiki) and the [documentation directory](doc/).
 
-### What are SliCR-3D main features? main new features/differences?
+## Key Features
 
-* Custom-made generated calibration tests.
-* new settings to fine-tune the top surface quality, like 'only one perimeter on top'.
-* A "denser infill" option for supporting the (solid) top layers.
-* Better **Thin walls** (anchored inside the print, no more random bits at the ends, embedded in perimeter loops).
-* Options to change holes dimensions and/or geometry, to print them at the right size.
-* Better overhangs (add perimeters if needed, slice them in opposite direction each layer).
-* Brim rework: many more options (inside, outside only, 'ears', per object)
-* Some new seam options, to help hide them.
-* Built-in calibration prints
-* Built-in object generation script
-* Can join perimeters into a big one to avoid travel moves.
-* Many other little options and corrections (like the filled concentric pattern).
-* It has also all the current slic3rPE/PrusaSlicer features.
+- Custom-made calibration tests
+- Fine-tuning options for top surface quality
+- "Denser infill" option for solid top layers
+- Improved thin walls
+- Options for adjusting hole dimensions/geometry
+- Better overhangs handling
+- Reworked brim with more options
+- New seam options
+- Built-in calibration prints and object generation script
+- Joining perimeters to avoid travel moves
+- Numerous other options and improvements
+- Includes all features from Slic3rPE/PrusaSlicer
+- 3D preview (including multi-material files)
+- Customizable G-code macros and output filename with variable placeholders
+- Support for post-processing scripts
+- Cooling logic controlling fan speed and dynamic print speed
 
 
-### Complete changelog [here](https://github.com/supermerill/SliCR-3D/wiki)
-
-See the wiki for examples.
-
-### What are SliCR-3D / PrusaSlicer / Slic3r's main features?
-
-Key features are:
-
-* **Multi-platform** (Linux/Mac/Win) and packaged as standalone-app with no dependencies required
-* Complete **command-line interface** to use it without GUI
-* Multi-material **(multiple extruders)** object printing
-* Multiple G-code flavors supported (RepRap, Makerbot, Mach3, Machinekit, etc.)
-* Ability to plate **multiple objects having distinct print settings**
-* **Multithread** processing
-* **STL auto-repair** (tolerance for broken models)
-* Wide automated unit testing
-
-Other major features are:
-
-* Combine infill every 'n' perimeters layer & varying density to speed up printing
-* **3D preview** (including multi-material files)
-* **Multiple layer heights** in a single print
-* **Spiral vase** mode for bumpless vases
-* Fine adjustment of speed, acceleration, and extrusion width
-* Several infill patterns including honeycomb, spirals, Hilbert curves, gyroid
-* Support material, raft, brim, skirt
-* **Standby temperature** and automatic wiping for multi-extruder printing
-* [Customizable **G-code macros**](https://github.com/prusa3d/PrusaSlicer/wiki/Slic3r-Prusa-Edition-Macro-Language) and output filename with variable placeholders
-* Support for **post-processing scripts**
-* **Cooling logic** controlling fan speed and dynamic print speed
-
-[Command-Line Interface](https://github.com/prusa3d/PrusaSlicer/wiki/Command-Line-Interface) wiki page.
+Complete changelog available [here](https://github.com/CR-3D/SliCR-3D/wiki).
 
 ## Development
 
-### What language is it written in?
+**Language**: Primarily written in C++.
 
-Almost everything is written in C++.
+**Compilation**: Instructions for compiling are available for [Linux](doc/How%20to%20build%20-%20Linux%20et%20al.md), [macOS](doc/How%20to%20build%20-%20Mac%20OS.md), and [Windows](doc/How%20to%20build%20-%20Windows.md).
 
-The slicing core is the `libslic3r` library, which can be built and used in a standalone way.
-The command-line interface is a thin wrapper over `libslic3r`.
-You can download a precompiled package from the release page - it will run without the need for any dependency.
+**Contribution**: Contributions are welcome! Please open an issue to discuss proposed changes before submitting a pull request.
 
-### How to compile
+## License
 
-If you want to compile the source yourself, follow the instructions on one of
-these documentation pages:
-* [Linux](doc/How%20to%20build%20-%20Linux%20et%20al.md)
-* [macOS](doc/How%20to%20build%20-%20Mac%20OS.md)
-* [Windows](doc/How%20to%20build%20-%20Windows.md)
+SliCR-3D is licensed under the GNU Affero General Public License, version 3. It is based on PrusaSlicer, which is also licensed under the GNU Affero General Public License, version 3. PrusaSlicer, in turn, is based on Slic3r, which is also licensed under the GNU Affero General Public License, version 3.
 
-You can also look at the workflow YAML-files for [git actions](https://github.com/supermerill/Slic3r/tree/master/.github/workflows), as they describe how to build from source from a "virgin" dev computer.
-
-### Can I help?
-
-Sure! You can do the following to find things that are available to help with:
-* Add an issue to the GitHub tracker **if it isn't already present**.
-
-Before sending patches and pull requests contact me (preferably through opening a GitHub issue or commenting on an existing, related, issue) to discuss your proposed
-changes. This way we can ensure that nobody wastes their time and no conflicts arise in development.
-
-## License and attribution
-
-SliCR-3D is licensed under the _GNU Affero General Public License, version 3_.
-SliCR-3D is based on PrusaSlicer by PrusaResearch.
-
-PrusaSlicer is licensed under the _GNU Affero General Public License, version 3_.
-PrusaSlicer is owned by Prusa Research.
-PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci.
-
-Slic3r is licensed under the _GNU Affero General Public License, version 3_.
-Slic3r was created by Alessandro Ranellucci with the help of many other contributors.
-
-The _GNU Affero General Public License, version 3_ ensures that if you **use** any part of this software in any way (even behind a web server), your software must be released under the same license.
+This license ensures that if you use any part of this software, your software must be released under the same license.
