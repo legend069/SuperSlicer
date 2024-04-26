@@ -1092,6 +1092,7 @@ void MainFrame::init_tabpanel()
             else
                 last_selected_setting_tab = m_tabpanel->GetSelection() - 1;
         } else if (this->m_layout == ESettingsLayout::Tabs) {
+
 #if _USE_CUSTOM_NOTEBOOK
             int bt_idx_sel = 0;
             if (wxGetApp().tabs_as_menu()) {
@@ -1099,34 +1100,27 @@ void MainFrame::init_tabpanel()
             } else {
                 Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
                 //get the selected button, not the selected panel
-                bt_idx_sel = notebook->GetBtSelection() - 1;
+                bt_idx_sel = notebook->GetBtSelection();
             }
 
-            switch (bt_idx_sel) {
-                case 0: 
-                    this->m_plater->select_view_3D("3D"); 
+            if (bt_idx_sel == 0) {
+                this->m_plater->select_view_3D("3D");
+            } else if (bt_idx_sel == 1) {
+                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
+                    this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
+                    this->m_plater->select_view_3D("Preview");
+                    this->m_plater->refresh_print();
+                } else
+                    this->m_plater->select_view_3D("Preview");
+            } else if (bt_idx_sel == 2) {
+                DynamicPrintConfig *selected_printer_config =
+                    wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+                if (!selected_printer_config) {
+                    // No physical printer found, show blank screen for now
+                }
 
-                case 1:
-                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
-                            this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
-                            this->m_plater->select_view_3D("Preview");
-                            this->m_plater->refresh_print();
-                    } else {
-                        this->m_plater->select_view_3D("Preview");
-                    }
-                    
-                     break;
-                    
-                case 2:
-                    DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-                    if (!selected_printer_config) {
-                        // No physical printer found, show blank screen for now
-
-                    }
-
-                    m_webView->Show();
-                    m_webView->Enable();
-                    break;
+                m_webView->Show();
+                m_webView->Enable();
             }
 
             m_last_selected_plater_tab = bt_idx_sel;
@@ -2654,7 +2648,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             //select plater
             new_selection = (uint8_t)tab;
             if (tab == TabPosition::tpPlaterGCode)
-                new_selection = (uint8_t)TabPosition::tpPlater;
+                new_selection = (uint8_t)TabPosition::tpPlaterGCode;
             if (m_layout != ESettingsLayout::Tabs)
                 new_selection = (uint8_t)TabPosition::tpPlater;
 
@@ -2671,7 +2665,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 new_selection = new_selection + 3;
         }
 
-#if _USE_CUSTOM_NOTEBOOK
+#ifndef _USE_CUSTOM_NOTEBOOK
         if (m_tabpanel->GetPageCount() == 0) return; // failsafe
         if (m_tabpanel->GetSelection() != (int)new_selection)
             m_tabpanel->SetSelection(new_selection);
@@ -2706,7 +2700,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 }
                 if (tab == TabPosition::tpPlater || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
                     this->m_plater->select_view_3D("3D");
-                } else if (tab == TabPosition::tpPlaterPreview || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 1)) {
+                } else if (tab == TabPosition::tpPlaterGCode || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 1)) {
                     if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
                         this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
                         this->m_plater->select_view_3D("Preview");
@@ -2723,10 +2717,10 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 }
             }
         } else {
-           // Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
-            //if (notebook->GetPageCount() == 0) return; // failsafe
-            //if (notebook->GetBtSelection() != (int)new_selection)
-               // notebook->SetBtSelection(new_selection);
+            Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
+            if (notebook->GetPageCount() == 0) return; // failsafe
+            if (notebook->GetBtSelection() != (int)new_selection)
+            notebook->SetBtSelection(new_selection);
         }
 #endif
         if (tab == TabPosition::tpPlaterGCode && m_layout == ESettingsLayout::Old)
@@ -2820,7 +2814,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             return;
         } else {
             select(false);
-#if _USE_CUSTOM_NOTEBOOK
+#ifndef _USE_CUSTOM_NOTEBOOK
             //force update if change from plater to plater (as it doesn't change the real tab, have to tell him to really update
             if (m_tabpanel->GetSelection() != int(tab) && m_tabpanel->GetSelection() < int(TabPosition::tpPlaterGCode)) {
                 wxBookCtrlEvent evt = wxBookCtrlEvent(wxEVT_BOOKCTRL_PAGE_CHANGED);

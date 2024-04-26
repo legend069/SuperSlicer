@@ -396,7 +396,7 @@ void FreqChangedParams::init()
 
     if(tab_print != nullptr) {
         pages.clear();
-        pages = tab_print->create_pages("freq_fff_2_nozzles.ui");
+        pages = tab_print->create_pages("freq_fff.ui");
     }
 
     
