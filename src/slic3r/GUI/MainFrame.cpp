@@ -321,8 +321,9 @@ void MainFrame::update_icon() {
             m_tabpanel->SetPageImage(0, 0);
             m_tabpanel->SetPageImage(1, 1);
             m_tabpanel->SetPageImage(2, 2);
-            m_tabpanel->SetPageImage(3, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 4);
-            m_tabpanel->SetPageImage(4, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 5);
+            m_tabpanel->SetPageImage(3, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 3);
+            m_tabpanel->SetPageImage(4, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 4);
+            m_tabpanel->SetPageImage(5, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 8 : 5);
         }
         break;
     }
@@ -355,7 +356,7 @@ static void append_tab_menu_items_to_menubar(wxMenuBar* bar, PrinterTechnology p
     bool has_marker = false;
     if (layout == MainFrame::ESettingsLayout::Tabs) {
         bar->Append(new wxMenu(), pref() + _L("3D view") + suff());
-        bar->Append(new wxMenu(),  _L("Gcode preview"));
+        bar->Append(new wxMenu(),  _L("GCode preview"));
         bar->Append(new wxMenu(),  _L("Device"));
         has_marker = true;
         // Add separator
@@ -459,7 +460,7 @@ static void add_tabs_as_menu(wxMenuBar* bar, MainFrame* main_frame, wxWindow* ba
             main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
         else if (title == _L("3D view"))
             main_frame->select_tab(MainFrame::TabPosition::tpPlater);
-        else if (title == _L("Gcode preview"))
+        else if (title == _L("GCode preview"))
             main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode);
         else if (title == _L("Device"))
             main_frame->select_tab(MainFrame::TabPosition::tpDevice);
@@ -664,15 +665,13 @@ void MainFrame::update_layout()
         if (!wxGetApp().tabs_as_menu()) {
             Notebook* notebook = static_cast<Notebook*>(m_tabpanel);
             notebook->InsertBtPage(0, m_plater, _L("3D View"), std::string("tab_editor_menu"), icon_size, true);
-            notebook->InsertBtPage(1, m_plater, _L("Gcode Preview"), std::string("tab_preview_menu"), icon_size, false);
+            notebook->InsertBtPage(1, m_plater, _L("GCode Preview"), std::string("tab_preview_menu"), icon_size, false);
             notebook->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
 
             notebook->GetBtnsListCtrl()->InsertSpacer(3, 40);
             notebook->GetBtnsListCtrl()->GetPageButton(0)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
                 this->m_plater->Show();
                 this->m_plater->select_view_3D("3D");
-                //not that useful
-                //this->select_tab(MainFrame::ETabType::tpPlater); // select Plater
                 });
             notebook->GetBtnsListCtrl()->GetPageButton(1)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
                     this->m_plater->Show();
@@ -682,14 +681,12 @@ void MainFrame::update_layout()
                     this->m_plater->refresh_print();
                 } else
                     this->m_plater->select_view_3D("Preview");
-
                 });
             
             notebook->GetBtnsListCtrl()->GetPageButton(2)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent &event) {
                      this->m_plater->Hide();
                      m_webView->Show();
                      m_webView->Enable();
-
                 });
         }
         
@@ -1037,9 +1034,9 @@ void MainFrame::init_tabpanel()
             "tab_preview_menu",
             "tab_device_active",
             "cog",
-            "spool_cog",
-            "printer_cog",
-            "resin_cog",
+            "spool",
+            "printer",
+            "resin",
             "sla_printer_cog"
         };
         
@@ -1052,7 +1049,7 @@ void MainFrame::init_tabpanel()
                 "spool",
                 "printer",
                 "resin",
-                "sla_printer"
+                "sla_printer_cog"
             };
         
         for (std::string icon_name : icon_list) {
@@ -1859,9 +1856,6 @@ void MainFrame::init_menubar_as_editor()
         append_menu_item(fileMenu, wxID_ANY, _L("&Repair STL file") + dots, _L("Automatically repair an STL file"),
             [this](wxCommandEvent&) { repair_stl(); }, "wrench", nullptr,
             []() { return true; }, this);
-        fileMenu->AppendSeparator();
-        append_menu_item(fileMenu, wxID_ANY, _L("&G-code Preview") + dots, _L("Open G-code viewer"),
-            [this](wxCommandEvent&) { start_new_gcodeviewer_open_file(this); }, "", nullptr);
         fileMenu->AppendSeparator();
         append_menu_item(fileMenu, wxID_EXIT, _L("&Quit"), GUI::format_wxstr(_L("Quit %s"), SLIC3R_APP_NAME),
             [this](wxCommandEvent&) { Close(false); }, "exit");
