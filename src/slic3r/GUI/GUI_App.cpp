@@ -85,6 +85,7 @@
 #include "PrintHostDialogs.hpp"
 #include "DesktopIntegrationDialog.hpp"
 #include "SendSystemInfoDialog.hpp"
+#include "SlicerUpdater.hpp"
 
 #include "BitmapCache.hpp"
 #include "Notebook.hpp"
@@ -146,7 +147,7 @@ public:
 
         // this font will be used for the action string
         m_action_font = m_constant_text.credits_font.Bold();
-
+       
         // draw logo and constant info text
         Decorate();
     }
@@ -1289,6 +1290,7 @@ bool GUI_App::on_init_inner()
             associate_stl_files();
 #endif // __WXMSW__
 
+        // TODO: Add download button
         preset_updater.reset(new PresetUpdater());
         Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
         app_config->set("version_online", into_u8(evt.GetString()));
@@ -3405,6 +3407,13 @@ bool GUI_App::check_updates(const bool verbose)
 	PresetUpdater::UpdateResult updater_result;
 	try {
 		updater_result = preset_updater->config_update(app_config->orig_version(), verbose ? PresetUpdater::UpdateParams::SHOW_TEXT_BOX : PresetUpdater::UpdateParams::SHOW_NOTIFICATION);
+
+
+        std::cout << "Current Version"
+                  << app_config->orig_version();
+        std::cout << "Online Version"
+                  << app_config->version_check_url();
+
 		if (updater_result == PresetUpdater::R_INCOMPAT_EXIT) {
 			mainframe->Close();
             // Applicaiton is closing.
