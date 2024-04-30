@@ -37,6 +37,7 @@ class PresetUpdater;
 class ModelObject;
 class PrintHostJobQueue;
 class Model;
+class AppUpdater;
 
 namespace GUI{
 
@@ -88,6 +89,8 @@ enum ConfigMenuIDs {
     ConfigMenuLanguage,
     ConfigMenuFlashFirmware,
     ConfigMenuCnt,
+    ConfigMenuUpdateConf,
+    ConfigMenuUpdateApp,
     //ConfigMenuModeSimple,
     //ConfigMenuModeAdvanced,
     //ConfigMenuModeExpert,

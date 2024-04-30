@@ -35,7 +35,7 @@ namespace Slic3r {
 
 static const std::string VENDOR_PREFIX = "vendor:";
 static const std::string MODEL_PREFIX = "model:";
-static const std::string VERSION_CHECK_URL = "https://drive.google.com/file/d/1GtyCCChwQKmLkIhi2TYFTZq0QKfTR5ak/view?usp=sharing";
+static const std::string VERSION_CHECK_URL = "https://www.dropbox.com/scl/fi/m0uxbbyouctk05fki2k94/SliCR-3D-2.version?rlkey=hxxq7nsq7mdi8j9ckyxq70gsz&st=tqsznpow&dl=1";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
 const std::string AppConfig::SECTION_MATERIALS = "sla_materials";

@@ -379,8 +379,8 @@ AppUpdateDownloadDialog::AppUpdateDownloadDialog(const Semver& version_online, b
     content_sizer->Add(versions);
     content_sizer->AddSpacer(VERT_SPACING);
 
-#if __linux__
-    cbox_run = new wxCheckBox(this, wxID_ANY, _L("Run installer after download. (Otherwise file explorer will be opened."));
+#ifndef __linux__
+    cbox_run = new wxCheckBox(this, wxID_ANY, _L("Run installer after download. (Otherwise file explorer will be opened.)"));
     content_sizer->Add(cbox_run);
 #endif
 
@@ -483,6 +483,7 @@ AppUpdateDownloadDialog::~AppUpdateDownloadDialog() {}
 
 bool AppUpdateDownloadDialog::run_after_download() const
 {
+    
 #ifndef __linux__
     return cbox_run->GetValue();
 #endif

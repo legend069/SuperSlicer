@@ -86,6 +86,8 @@
 #include "DesktopIntegrationDialog.hpp"
 #include "SendSystemInfoDialog.hpp"
 #include "SlicerUpdater.hpp"
+#include "AppUpdater.hpp"
+
 
 #include "BitmapCache.hpp"
 #include "Notebook.hpp"
@@ -791,6 +793,7 @@ void GUI_App::post_init()
             return;
         CallAfter([this] {
             bool cw_showed = this->config_wizard_startup();
+            this->app_version_check(true);
             this->preset_updater->sync(preset_bundle.get());
             if (! cw_showed) {
                 // The CallAfter is needed as well, without it, GL extensions did not show.
@@ -2549,7 +2552,9 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
         local_menu->Append(config_id_base + ConfigMenuSnapshots, _L("&Configuration Snapshots") + dots, _L("Inspect / activate configuration snapshots"));
         local_menu->Append(config_id_base + ConfigMenuTakeSnapshot, _L("Take Configuration &Snapshot"), _L("Capture a configuration snapshot"));
         local_menu->Append(config_id_base + ConfigMenuUpdate, _L("Check for Configuration Updates"), _L("Check for configuration updates"));
-#if defined(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION) 
+        local_menu->Append(config_id_base + ConfigMenuUpdateConf, _L("Check for Configuration Updates"), _L("Check for configuration updates"));
+         local_menu->Append(config_id_base + ConfigMenuUpdateApp, _L("Check for Application Updates"), _L("Check for new version of application"));
+#if defined(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION)
         //if (DesktopIntegrationDialog::integration_possible())
         local_menu->Append(config_id_base + ConfigMenuDesktopIntegration, _L("Desktop Integration"), _L("Desktop Integration"));    
 #endif //(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION)        
@@ -2596,12 +2601,15 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
 
     local_menu->Bind(wxEVT_MENU, [this, config_id_base](wxEvent &event) {
         switch (event.GetId() - config_id_base) {
-        case ConfigMenuWizard:
-            run_wizard(ConfigWizard::RR_USER);
-            break;
-		case ConfigMenuUpdate:
-			check_updates(true);
-			break;
+            case ConfigMenuWizard:
+                 run_wizard(ConfigWizard::RR_USER);
+                 break;
+             case ConfigMenuUpdateConf:
+                 check_updates(true);
+                 break;
+             case ConfigMenuUpdateApp:
+                 app_updater(true);
+                 break;
 #ifdef __linux__
         case ConfigMenuDesktopIntegration:
             show_desktop_integration_dialog();
@@ -3557,7 +3565,6 @@ app_updater(m_app_updater->get_triggered_by_user());
 
 void GUI_App::app_updater(bool from_user) {
         DownloadAppData app_data = m_app_updater->get_app_data();
-        
         if (from_user && (!app_data.version || *app_data.version <= *Semver::parse(SLIC3R_VERSION)))
         {
             BOOST_LOG_TRIVIAL(info) << "There is no newer version online.";

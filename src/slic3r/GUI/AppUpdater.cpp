@@ -72,7 +72,7 @@ namespace {
             const char* argv1[] = { "hdiutil", "attach", path.string().c_str(), nullptr };
             ::wxExecute(const_cast<char**>(argv1), wxEXEC_ASYNC, nullptr);
             // open inside attached as a folder in finder
-            const char* argv2[] = { "open", "/Volumes/PrusaSlicer", nullptr };
+            const char* argv2[] = { "open", "/Volumes/SliCR-3D", nullptr };
             ::wxExecute(const_cast<char**>(argv2), wxEXEC_ASYNC, nullptr);
             return true;
         }
