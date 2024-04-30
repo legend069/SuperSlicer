@@ -34,6 +34,41 @@ private:
     wxCheckBox *cbox;
 };
 
+// App Updater
+class AppUpdateAvailableDialog : public MsgDialog {
+public:
+    AppUpdateAvailableDialog(const Semver& version_current, const Semver& version_online, bool from_user);
+    AppUpdateAvailableDialog(AppUpdateAvailableDialog&&) = delete;
+    AppUpdateAvailableDialog(const AppUpdateAvailableDialog&) = delete;
+    AppUpdateAvailableDialog& operator=(AppUpdateAvailableDialog&&) = delete;
+    AppUpdateAvailableDialog& operator=(const AppUpdateAvailableDialog&) = delete;
+    virtual ~AppUpdateAvailableDialog();
+    
+    bool disable_version_check() const;
+    static wxSize AUAD_size;
+private:
+    wxCheckBox* cbox {nullptr};
+};
+
+class AppUpdateDownloadDialog : public MsgDialog {
+public:
+    AppUpdateDownloadDialog(const Semver& version_online, boost::filesystem::path& path);
+    AppUpdateDownloadDialog(AppUpdateDownloadDialog&&) = delete;
+    AppUpdateDownloadDialog(const AppUpdateDownloadDialog&) = delete;
+    AppUpdateDownloadDialog& operator=(AppUpdateDownloadDialog&&) = delete;
+    AppUpdateDownloadDialog& operator=(const AppUpdateDownloadDialog&) = delete;
+    virtual ~AppUpdateDownloadDialog();
+    
+    bool run_after_download() const;
+    boost::filesystem::path get_download_path() const;
+    
+private:
+    wxCheckBox* cbox_run;
+    wxTextCtrl* txtctrl_path;
+    wxString filename;
+};
+
+
 // Confirmation dialog informing about configuration update. Lists updated bundles & their versions.
 class MsgUpdateConfig : public MsgDialog
 {
@@ -124,6 +159,17 @@ public:
     MsgNoUpdates &operator=(MsgNoUpdates &&) = delete;
     MsgNoUpdates &operator=(const MsgNoUpdates &) = delete;
     ~MsgNoUpdates();
+};
+
+class MsgNoAppUpdates : public MsgDialog
+{
+public:
+    MsgNoAppUpdates();
+    MsgNoAppUpdates(MsgNoAppUpdates&&) = delete;
+    MsgNoAppUpdates(const MsgNoAppUpdates&) = delete;
+    MsgNoAppUpdates& operator=(MsgNoUpdates&&) = delete;
+    MsgNoAppUpdates& operator=(const MsgNoAppUpdates&) = delete;
+    ~MsgNoAppUpdates();
 };
 
 }} // namespace Slic3r::GUI

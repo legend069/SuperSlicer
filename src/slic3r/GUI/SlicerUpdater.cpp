@@ -31,8 +31,7 @@ bool SlicerUpdater::CheckForUpdates() {
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
 	std::string responseString;
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseString);
++    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseString);
 
 
 	CURLcode res = curl_easy_perform(curl);

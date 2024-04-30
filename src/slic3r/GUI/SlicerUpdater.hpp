@@ -1,10 +1,7 @@
 #ifndef slic3r_SlicerUpdater_hpp_
 #define slic3r_SlicerUpdater_hpp_
 
-
 #include <string>
-
-
 
 namespace Slic3r {
 namespace GUI {

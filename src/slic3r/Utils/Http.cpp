@@ -177,6 +177,7 @@ struct Http::priv
 	void set_post_body(const fs::path &path);
 	void set_post_body(const std::string &body);
 	void set_put_body(const fs::path &path);
+    void set_range(const std::string& range);
 
 	std::string curl_error(CURLcode curlcode);
 	std::string body_size_error();
@@ -259,7 +260,7 @@ int Http::priv::xfercb(void *userp, curl_off_t dltotal, curl_off_t dlnow, curl_o
 	bool cb_cancel = false;
 
 	if (self->progressfn) {
-		Progress progress(dltotal, dlnow, ultotal, ulnow);
+        Progress progress(dltotal, dlnow, ultotal, ulnow, self->buffer);
 		self->progressfn(progress, cb_cancel);
 	}
 
@@ -404,7 +405,7 @@ void Http::priv::http_perform()
 		if (res == CURLE_ABORTED_BY_CALLBACK) {
 			if (cancel) {
 				// The abort comes from the request being cancelled programatically
-				Progress dummyprogress(0, 0, 0, 0);
+				Progress dummyprogress(0, 0, 0, 0, std::string());
 				bool cancel = true;
 				if (progressfn) { progressfn(dummyprogress, cancel); }
 			} else {
@@ -463,6 +464,12 @@ Http& Http::timeout_max(long timeout)
 {
     if (timeout < 1) { timeout = priv::DEFAULT_TIMEOUT_MAX; }
     if (p) { p->set_timeout_max(timeout); }
+    return *this;
+}
+
+Http& Http::set_range(const std::string& range)
+{
+    if (p) { p->set_range(range); }
     return *this;
 }
 

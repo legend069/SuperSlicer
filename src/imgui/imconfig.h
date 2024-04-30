@@ -140,6 +140,12 @@ namespace ImGui
     const wchar_t CancelButton             = 0x14;
     const wchar_t CancelHoverButton        = 0x15;
 //    const wchar_t VarLayerHeightMarker     = 0x16;
+    const wchar_t PlayButton               = 0x2618;
+    const wchar_t PlayHoverButton          = 0x2619;
+    const wchar_t PauseButton              = 0x261A;
+    const wchar_t PauseHoverButton         = 0x261B;
+    const wchar_t OpenButton               = 0x261C;
+    const wchar_t OpenHoverButton          = 0x261D;
 
     const wchar_t RightArrowButton         = 0x18;
     const wchar_t RightArrowHoverButton    = 0x19;

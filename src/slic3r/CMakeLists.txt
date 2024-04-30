@@ -12,6 +12,12 @@ include(PrecompiledHeader)
 set(SLIC3R_GUI_SOURCES
     pchheader.cpp
     pchheader.hpp
+    GUI/AppUpdater.cpp
+    GUI/AppUpdater.hpp
+    GUI/Downloader.cpp
+    GUI/Downloader.hpp
+    GUI/DownloaderFileGet.cpp
+    GUI/DownloaderFileGet.hpp
     GUI/PrinterWebView.cpp   
     GUI/PrinterWebView.hpp
     GUI/AboutDialog.cpp
