@@ -349,6 +349,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/MPMDv2.cpp
     Utils/MPMDv2.hpp
+    Utils/MacUtils.mm
 )
 
 if (APPLE)

@@ -262,22 +262,6 @@ void PresetUpdater::priv::sync_version() const
 
 	BOOST_LOG_TRIVIAL(info) << format("Downloading %1% online version from: `%2%`", SLIC3R_APP_NAME, version_check_url);
 
-	Http::get(version_check_url)
-		.on_progress([this](Http::Progress, bool &cancel) {
-			cancel = this->cancel;
-		})
-		.on_error([&](std::string body, std::string error, unsigned http_status) {
-			(void)body;
-			BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%",
-				version_check_url,
-				http_status,
-				error);
-		})
-		.on_complete([&](std::string body, unsigned /* http_status */) {
-
-			parse_version_string(body);
-		})
-		.perform_sync();
 }
 
 // Parses version string obtained in sync_version() and sends events to UI thread.
@@ -352,7 +336,7 @@ void PresetUpdater::priv::parse_version_string(const std::string& constbody) con
 */
 
 // github verison
-
+/*
 	boost::property_tree::ptree root;
 	std::stringstream json_stream(constbody);
 	boost::property_tree::read_json(json_stream, root);
@@ -397,6 +381,7 @@ void PresetUpdater::priv::parse_version_string(const std::string& constbody) con
 		return;
 
 	BOOST_LOG_TRIVIAL(info) << format("Got %1% online version: `%2%`. Sending to GUI thread...", SLIC3R_APP_NAME, i_am_pre? best_pre:best_release);
+*/
 
 }
 

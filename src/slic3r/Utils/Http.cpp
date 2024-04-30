@@ -594,6 +594,11 @@ Http& Http::set_put_body(const fs::path &path)
 	return *this;
 }
 
+void Http::priv::set_range(const std::string& range)
+{
+    ::curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
+}
+
 Http& Http::on_complete(CompleteFn fn)
 {
 	if (p) { p->completefn = std::move(fn); }

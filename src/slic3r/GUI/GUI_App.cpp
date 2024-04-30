@@ -1295,7 +1295,7 @@ bool GUI_App::on_init_inner()
         preset_updater.reset(new PresetUpdater());
           Bind(EVT_SLIC3R_VERSION_ONLINE, &GUI_App::on_version_read, this);
           Bind(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
-              if (this->plater_ != nullptr && (m_app_updater->get_triggered_by_user() || app_config->get("notify_release") == "all")) {
+              if (this->plater_ != nullptr && (m_app_updater->get_triggered_by_user() || app_config->get("notify_release") == "1")) {
                   std::string evt_string = into_u8(evt.GetString());
                   if (*Semver::parse(SLIC3R_VERSION) < *Semver::parse(evt_string)) {
                       auto notif_type = (evt_string.find("beta") != std::string::npos ? NotificationType::NewBetaAvailable : NotificationType::NewAlphaAvailable);

@@ -25,8 +25,8 @@
 
 namespace Slic3r { namespace GUI {
 
-static const char *URL_CHANGELOG = "https://github.com/" SLIC3R_GITHUB "/releases";
-static const char *URL_DOWNLOAD  = "https://github.com/" SLIC3R_GITHUB "/releases";
+static const char *URL_CHANGELOG = "https://github.com/CR-3D/SliCR-3D/releases";
+static const char *URL_DOWNLOAD  = "https://github.com/CR-3D/SliCR-3D/releases";
 static const char *URL_DEV       = "https://github.com/" SLIC3R_GITHUB "/releases/tag/%1%";
 
 static const std::string CONFIG_UPDATE_WIKI_URL(

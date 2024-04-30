@@ -83,6 +83,10 @@ extern void about();
 // Ask the destop to open the datadir using the default file explorer.
 extern void desktop_open_datadir_folder();
 
+#if _WIN32
+bool create_process(const boost::filesystem::path& path, const std::wstring& cmd_opt, std::string& error_msg);
+#endif
+
 } // namespace GUI
 } // namespace Slic3r
 
