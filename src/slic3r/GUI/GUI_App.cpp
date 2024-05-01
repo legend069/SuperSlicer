@@ -1337,8 +1337,6 @@ bool GUI_App::on_init_inner()
   #ifdef __WXMSW__
           if (app_config->get_bool("associate_gcode"))
               associate_gcode_files();
-          if (app_config->get_bool("associate_bgcode"))
-              associate_bgcode_files();
   #endif // __WXMSW__
       }
 
