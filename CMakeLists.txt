@@ -207,7 +207,10 @@ endif()
 
 if (APPLE)
     add_compile_options(-D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
+<<<<<<< HEAD
 
+=======
+>>>>>>> update_from_tag_v2.5.59
     message("OS X SDK Path: ${CMAKE_OSX_SYSROOT}")
     if (CMAKE_OSX_DEPLOYMENT_TARGET)
         message("OS X Deployment Target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")

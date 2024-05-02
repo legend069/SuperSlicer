@@ -623,6 +623,7 @@ class ExtrusionLoop : public ExtrusionEntity
 {
 public:
     ExtrusionPaths paths;
+<<<<<<< HEAD
 
     ExtrusionLoop(ExtrusionLoopRole role = elrDefault) : m_loop_role(role), ExtrusionEntity(false) {}
     ExtrusionLoop(const ExtrusionPaths &paths, ExtrusionLoopRole role = elrDefault)
@@ -647,6 +648,30 @@ public:
     }
     virtual bool             is_loop() const override { return true; }
     virtual ExtrusionEntity *clone() const override { return new ExtrusionLoop(*this); }
+=======
+    
+    ExtrusionLoop(ExtrusionLoopRole role = elrDefault) : m_loop_role(role) , ExtrusionEntity(false) {}
+    ExtrusionLoop(const ExtrusionPaths &paths, ExtrusionLoopRole role = elrDefault) : paths(paths), m_loop_role(role), ExtrusionEntity(false) { 
+        assert(!this->paths.empty());
+        assert(this->first_point().coincides_with_epsilon(this->paths.back().polyline.back()));
+    }
+    ExtrusionLoop(ExtrusionPaths &&paths, ExtrusionLoopRole role = elrDefault) : paths(std::move(paths)), m_loop_role(role), ExtrusionEntity(false) {
+        assert(!this->paths.empty());
+        assert(this->first_point().coincides_with_epsilon(this->paths.back().polyline.back()));
+    }
+    ExtrusionLoop(const ExtrusionPath &path, ExtrusionLoopRole role = elrDefault) : m_loop_role(role), ExtrusionEntity(false) {
+        this->paths.push_back(path);
+        assert(!this->paths.empty());
+        assert(this->first_point().coincides_with_epsilon(this->paths.back().polyline.back()));
+    }
+    ExtrusionLoop(ExtrusionPath &&path, ExtrusionLoopRole role = elrDefault) : m_loop_role(role), ExtrusionEntity(false) {
+        this->paths.emplace_back(std::move(path));
+        assert(!this->paths.empty());
+        assert(this->first_point().coincides_with_epsilon(this->paths.back().polyline.back()));
+    }
+    virtual bool is_loop() const override{ return true; }
+    virtual ExtrusionEntity* clone() const override{ return new ExtrusionLoop (*this); }
+>>>>>>> update_from_tag_v2.5.59
     // Create a new object, initialize it with this object using the move semantics.
     virtual ExtrusionEntity *clone_move() override { return new ExtrusionLoop(std::move(*this)); }
     bool                     make_clockwise();
@@ -844,6 +869,11 @@ struct HasInfillVisitor : public HasRoleVisitor
 struct HasSolidInfillVisitor : public HasRoleVisitor
 {
     void default_use(const ExtrusionEntity &entity) override { found = is_solid_infill(entity.role()); };
+};
+struct HasThisRoleVisitor : public HasRoleVisitor{
+    ExtrusionRole role_to_find;
+    HasThisRoleVisitor(ExtrusionRole role) : role_to_find(role) {}
+    void default_use(const ExtrusionEntity &entity) override { found = entity.role() == role_to_find; };
 };
 
 struct HasThisRoleVisitor : public HasRoleVisitor
