@@ -357,18 +357,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
     toggle_field("perimeter_bonding", config->opt_bool("external_perimeters_first") && !have_arachne && config->option("perimeter_overlap")->get_float() == 100.f && config->option("external_perimeter_overlap")->get_float() == 100.f);
 
     for (auto el : {"perimeter_loop", "extra_perimeters_overhangs", "no_perimeter_unsupported_algo",
-<<<<<<< HEAD
                     "thin_perimeters", "perimeter_round_corners"})
-=======
-        "thin_perimeters", "perimeter_round_corners"})
->>>>>>> update_from_tag_v2.5.59
         toggle_field(el, have_perimeters && !have_arachne);
 
     toggle_field("only_one_perimeter_top", have_perimeters);
     toggle_field("only_one_perimeter_first_layer", config->opt_int("perimeters") > 1);
 
     toggle_field("overhangs_width", config->option<ConfigOptionFloatOrPercent>("overhangs_width_speed")->value > 0);
-<<<<<<< HEAD
 
     bool have_overhangs_reverse = have_perimeters && !have_arachne && !config->opt_bool("perimeter_reverse");
     toggle_field("overhangs_reverse", have_overhangs_reverse);
@@ -377,11 +372,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
 
     toggle_field("overhangs_reverse_threshold", have_perimeters && config->opt_bool("overhangs_reverse"));
 
-=======
-    bool have_overhangs_reverse = have_perimeters && !have_arachne && !config->opt_bool("perimeter_reverse");
-    toggle_field("overhangs_reverse", have_overhangs_reverse);
-    toggle_field("overhangs_reverse_threshold", have_overhangs_reverse && config->opt_bool("overhangs_reverse"));
->>>>>>> update_from_tag_v2.5.59
     toggle_field("overhangs_speed_enforce", have_perimeters && !config->opt_bool("perimeter_loop"));
     toggle_field("min_width_top_surface", have_perimeters && config->opt_bool("only_one_perimeter_top"));
     toggle_field("thin_perimeters_all", have_perimeters && config->option("thin_perimeters")->get_float() != 0 && !have_arachne);

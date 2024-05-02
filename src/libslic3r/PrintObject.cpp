@@ -848,11 +848,7 @@ bool PrintObject::invalidate_state_by_config_options(
                 || opt_key == "overhangs_speed_enforce"
                 || opt_key == "perimeter_extrusion_change_odd_layers"
                 || opt_key == "perimeter_extrusion_spacing"
-<<<<<<< HEAD
                 || opt_key == "perimeter_extrusion_width" 
-=======
-                || opt_key == "perimeter_extrusion_width"
->>>>>>> update_from_tag_v2.5.59
                 || opt_key == "perimeter_reverse"
                 || opt_key == "infill_overlap"
                 || opt_key == "thin_perimeters"

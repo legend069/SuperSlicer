@@ -593,19 +593,9 @@ public:
     // Is this vector empty?
     virtual bool empty() const = 0;
     // Get if the size of this vector is/should be the same as nozzle_diameter
-<<<<<<< HEAD
-    bool                    is_extruder_size() const { return (flags & FCO_EXTRUDER_ARRAY) != 0; }
-    ConfigOptionVectorBase *set_is_extruder_size(bool is_extruder_size)
-    {
-        if (is_extruder_size)
-            this->flags |= FCO_EXTRUDER_ARRAY;
-        else
-            this->flags &= uint8_t(0xFF ^ FCO_EXTRUDER_ARRAY);
-=======
     bool is_extruder_size() const { return (flags & FCO_EXTRUDER_ARRAY) != 0; }
     ConfigOptionVectorBase* set_is_extruder_size(bool is_extruder_size = true) {
         if (is_extruder_size) this->flags |= FCO_EXTRUDER_ARRAY; else this->flags &= uint8_t(0xFF ^ FCO_EXTRUDER_ARRAY);
->>>>>>> update_from_tag_v2.5.59
         return this;
     }
 
@@ -2625,20 +2615,12 @@ public:
 class ConfigBase : public ConfigOptionResolver
 {
 public:
-<<<<<<< HEAD
-    // Definition of configuration values for the purpose of GUI presentation, editing, value mapping and config file
-    // handling. The configuration definition is static: It does not carry the actual configuration values, but it
-    // carries the defaults of the configuration values.
-
-    ConfigBase()           = default;
-=======
     // Definition of configuration values for the purpose of GUI presentation, editing, value mapping and config file handling.
     // The configuration definition is static: It does not carry the actual configuration values,
     // but it carries the defaults of the configuration values.
     
     ConfigBase() = default;
 #ifndef _DEBUG
->>>>>>> update_from_tag_v2.5.59
     ~ConfigBase() override = default;
 #endif
     // to get to the config more generic than this one, if available

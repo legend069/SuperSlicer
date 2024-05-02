@@ -923,11 +923,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       perimeter_extrusion_change_odd_layers))
     ((ConfigOptionBool,                 perimeter_loop))
     ((ConfigOptionEnum<SeamPosition>,   perimeter_loop_seam))
-<<<<<<< HEAD
     ((ConfigOptionPercent,              perimeter_overlap)) 
-=======
-    ((ConfigOptionPercent,              perimeter_overlap))
->>>>>>> update_from_tag_v2.5.59
     ((ConfigOptionBool,                 perimeter_reverse))
     ((ConfigOptionFloatOrPercent,       perimeter_speed))
     // Total number of perimeters.

@@ -174,7 +174,6 @@ void as_set_int(std::string& key, int val)
     if (result.second == nullptr)
         throw NoDefinitionExceptionEmitLog("set_int(): error, can't find int option " + key);
     DynamicPrintConfig& conf = current_script->to_update()[result.first->type()];
-<<<<<<< HEAD
 
     if (result.second->type() == ConfigOptionType::coInt) {
         conf.set_key_value(key, new ConfigOptionInt(val));
@@ -208,12 +207,6 @@ void as_set_int(std::string& key, int val)
         //    }
         //}
         //BOOST_LOG_TRIVIAL(error) << "Error, can't access enum '" << key << "'";
-=======
-    if (auto newer_opt = conf.optptr(key)) {
-        _set_int(conf, newer_opt, key, -1, val);
-    } else {
-        _set_int(conf, result.second, key, -1, val);
->>>>>>> update_from_tag_v2.5.59
     }
 }
 float as_get_float_idx(std::string& key, int idx)
@@ -257,7 +250,6 @@ double round(float value) {
     return dbl_val;
 }
 
-<<<<<<< HEAD
 
 
 int as_get_int_idx(std::string &key) { 
@@ -349,12 +341,6 @@ void as_set_float(std::string& key, float f_val)
 
     if (result.second->type() == ConfigOptionType::coFloat) {
         double old_value = result.second->get_float();
-=======
-void _set_float(DynamicPrintConfig& conf, const ConfigOption* opt, std::string& key, int idx, float f_val)
-{
-    if (opt->type() == ConfigOptionType::coFloat) {
-        double old_value = opt->get_float();
->>>>>>> update_from_tag_v2.5.59
         double new_val = round(f_val);
         // only update if difference is significant
         if (std::abs(old_value - new_val) / std::abs(old_value) < 0.0000001)

@@ -1314,14 +1314,9 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
 
     const Print &print = print_mod;
     Print::StatusMonitor status_monitor{print_mod};
-<<<<<<< HEAD
-    ToolOrdering tool_ordering;
-    
-=======
     this->m_throw_if_canceled =
         [&print]() { print.throw_if_canceled(); };
 
->>>>>>> update_from_tag_v2.5.59
     //apply print config to m_config and m_writer, so we don't have to use print.config() instead
     // (and mostly to make m_writer.preamble() works)
     this->apply_print_configs(print);

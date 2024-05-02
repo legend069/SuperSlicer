@@ -373,13 +373,10 @@ FreqChangedParams::FreqChangedParams(wxWindow* parent) :
 void FreqChangedParams::init()
 {
     DynamicPrintConfig*	config = &wxGetApp().preset_bundle->fff_prints.get_edited_preset().config;
-<<<<<<< HEAD
+    Tab* tab_freq_fff = wxGetApp().get_tab(Preset::TYPE_FREQUENT_FFF, false);
 
     Tab* tab_print = wxGetApp().get_tab(Preset::TYPE_FFF_PRINT);
     Tab *tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
-=======
-    Tab* tab_freq_fff = wxGetApp().get_tab(Preset::TYPE_FREQUENT_FFF, false);
->>>>>>> update_from_tag_v2.5.59
 
     /* Not a best solution, but
      * Temporary workaround for right border alignment
@@ -393,7 +390,6 @@ void FreqChangedParams::init()
         return sizer;
     };
     
-<<<<<<< HEAD
     DynamicPrintConfig printer_config = tab_printer->get_config()->full_print_config();
     DynamicPrintConfig conf = tab_print->m_preset_bundle->full_config();
 
@@ -410,16 +406,6 @@ void FreqChangedParams::init()
         m_og->hide_labels();
 
         m_og->m_on_change = Tab::set_or_add(m_og->m_on_change, [tab_print, this](t_config_option_key opt_key, boost::any value)
-=======
-    //std::vector<PageShp> pages;
-    tab_freq_fff->build();
-    //if(tab_freq_fff  != nullptr) pages = tab_freq_fff->create_pages(Preset::type_name(tab_freq_fff->type())+".ui", -1, tab_freq_fff->type());
-    if (tab_freq_fff->get_page_count() > 0) {
-        m_og->set_config(config);
-        m_og->hide_labels();
-        m_og->m_on_change = Tab::set_or_add(m_og->m_on_change, [tab_freq_fff, this](t_config_option_key opt_key, boost::any value)
-        //m_og->m_on_change = [tab_print, this](t_config_option_key opt_key, boost::any value)
->>>>>>> update_from_tag_v2.5.59
             {
                 const Option *opt_def = this->m_og->get_option_def(opt_key);
                 if (opt_def && !opt_def->opt.is_script) {
@@ -428,17 +414,10 @@ void FreqChangedParams::init()
                     tab_freq_fff->update();
                 }
             });
-<<<<<<< HEAD
         
         assert(pages.size() == 1);
         assert(pages[0]->m_optgroups.size() == 1);
         m_og->copy_for_freq_settings(*(pages[0]->m_optgroups[0].get()));
-=======
-        assert(tab_freq_fff->get_page_count() == 1);
-        assert(tab_freq_fff->get_page(0)->m_optgroups.size() == 1);
-        PageShp page = tab_freq_fff->get_page(0);
-        m_og->copy_for_freq_settings(*(page->m_optgroups[0].get()));
->>>>>>> update_from_tag_v2.5.59
 
         // hacks
         Line* line_for_purge = nullptr;
