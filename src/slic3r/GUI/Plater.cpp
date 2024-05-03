@@ -409,9 +409,9 @@ void FreqChangedParams::init()
             {
                 const Option *opt_def = this->m_og->get_option_def(opt_key);
                 if (opt_def && !opt_def->opt.is_script) {
-                    tab_freq_fff->update_dirty();
-                    tab_freq_fff->reload_config();
-                    tab_freq_fff->update();
+                    tab_print->update_dirty();
+                    tab_print->reload_config();
+                    tab_print->update();
                 }
             });
         
@@ -421,7 +421,7 @@ void FreqChangedParams::init()
 
         // hacks
         Line* line_for_purge = nullptr;
-        for (Line& l : page->m_optgroups[0]->set_lines()) {
+        for (Line& l : pages[0]->m_optgroups[0]->set_lines()) {
             if (l.label_tooltip == "freq_purging_volumes") {
                 l.label_tooltip = "";
                 line_for_purge = &l;
@@ -472,7 +472,7 @@ void FreqChangedParams::init()
             line_for_purge->append_widget(wiping_dialog_btn);
         }
 
-        for (const Line& l : page->m_optgroups[0]->get_lines()) {
+        for (const Line &l : pages[0]->m_optgroups[0]->get_lines()) {
             m_og->append_line(l);
         }
 
@@ -505,7 +505,7 @@ void FreqChangedParams::init()
         m_og_sla->copy_for_freq_settings(*(page->m_optgroups[0].get()));
         // hacks
         Line* line_for_purge = nullptr;
-        for (Line& l : page->m_optgroups[0]->set_lines()) {
+        for (Line &l : pages[0]->m_optgroups[0]->set_lines()) {
             if (l.get_options().size() == 1 && l.get_options().front().opt.full_width) {
                 l.append_widget(empty_widget);
             }

@@ -35,7 +35,9 @@ namespace Slic3r {
 
 static const std::string VENDOR_PREFIX = "vendor:";
 static const std::string MODEL_PREFIX = "model:";
-static const std::string VERSION_CHECK_URL = "https://www.dropbox.com/scl/fi/p67veapp19btx0dkzcgn2/SliCR-3D.version?rlkey=bhjy0gon4taplx9s7zgtvih59&st=rtc64vjf&dl=1";
+
+// TODO: ADD STRATO VERSION CHECK URL 
+static const std::string VERSION_CHECK_URL = "";
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
 const std::string AppConfig::SECTION_MATERIALS = "sla_materials";
 

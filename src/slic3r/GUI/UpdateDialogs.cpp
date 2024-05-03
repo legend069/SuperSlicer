@@ -341,10 +341,8 @@ AppUpdateAvailableDialog::AppUpdateAvailableDialog(const Semver& version_current
         content_sizer->Add(versions);
         content_sizer->AddSpacer(VERT_SPACING);
     
-        if (!from_user) {
-            cbox = new wxCheckBox(this, wxID_ANY, _L("Don't notify me about new releases anymore."));
-            content_sizer->Add(cbox);
-        }
+        cbox = new wxCheckBox(this, wxID_ANY, _L("Don't notify me about new releases anymore."));
+        content_sizer->Add(cbox);
         
         content_sizer->AddSpacer(VERT_SPACING);
         AUAD_size = content_sizer->GetSize();
@@ -355,7 +353,6 @@ AppUpdateAvailableDialog::AppUpdateAvailableDialog(const Semver& version_current
             btn_ok->SetLabel(_L("Next"));
         }
         
-    
         finalize();
 }
 
