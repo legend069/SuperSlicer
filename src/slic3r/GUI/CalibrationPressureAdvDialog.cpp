@@ -447,7 +447,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
         double z_scaled_model_height = initial_model_height * (first_layer_height / initial_model_height);
         double xy_scaled_90_bend_x = initial_90_bend_x * er_width_to_scale; 
-        double xy_scaled_y = initial_90_bend_y * er_width_to_scale;
+        double xy_scaled_90_bend_y = initial_90_bend_y * er_width_to_scale;
         double xy_scaled_x = initial_border_x * er_width_to_scale;
         double xy_scaled_number_x = initial_number_x * xyzScale * er_width_to_scale;
         double xy_scaled_number_y = initial_number_y * xyzScale * er_width_to_scale;
@@ -490,7 +490,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                             (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "scaled_with_nozzle_size" / bend_90_nozzle_size_3mf).string(),
                             Vec3d{ -0.8, (initial_90_bend_y/2) * nb_bends , xyzScale - base_layer_height }, Vec3d{ er_width_to_scale, er_width_to_scale, z_scale_90_bend }));
                     
-                    Eigen::Vector3d modelPosition(0, (initial_90_bend_y/2) * nb_bends, xyzScale - base_layer_height );
+                    Eigen::Vector3d modelPosition(-0.8, (initial_90_bend_y/2) * nb_bends, xyzScale - base_layer_height );
                     bend_90_positions.push_back(modelPosition);
                     nb_bends++;
                 }
@@ -529,8 +529,8 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
             if(nb_bends == 1 && extrusion_role != "Verify") {//only load once. this onyl determines when the borders get loaded, keeping at top of list makes it easier to scroll down to. it can't be '0' since it needs the numbers positions!
 
-                double offset_y = 2 * thickness_offset * 2;
-                double offset_x = 2;
+                const double extra_size_y = xy_scaled_90_bend_y / 4;
+                const double extra_size_x = xy_scaled_number_x;
 
                 const double magical_transformation_x_pos = 20.6;//what is this, and how is this calculated ? >:(
                 const double magical_transformation_y_pos = 10.47;//load a model without moving its pos to find see what it is.the number doesn't seem to change regardless of layer heights/nozzle size
@@ -542,40 +542,44 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                 Eigen::Vector3d number_pos_mid = number_positions[3];
                 Eigen::Vector3d number_pos_last = number_positions[6];
                 double numbers_total_width = (number_pos_last.x() + (xy_scaled_number_x / 2)) - (number_pos_first.x() - (xy_scaled_number_x / 2));
-                //double scaled_border_x = numbers_total_width + xy_scaled_number_x;
-                double scaled_border_x_percentage = ((numbers_total_width + xy_scaled_number_x) / initial_border_x) * 100;
 
-                double left_border_pos_x = (-xy_scaled_90_bend_x / 2) + (xy_scaled_x / 2);
-                double total_height = bend_pos_first.y() + bend_pos_last.y() + xy_scaled_y;
+                double scaled_r_border_x_percentage = ((numbers_total_width + extra_size_x) / initial_border_x) * 100;
+                double scaled_r_border_x_mm = (scaled_r_border_x_percentage / 100) * initial_border_x;
+                double scaled_tb_border_x = scaled_r_border_x_mm + xy_scaled_90_bend_x;
+                double scaled_tb_border_x_percentage = ((scaled_tb_border_x /* + extra_size_x*/) / initial_border_x) * 100;
 
-                double scaled_border_y = ((total_height / initial_90_bend_y) *100) + offset_y;
+                
+                double total_height = (bend_pos_last.y() + (xy_scaled_90_bend_y / 2)) - (bend_pos_first.y() - (xy_scaled_90_bend_y / 2));
+                double scaled_border_y_percentage = ((total_height + extra_size_y) / initial_90_bend_y) * 100;
+                double border_scaled_y = (initial_border_x*(xy_scaled_x * 1.5)) / initial_90_bend_y;//need to fix for larger nozzle sizes.
 
-                double right_pos_border_x = number_pos_mid.x();
-                double scaled_y = (initial_border_x*(xy_scaled_x * 1.5)) / initial_90_bend_y;
-                double right_border_scaled_x = (xy_scaled_90_bend_x / initial_border_x) * 100 + (xy_scaled_x * 2) ;
-                double bottom_border_pos_x = (initial_border_x * right_border_scaled_x * 0.01) / 2 -0.8;
+
+                double right_border_pos_x = number_pos_mid.x();
+                double top_border_x_pos = ((number_pos_last.x() + (xy_scaled_number_x / 2)) + (bend_pos_first.x() - (xy_scaled_90_bend_x / 2))) / 2;
+                double left_border_pos_x = bend_pos_first.x() - (xy_scaled_90_bend_x / 2);
 
                 //----------
                 add_part(model.objects[objs_idx[id_item]], 
                     (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                    Vec3d{ left_border_pos_x + magical_transformation_x_pos, bend_pos_mid.y(), new_z_world_coords }, 
-                                    /*scale*/Vec3d{ xy_scaled_x * 1.5, scaled_border_y*0.01, z_scale_factor }); // Left border
+                    Vec3d{ left_border_pos_x + magical_transformation_x_pos, bend_pos_mid.y(), new_z_world_coords }, //need to fix to adjust for nozzle_diameter since it breaks bottom_solid_layers
+                                    /*scale*/Vec3d{ xy_scaled_x * 1.5, scaled_border_y_percentage*0.01, z_scale_factor }); // Left border
                 //----------
                 add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                    Vec3d{ right_pos_border_x + magical_transformation_x_pos , bend_pos_mid.y(), new_z_world_coords },
-                                    /*scale*/Vec3d{ scaled_border_x_percentage*0.01 , scaled_border_y*0.01 , z_scale_factor });// right border
+                    Vec3d{ right_border_pos_x + magical_transformation_x_pos , bend_pos_mid.y(), new_z_world_coords },
+                                    /*scale*/Vec3d{ scaled_r_border_x_percentage*0.01 , scaled_border_y_percentage*0.01 , z_scale_factor });// right border
                 
                 bool enable_top_bottom = true;
                 if(enable_top_bottom == true){//remove later
-                //----------
-                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                    Vec3d{ bottom_border_pos_x + magical_transformation_x_pos , bend_pos_first.y() - (xy_scaled_y /1.8), new_z_world_coords },
-                                    /*scale*/Vec3d{ (right_border_scaled_x*2)*0.01, scaled_y, z_scale_factor });//bottom border
-                //----------
-                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
-                    Vec3d{ bottom_border_pos_x + magical_transformation_x_pos , bend_pos_last.y() + (xy_scaled_y /1.8) , new_z_world_coords },
-                                    /*scale*/Vec3d{ (right_border_scaled_x*2)*0.01, scaled_y, z_scale_factor });//top border
-                }     
+                    //----------
+                    add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                        Vec3d{ top_border_x_pos + magical_transformation_x_pos , bend_pos_first.y() - (xy_scaled_90_bend_y /1.8), new_z_world_coords }, //need to fix to adjust for nozzle_diameter since it breaks bottom_solid_layers
+                                        /*scale*/Vec3d{ scaled_tb_border_x_percentage*0.01, border_scaled_y, z_scale_factor });//bottom border
+                    //----------
+                    add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                        Vec3d{ top_border_x_pos + magical_transformation_x_pos , bend_pos_last.y() + (xy_scaled_90_bend_y /1.8) , new_z_world_coords }, //need to fix to adjust for nozzle_diameter since it breaks bottom_solid_layers
+                                        /*scale*/Vec3d{ scaled_tb_border_x_percentage*0.01, border_scaled_y, z_scale_factor });//top border
+                }
+
                 //  position in printer coords are half of scaled size!
                 //  scale model in percentage from original models xy values!
                 //----------
@@ -594,7 +598,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                 const double magical_transformation_num_y_pos = 2.06;// -2.03
                 const double magical_transformation_z_pos = 0.12;//0.1 is the transformation value, but set slightly higher so numbers would be "inside" right border this might be dependant on z_scale_factor
 
-                double bend_90_y = bend_90_pos.y() + magical_transformation_y_pos + (xy_scaled_y/2);
+                double bend_90_y = bend_90_pos.y() + magical_transformation_y_pos + (xy_scaled_90_bend_y/2);
                 double bend_90_x = bend_90_pos.x() + magical_transformation_num_x_pos;
                 double xpos_initial = bend_90_x + (xy_scaled_90_bend_x/2) - xy_scaled_number_x + nozzle_diameter;
                 double ypos_inital = bend_90_y /*+ (xy_scaled_number_y/2)*/;
@@ -646,6 +650,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
     /// --- main config, modify object config when possible ---
     DynamicPrintConfig new_print_config = *print_config;
+    DynamicPrintConfig new_printer_config = *printer_config;
     new_print_config.set_key_value("complete_objects", new ConfigOptionBool(false)); //true is required for multi tests on single plate.
     new_print_config.set_key_value("gap_fill_enabled", new ConfigOptionBool(true)); //should be false?, enabled for testing
     new_print_config.set_key_value("top_solid_layers", new ConfigOptionInt(0));  //BUG: top layers set to 0 the top layer has a "void" where the top layer would normally be, this might be a config thing that needs to get changed or a slicing bug
@@ -658,6 +663,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     new_print_config.set_key_value("perimeter_overlap", new ConfigOptionPercent(100));
     new_print_config.set_key_value("external_perimeter_overlap", new ConfigOptionPercent(100));
     new_print_config.set_key_value("per_objects_gcode", new ConfigOptionString(bend_90_nozzle_size_3mf+","));// this is the model other parts in code will search for and insert the PA/ect numbers
+    new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString("{if layer_num == 0} SET_PRESSURE_ADVANCE ADVANCE=" + std::to_string(first_pa) + " {endif}"));
 
     for (size_t i = 0; i < nb_runs; i++) {
         /*
@@ -727,10 +733,10 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
             model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
             model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("gap_fill_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
             if (extrusion_role == "Verify") {
-                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + "\n; " + er_role ));//user manual type in values
+                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + " ; " + er_role ));//user manual type in values
             }
-            else{
-                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + "\n; " + extrusion_role ));
+            else{//add '\n' in?
+                model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + " ; " + extrusion_role ));
             }
             num_part++;
         }
@@ -739,11 +745,11 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     //update plater
     this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->load_config(new_print_config);
     plat->on_config_change(new_print_config);
-    //this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
-    //plat->on_config_change(new_printer_config);
+    this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
+    plat->on_config_change(new_printer_config);
     plat->changed_objects(objs_idx);
     this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
-    //this->gui_app->get_tab(Preset::TYPE_PRINTER)->update_dirty();
+    this->gui_app->get_tab(Preset::TYPE_PRINTER)->update_dirty();
     plat->is_preview_shown();
     //update everything, easier to code.
     ObjectList* obj = this->gui_app->obj_list();
@@ -764,7 +770,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
 
     if (extrusion_role != "Verify") {//don't auto slice so user can manual add PA values
-        plat->reslice(); //forces a slice of plater.
+        //plat->reslice(); //forces a slice of plater.
     }
 
     if (autocenter) {

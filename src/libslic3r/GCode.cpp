@@ -1458,7 +1458,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
                         if (volume_config) {//failsafe check, maybe user forgot to add the manipulator in
                             volume_config_per_object_gcode = volume->config.opt_serialize("per_objects_gcode");
                             file.writeln(volume_config_per_object_gcode);
-                            m_writer.set_per_object_gcode(volume_config_per_object_gcode);
+                            m_writer.set_per_object_gcode(volume_config_per_object_gcode);//need to check if "per_objects_gcode" contains '\n' split string and write it the write new line and write remaining of string till next "\n"
                         }
                         break;
                     }
