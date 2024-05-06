@@ -33,10 +33,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
     sizer->Add(m_webView, 1, wxEXPAND);
 }
 
-WebViewPanel::~WebViewPanel()
-{
-
-}
+WebViewPanel::~WebViewPanel(){}
 
 wxWebView* WebViewPanel::CreateWebView(wxWindow* parent) {
 
@@ -50,11 +47,14 @@ wxWebView* WebViewPanel::CreateWebView(wxWindow* parent) {
 
 void WebViewPanel::load_url(wxString &url)
 {
-
     if (m_webView == nullptr)
         return;
 
     m_webView->LoadURL(url);
+
+    if (url.IsEmpty()) {
+        std::cout << "URL is empty";
+    }
 }
 
 

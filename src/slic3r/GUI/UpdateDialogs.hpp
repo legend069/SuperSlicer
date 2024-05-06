@@ -14,26 +14,6 @@ class wxCheckBox;
 
 namespace Slic3r { namespace GUI {
 
-// A confirmation dialog listing configuration updates
-class MsgUpdateSlic3r : public MsgDialog
-{
-public:
-    MsgUpdateSlic3r(const Semver &ver_current, const Semver &ver_online);
-    MsgUpdateSlic3r(MsgUpdateSlic3r &&)      = delete;
-    MsgUpdateSlic3r(const MsgUpdateSlic3r &) = delete;
-    MsgUpdateSlic3r &operator=(MsgUpdateSlic3r &&) = delete;
-    MsgUpdateSlic3r &operator=(const MsgUpdateSlic3r &) = delete;
-    virtual ~MsgUpdateSlic3r();
-
-    // Tells whether the user checked the "don't bother me again" checkbox
-    bool disable_version_check() const;
-
-    void on_hyperlink(wxHyperlinkEvent &evt);
-
-private:
-    wxCheckBox *cbox;
-};
-
 // App Updater
 class AppUpdateAvailableDialog : public MsgDialog {
 public:

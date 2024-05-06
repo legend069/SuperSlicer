@@ -34,60 +34,6 @@ static const std::string CONFIG_UPDATE_WIKI_URL(
 
 // MsgUpdateSlic3r
 
-MsgUpdateSlic3r::MsgUpdateSlic3r(const Semver &ver_current, const Semver &ver_online)
-    : MsgDialog(nullptr,
-                _(L("Update available")),
-                wxString::Format(_(L("New version of %s is available")), SLIC3R_APP_NAME))
-{
-    const bool dev_version = true; // ver_online.prerelease() != nullptr; // Slic3r is always a dev version
-
-    auto *versions = new wxFlexGridSizer(2, 0, VERT_SPACING);
-    versions->Add(new wxStaticText(this, wxID_ANY, _(L("Current version:"))));
-    versions->Add(new wxStaticText(this, wxID_ANY, ver_current.to_string()));
-    versions->Add(new wxStaticText(this, wxID_ANY, _(L("New version:"))));
-    versions->Add(new wxStaticText(this, wxID_ANY, ver_online.to_string()));
-    content_sizer->Add(versions);
-    content_sizer->AddSpacer(VERT_SPACING);
-
-    if (dev_version) {
-        const std::string url    = (boost::format(URL_DEV) % ver_online.to_string()).str();
-        const wxString    url_wx = from_u8(url);
-        auto *            link   = new wxHyperlinkCtrl(this, wxID_ANY, _(L("Changelog & Download")), url_wx);
-        content_sizer->Add(link);
-    } else {
-        const auto lang_code = wxGetApp().current_language_code_safe().ToStdString();
-
-        const std::string url_log    = (boost::format(URL_CHANGELOG) % lang_code).str();
-        const wxString    url_log_wx = from_u8(url_log);
-        auto *            link_log   = new wxHyperlinkCtrl(this, wxID_ANY, _(L("Open changelog page")), url_log_wx);
-        link_log->Bind(wxEVT_HYPERLINK, &MsgUpdateSlic3r::on_hyperlink, this);
-        content_sizer->Add(link_log);
-
-        const std::string url_dw    = (boost::format(URL_DOWNLOAD) % lang_code).str();
-        const wxString    url_dw_wx = from_u8(url_dw);
-        auto *            link_dw   = new wxHyperlinkCtrl(this, wxID_ANY, _(L("Open download page")), url_dw_wx);
-        link_dw->Bind(wxEVT_HYPERLINK, &MsgUpdateSlic3r::on_hyperlink, this);
-        content_sizer->Add(link_dw);
-    }
-
-    content_sizer->AddSpacer(2 * VERT_SPACING);
-
-    cbox = new wxCheckBox(this, wxID_ANY, _(L("Don't notify about new releases any more")));
-    content_sizer->Add(cbox);
-    content_sizer->AddSpacer(VERT_SPACING);
-
-    finalize();
-}
-
-MsgUpdateSlic3r::~MsgUpdateSlic3r() {}
-
-void MsgUpdateSlic3r::on_hyperlink(wxHyperlinkEvent &evt)
-{
-    wxGetApp().open_browser_with_warning_dialog(evt.GetURL());
-}
-
-bool MsgUpdateSlic3r::disable_version_check() const { return cbox->GetValue(); }
-
 // MsgUpdateConfig
 
 MsgUpdateConfig::MsgUpdateConfig(const std::vector<Update> &updates, bool force_before_wizard /* = false*/)

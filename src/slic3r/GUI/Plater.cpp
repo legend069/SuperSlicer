@@ -483,39 +483,7 @@ void FreqChangedParams::init()
 
 
     // Frequently changed parameters for SLA_technology
-    Tab* tab_freq_sla = wxGetApp().get_tab(Preset::TYPE_FREQUENT_SLA, false);
-    tab_freq_sla->build();
-    //if (tab_freq_sla != nullptr) pages = tab_freq_sla->create_pages(Preset::type_name(tab_freq_sla->type())+".ui", -1, tab_freq_sla->type());
-    if (tab_freq_sla->get_page_count() > 0) {
-        std::shared_ptr<ConfigOptionsGroup> m_og_sla = m_og_other[ptSLA] = std::make_shared<ConfigOptionsGroup>(m_parent, "");
-        m_og_sla->set_config(config);
-        m_og_sla->hide_labels();
-        m_og_sla->m_on_change = Tab::set_or_add(m_og_sla->m_on_change, [tab_freq_sla, this](t_config_option_key opt_key, boost::any value)
-            {
-                Option opt = this->m_og_other[ptSLA]->create_option_from_def(opt_key);
-                if (!opt.opt.is_script) {
-                    tab_freq_sla->update_dirty();
-                    tab_freq_sla->reload_config();
-                    tab_freq_sla->update();
-                }
-            });
-        assert(tab_freq_sla->get_page_count() == 1);
-        assert(tab_freq_sla->get_page(0)->m_optgroups.size() == 1);
-        PageShp page = tab_freq_sla->get_page(0);
-        m_og_sla->copy_for_freq_settings(*(page->m_optgroups[0].get()));
-        // hacks
-        Line* line_for_purge = nullptr;
-        for (Line &l : pages[0]->m_optgroups[0]->set_lines()) {
-            if (l.get_options().size() == 1 && l.get_options().front().opt.full_width) {
-                l.append_widget(empty_widget);
-            }
-        }
-        for (const Line& l : page->m_optgroups[0]->get_lines()) {
-            m_og_sla->append_line(l);
-        }
-        m_og_sla->activate();
-        m_sizer->Add(m_og_sla->sizer, 0, wxEXPAND);
-    }
+    
 }
 
 

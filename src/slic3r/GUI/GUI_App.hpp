@@ -262,6 +262,7 @@ public:
     void            freecad_script_dialog();
     void            tiled_canvas_dialog();
 
+
     // Webview
     bool m_adding_script_handler{false};
     bool is_adding_script_handler() { return m_adding_script_handler; }
