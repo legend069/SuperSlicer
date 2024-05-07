@@ -201,7 +201,7 @@ double round(float value) {
 
 
 
-int as_get_int_idx(std::string &key) { 
+int as_get_int_idx(std::string &key) {
 
     const ConfigOption* opt = get_coll(key).second;
     std::pair<const PresetCollection *, const ConfigOption *> result = get_coll(key);
@@ -240,7 +240,7 @@ float as_get_nozzle(std::string &key, int idx)
     size_t nozzle_diameters_count = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))->values.size();
 
 
-    for (int i = 0; i < nozzle_diameters_count; i++) { 
+    for (int i = 0; i < nozzle_diameters_count; i++) {
         nozzle_diameters_values.push_back(nozzle_diameter);
     }
     
@@ -354,8 +354,8 @@ bool as_is_percent(std::string& key)
     const ConfigOption* opt = get_coll(key).second;
     if (opt == nullptr)
         throw NoDefinitionException("error, can't find percent option " + key);
-    return (opt->type() == ConfigOptionType::coPercent) || (opt->type() == ConfigOptionType::coPercents) 
-        || (opt->type() == ConfigOptionType::coFloatOrPercent && ((ConfigOptionFloatOrPercent*)opt)->percent) 
+    return (opt->type() == ConfigOptionType::coPercent) || (opt->type() == ConfigOptionType::coPercents)
+        || (opt->type() == ConfigOptionType::coFloatOrPercent && ((ConfigOptionFloatOrPercent*)opt)->percent)
         || (opt->type() == ConfigOptionType::coFloatsOrPercents && ((ConfigOptionFloatsOrPercents*)opt)->get_at(0).percent);
 }
 void as_set_percent(std::string& key, float f_val)
@@ -657,9 +657,9 @@ float as_get_computed_float(std::string& key)
 {
     if ((current_script->tab()->get_printer_technology() & PrinterTechnology::ptFFF) != 0) {
         ConfigAdapter fullconfig(
-            &current_script->tab()->m_preset_bundle->fff_prints.get_edited_preset().config, 
+            &current_script->tab()->m_preset_bundle->fff_prints.get_edited_preset().config,
             new ConfigAdapter(
-                &current_script->tab()->m_preset_bundle->filaments.get_edited_preset().config, 
+                &current_script->tab()->m_preset_bundle->filaments.get_edited_preset().config,
                 new ConfigAdapter(&current_script->tab()->m_preset_bundle->printers.get_edited_preset().config)));
         try {
             return (float)fullconfig.get_computed_value(key, 0);
@@ -808,15 +808,15 @@ void ScriptContainer::init(const std::string& tab_key, Tab* tab)
             m_script_engine.get()->RegisterGlobalFunction("void set_bool(string &in, bool new_val)",            AngelScript::asFUNCTION(as_set_bool),   AngelScript::asCALL_CDECL);
             m_script_engine.get()->RegisterGlobalFunction("int get_int(string &in)",                            AngelScript::asFUNCTION(as_get_int),    AngelScript::asCALL_CDECL);
 
-            //int get_int_idx(std::string &key, int new_val) 
+            //int get_int_idx(std::string &key, int new_val)
             m_script_engine.get()->RegisterGlobalFunction("int get_int_idx(string &in)",
                                                           AngelScript::asFUNCTION(as_get_int_idx),
-                                                          AngelScript::asCALL_CDECL);           
+                                                          AngelScript::asCALL_CDECL);
                                                           
             m_script_engine.get()->RegisterGlobalFunction("void set_int_idx(string &in, int new_val)", AngelScript::asFUNCTION(as_set_int_idx), AngelScript::asCALL_CDECL);
             
-            m_script_engine.get()->RegisterGlobalFunction("float get_nozzle(string &in, int idx)", AngelScript::asFUNCTION(as_get_nozzle), AngelScript::asCALL_CDECL);    
-            m_script_engine.get()->RegisterGlobalFunction("void set_nozzle(string &in, float new_val, int idx)", AngelScript::asFUNCTION(as_set_nozzle), AngelScript::asCALL_CDECL);  
+            m_script_engine.get()->RegisterGlobalFunction("float get_nozzle(string &in, int idx)", AngelScript::asFUNCTION(as_get_nozzle), AngelScript::asCALL_CDECL);
+            m_script_engine.get()->RegisterGlobalFunction("void set_nozzle(string &in, float new_val, int idx)", AngelScript::asFUNCTION(as_set_nozzle), AngelScript::asCALL_CDECL);
             
             m_script_engine.get()->RegisterGlobalFunction("void set_int(string &in, int new_val)",              AngelScript::asFUNCTION(as_set_int),    AngelScript::asCALL_CDECL);
             m_script_engine.get()->RegisterGlobalFunction("float get_float(string &in)",                        AngelScript::asFUNCTION(as_get_float),  AngelScript::asCALL_CDECL);
@@ -933,13 +933,13 @@ void ScriptContainer::call_script_function_set(const ConfigOptionDef& def, const
         break;
     }
     case coPoint:
-    case coPoints: { 
+    case coPoints: {
         Vec2d vec = boost::any_cast<Vec2d>(value);
         ctx->SetArgFloat(0, (float) vec.x());
         ctx->SetArgFloat(1, (float) vec.y());
         break;
     }
-    case coPoint3: { 
+    case coPoint3: {
         Vec3d vec = boost::any_cast<Vec3d>(value);
         ctx->SetArgFloat(0, (float) vec.x());
         ctx->SetArgFloat(1, (float) vec.y());
@@ -1094,7 +1094,7 @@ boost::any ScriptContainer::call_script_function_get_value(const ConfigOptionDef
     case coPercent:
     case coPercents:
     case coFloat:
-    case coFloats: 
+    case coFloats:
     case coFloatOrPercent:
     case coFloatsOrPercents: func_name = "float"; break;
     case coPoint:
@@ -1189,7 +1189,7 @@ boost::any ScriptContainer::call_script_function_get_value(const ConfigOptionDef
         opt_val     = Vec3d{pt_x, pt_x, pt_x};
         break;
     }
-    case coEnum: { 
+    case coEnum: {
         ret_int = ctx->GetReturnDWord();
         if (ret_int >= 0 && ret_int < def.enum_values.size()) {
             opt_val = int32_t(ret_int);
@@ -1260,4 +1260,3 @@ void ScriptContainer::refresh(const ConfigOptionDef& def, boost::any value)
 //TODO find a way to use the depends_on to add the same lock & points as real configoption in the gui
 
 } }//namespace Slic3r Gui
-
