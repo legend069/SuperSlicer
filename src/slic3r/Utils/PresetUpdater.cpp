@@ -140,8 +140,8 @@ struct Updates
 };
 
 
-wxDEFINE_EVENT(EVT_SLIC3R_VERSION_ONLINE, wxCommandEvent);
-wxDEFINE_EVENT(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, wxCommandEvent);
+//wxDEFINE_EVENT(EVT_SLIC3R_VERSION_ONLINE, wxCommandEvent);
+//wxDEFINE_EVENT(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, wxCommandEvent);
 
 struct PresetUpdater::priv
 {
@@ -166,8 +166,8 @@ struct PresetUpdater::priv
 	void set_download_prefs(AppConfig *app_config);
 	bool get_file(const std::string &url, const fs::path &target_path) const;
 	void prune_tmps() const;
-	void sync_version() const;
-	void parse_version_string(const std::string& body) const;
+	//void sync_version() const;
+	//void parse_version_string(const std::string& body) const;
 	void sync_config(const VendorMap vendors);
 
 	void check_install_indices() const;
@@ -256,152 +256,9 @@ Semver get_version(const std::string &str, const std::regex &regexp) {
 }
 
 // Get Slic3rPE version available online, save in AppConfig.
-void PresetUpdater::priv::sync_version() const
-{
-	if (! enabled_version_check) { return; }
 
-	BOOST_LOG_TRIVIAL(info) << format("Downloading %1% online version from: `%2%`", SLIC3R_APP_NAME, version_check_url);
+wxDEFINE_EVENT(EVT_CONFIG_UPDATER_SYNC_DONE, wxCommandEvent);
 
-	Http::get(version_check_url)
-		.on_progress([this](Http::Progress, bool &cancel) {
-			cancel = this->cancel;
-		})
-		.on_error([&](std::string body, std::string error, unsigned http_status) {
-			(void)body;
-			BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%",
-				version_check_url,
-				http_status,
-				error);
-		})
-		.on_complete([&](std::string body, unsigned /* http_status */) {
-
-			parse_version_string(body);
-		})
-		.perform_sync();
-}
-
-// Parses version string obtained in sync_version() and sends events to UI thread.
-// Version string must contain release version on first line. Follows non-mandatory alpha / beta releases on following lines (alpha=2.0.0-alpha1).
-void PresetUpdater::priv::parse_version_string(const std::string& constbody) const
-{
-/* PRUSASLICER
-	std::string body = constbody;
-	boost::trim(body);
-	// release version
-	std::string version;
-	const auto first_nl_pos = body.find_first_of("\n\r");
-	if (first_nl_pos != std::string::npos)
-		version = body.substr(0, first_nl_pos);
-	else
-		version = body;
-	boost::optional<Semver> release_version = Semver::parse(version);
-	if (!release_version) {
-		BOOST_LOG_TRIVIAL(error) << format("Received invalid contents from `%1%`: Not a correct semver: `%2%`", SLIC3R_APP_NAME, version);
-		return;
-	}
-	BOOST_LOG_TRIVIAL(info) << format("Got %1% online version: `%2%`. Sending to GUI thread...", SLIC3R_APP_NAME, version);
-	wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
-	evt->SetString(GUI::from_u8(version));
-	GUI::wxGetApp().QueueEvent(evt);
-
-	// alpha / beta version
-	std::vector<std::string> prerelease_versions;
-	size_t nexn_nl_pos = first_nl_pos;
-	while (nexn_nl_pos != std::string::npos && body.size() > nexn_nl_pos + 1) {
-		const auto last_nl_pos = nexn_nl_pos;
-		nexn_nl_pos = body.find_first_of("\n\r", last_nl_pos + 1);
-		std::string line;
-		if (nexn_nl_pos == std::string::npos)
-			line = body.substr(last_nl_pos + 1);
-		else
-			line = body.substr(last_nl_pos + 1, nexn_nl_pos - last_nl_pos - 1);
-
-		// alpha
-		if (line.substr(0, 6) == "alpha=") {
-			version = line.substr(6);
-			if (!Semver::parse(version)) {
-				BOOST_LOG_TRIVIAL(error) << format("Received invalid contents for alpha release from `%1%`: Not a correct semver: `%2%`", SLIC3R_APP_NAME, version);
-				return;
-			prerelease_versions.emplace_back(version);
-		// beta
-		}
-		else if (line.substr(0, 5) == "beta=") {
-			version = line.substr(5);
-			if (!Semver::parse(version)) {
-				BOOST_LOG_TRIVIAL(error) << format("Received invalid contents for beta release from `%1%`: Not a correct semver: `%2%`", SLIC3R_APP_NAME, version);
-				return;
-			}
-			prerelease_versions.emplace_back(version);
-		}
-	}
-	// find recent version that is newer than last full release.
-	boost::optional<Semver> recent_version;
-	for (const std::string& ver_string : prerelease_versions) {
-		boost::optional<Semver> ver = Semver::parse(ver_string);
-		if (ver && *release_version < *ver && ((recent_version && *recent_version < *ver) || !recent_version)) {
-			recent_version = ver;
-			version = ver_string;
-		}
-	}
-	if (recent_version) {
-		BOOST_LOG_TRIVIAL(info) << format("Got %1% online version: `%2%`. Sending to GUI thread...", SLIC3R_APP_NAME, version);
-		wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE);
-		evt->SetString(GUI::from_u8(version));
-		GUI::wxGetApp().QueueEvent(evt);
-	}
-*/
-
-// github verison
-
-	boost::property_tree::ptree root;
-	std::stringstream json_stream(constbody);
-	boost::property_tree::read_json(json_stream, root);
-	bool i_am_pre = false;
-	//at least two number, use '.' as separator. can be followed by -Az23 for prereleased and +Az42 for metadata
-	std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
-
-	Semver current_version(SLIC3R_VERSION_FULL);
-	Semver best_pre(1,0,0,0);
-	Semver best_release(1, 0, 0, 0);
-	std::string best_pre_url;
-	std::string best_release_url;
-	const std::regex reg_num("([0-9]+)");
-	for (auto json_version : root) {
-		std::string tag = json_version.second.get<std::string>("tag_name");
-		for (std::regex_iterator it = std::sregex_iterator(tag.begin(), tag.end(), reg_num); it != std::sregex_iterator(); ++it) {
-
-		}
-		Semver tag_version = get_version(tag, matcher);
-		if (current_version == tag_version)
-			i_am_pre = json_version.second.get<bool>("prerelease");
-		if (json_version.second.get<bool>("prerelease")) {
-			if (best_pre < tag_version) {
-				best_pre = tag_version;
-				best_pre_url = json_version.second.get<std::string>("html_url");
-			}
-		} else {
-			if (best_release < tag_version) {
-				best_release = tag_version;
-				best_release_url = json_version.second.get<std::string>("html_url");
-			}
-		}
-	}
-
-	//if release is more recent than beta, use release anyway
-	if (best_pre < best_release) {
-		best_pre = best_release;
-		best_pre_url = best_release_url;
-	}
-	//if we're the most recent, don't do anything
-	if ((i_am_pre ? best_pre : best_release) <= current_version)
-		return;
-
-	BOOST_LOG_TRIVIAL(info) << format("Got %1% online version: `%2%`. Sending to GUI thread...", SLIC3R_APP_NAME, i_am_pre? best_pre:best_release);
-
-	wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
-	evt->SetString((i_am_pre ? best_pre : best_release).to_string());
-	GUI::wxGetApp().QueueEvent(evt);
-}
 
 // Download vendor indices. Also download new bundles if an index indicates there's a new one available.
 // Both are saved in cache.
@@ -852,7 +709,7 @@ void PresetUpdater::sync(PresetBundle *preset_bundle)
 
     p->thread = std::thread([this, vendors]() {
 		this->p->prune_tmps();
-		this->p->sync_version();
+		//this->p->sync_version();
 		this->p->sync_config(std::move(vendors));
     });
 }
@@ -866,19 +723,7 @@ void PresetUpdater::slic3r_update_notify()
 	const auto ver_online = Semver::parse(ver_online_str);
 	const auto ver_online_seen = Semver::parse(app_config->get("version_online_seen"));
 
-	if (ver_online) {
-		// Only display the notification if the version available online is newer AND if we haven't seen it before
-		if (*ver_online > Slic3r::SEMVER && (! ver_online_seen || *ver_online_seen < *ver_online)) {
-			GUI::MsgUpdateSlic3r notification(Slic3r::SEMVER, *ver_online);
-			notification.ShowModal();
-			if (notification.disable_version_check()) {
-				app_config->set("notify_release", "none");
-				p->enabled_version_check = false;
-			}
-		}
-
-		app_config->set("version_online_seen", ver_online_str);
-	}
+	app_config->set("version_online_seen", ver_online_str);
 }
 
 static bool reload_configs_update_gui()

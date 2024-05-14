@@ -373,6 +373,7 @@ FreqChangedParams::FreqChangedParams(wxWindow* parent) :
 void FreqChangedParams::init()
 {
     DynamicPrintConfig*	config = &wxGetApp().preset_bundle->fff_prints.get_edited_preset().config;
+    Tab* tab_freq_fff = wxGetApp().get_tab(Preset::TYPE_FREQUENT_FFF, false);
 
     Tab* tab_print = wxGetApp().get_tab(Preset::TYPE_FFF_PRINT);
     Tab *tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
@@ -406,8 +407,8 @@ void FreqChangedParams::init()
 
         m_og->m_on_change = Tab::set_or_add(m_og->m_on_change, [tab_print, this](t_config_option_key opt_key, boost::any value)
             {
-                Option opt = this->m_og->create_option_from_def(opt_key);
-                if (!opt.opt.is_script) {
+                const Option *opt_def = this->m_og->get_option_def(opt_key);
+                if (opt_def && !opt_def->opt.is_script) {
                     tab_print->update_dirty();
                     tab_print->reload_config();
                     tab_print->update();
@@ -471,7 +472,7 @@ void FreqChangedParams::init()
             line_for_purge->append_widget(wiping_dialog_btn);
         }
 
-        for (const Line& l : pages[0]->m_optgroups[0]->get_lines()) {
+        for (const Line &l : pages[0]->m_optgroups[0]->get_lines()) {
             m_og->append_line(l);
         }
 
@@ -482,38 +483,7 @@ void FreqChangedParams::init()
 
 
     // Frequently changed parameters for SLA_technology
-    tab_print = wxGetApp().get_tab(Preset::TYPE_SLA_PRINT);
-    pages.clear();
-    if (tab_print != nullptr) pages = tab_print->create_pages("freq_sla.ui", -1, Preset::Type::TYPE_FREQUENT_SLA);
-    if (!pages.empty()) {
-        std::shared_ptr<ConfigOptionsGroup> m_og_sla = m_og_other[ptSLA] = std::make_shared<ConfigOptionsGroup>(m_parent, "");
-        m_og_sla->set_config(config);
-        m_og_sla->hide_labels();
-        m_og_sla->m_on_change = Tab::set_or_add(m_og_sla->m_on_change, [tab_print, this](t_config_option_key opt_key, boost::any value)
-            {
-                Option opt = this->m_og_other[ptSLA]->create_option_from_def(opt_key);
-                if (!opt.opt.is_script) {
-                    tab_print->update_dirty();
-                    tab_print->reload_config();
-                    tab_print->update();
-                }
-            });
-        assert(pages.size() == 1);
-        assert(pages[0]->m_optgroups.size() == 1);
-        m_og_sla->copy_for_freq_settings(*(pages[0]->m_optgroups[0].get()));
-        // hacks
-        Line* line_for_purge = nullptr;
-        for (Line& l : pages[0]->m_optgroups[0]->set_lines()) {
-            if (l.get_options().size() == 1 && l.get_options().front().opt.full_width) {
-                l.append_widget(empty_widget);
-            }
-        }
-        for (const Line& l : pages[0]->m_optgroups[0]->get_lines()) {
-            m_og_sla->append_line(l);
-        }
-        m_og_sla->activate();
-        m_sizer->Add(m_og_sla->sizer, 0, wxEXPAND);
-    }
+    
 }
 
 
@@ -2452,7 +2422,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
     auto *nozzle_dmrs = config->opt<ConfigOptionFloats>("nozzle_diameter");
 
-    bool one_by_one = input_files.size() == 1 || printer_technology == ptSLA || nozzle_dmrs->values.size() <= 1;
+    bool one_by_one = input_files.size() == 1 || printer_technology == ptSLA; // || nozzle_dmrs->values.size() <= 1; // removed by bb (toa llow multi-import on a single extruder printer.
     if (! one_by_one) {
         for (const auto &path : input_files) {
             if (std::regex_match(path.string(), pattern_bundle)) {
@@ -2765,10 +2735,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
     if (new_model != nullptr && new_model->objects.size() > 1) {
         //wxMessageDialog msg_dlg(q, _L(
-        MessageDialog msg_dlg(q, _L(
+        MessageDialog msg_dlg(q, nozzle_dmrs->values.size() > 1 ? _L(
                 "Multiple objects were loaded for a multi-material printer.\n"
                 "Instead of considering them as multiple objects, should I consider\n"
-                "these files to represent a single object having multiple parts?") + "\n",
+                "these files to represent a single object having multiple parts?") + "\n":
+                _L("Load these files as a single object with multiple parts?\n"),
                 _L("Multi-part object detected"), wxICON_WARNING | wxYES | wxNO);
         if (msg_dlg.ShowModal() == wxID_YES) {
             new_model->convert_multipart_object(nozzle_dmrs->values.size());
@@ -5575,7 +5546,7 @@ bool Plater::load_files(const wxArrayString& filenames)
         std::string filename = (*it).filename().string();
         if (boost::algorithm::iends_with(filename, ".3mf") || boost::algorithm::iends_with(filename, ".amf")) {
             LoadType load_type = LoadType::Unknown;
-            if (!model().objects.empty()) {
+            if (!model().objects.empty() || wxGetApp().app_config->get("show_drop_project_dialog") == "1") {
                 if ((boost::algorithm::iends_with(filename, ".3mf") && !is_project_3mf(it->string())) ||
                     (boost::algorithm::iends_with(filename, ".amf") && !boost::algorithm::iends_with(filename, ".zip.amf")))
                     load_type = LoadType::LoadGeometry;

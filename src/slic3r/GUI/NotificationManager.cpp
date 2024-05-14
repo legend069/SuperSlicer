@@ -1010,6 +1010,228 @@ void NotificationManager::PrintHostUploadNotification::render_cancel_button(ImGu
 	}
 	ImGui::PopStyleColor(5);
 }
+
+//------URLDownloadNotification----------------
+
+void NotificationManager::URLDownloadNotification::render_close_button(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    if (m_percentage < 0.f || m_percentage >= 1.f) {
+        render_close_button_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+        if (m_percentage >= 1.f)
+            render_open_button_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+    } else
+        render_pause_cancel_buttons_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+}
+void NotificationManager::URLDownloadNotification::render_close_button_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ImVec2 win_size(win_size_x, win_size_y);
+    ImVec2 win_pos(win_pos_x, win_pos_y);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+    push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+
+
+    std::string button_text;
+    button_text = ImGui::CloseNotifButton;
+
+    if (ImGui::IsMouseHoveringRect(ImVec2(win_pos.x - win_size.x / 10.f, win_pos.y),
+        ImVec2(win_pos.x, win_pos.y + win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)),
+        true))
+    {
+        button_text = ImGui::CloseNotifHoverButton;
+    }
+    ImVec2 button_pic_size = ImGui::CalcTextSize(button_text.c_str());
+    ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.75f);
+    ImGui::SetCursorPosY(win_size.y / 2 - button_size.y);
+    if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+    {
+        close();
+    }
+
+    //invisible large button
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.35f);
+    ImGui::SetCursorPosY(0);
+    if (imgui.button(" ", m_line_height * 2.125, win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)))
+    {
+        close();
+    }
+    ImGui::PopStyleColor(5);
+
+}
+
+void NotificationManager::URLDownloadNotification::render_pause_cancel_buttons_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    
+    render_cancel_button_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+    render_pause_button_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+}
+void NotificationManager::URLDownloadNotification::render_pause_button_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ImVec2 win_size(win_size_x, win_size_y);
+    ImVec2 win_pos(win_pos_x, win_pos_y);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+    push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+
+    std::wstring button_text;
+    button_text = (m_download_paused ? ImGui::PlayButton : ImGui::PauseButton);
+    
+    if (ImGui::IsMouseHoveringRect(ImVec2(win_pos.x - m_line_height * 5.f, win_pos.y),
+        ImVec2(win_pos.x - m_line_height * 2.5f, win_pos.y + win_size.y),
+        true))
+    {
+        button_text = (m_download_paused ? ImGui::PlayHoverButton : ImGui::PauseHoverButton);
+    }
+    
+    ImVec2 button_pic_size = ImGui::CalcTextSize(boost::nowide::narrow(button_text).c_str());
+    ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 5.0f);
+    ImGui::SetCursorPosY(win_size.y / 2 - button_size.y);
+    if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+    {
+        trigger_user_action_callback(m_download_paused ? DownloaderUserAction::DownloadUserContinued : DownloaderUserAction::DownloadUserPaused);
+    }
+
+    //invisible large button
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 4.625f);
+    ImGui::SetCursorPosY(0);
+    if (imgui.button("  ", m_line_height * 2.f, win_size.y))
+    {
+        trigger_user_action_callback(m_download_paused ? DownloaderUserAction::DownloadUserContinued : DownloaderUserAction::DownloadUserPaused);
+    }
+    ImGui::PopStyleColor(5);
+}
+
+void NotificationManager::URLDownloadNotification::render_open_button_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ImVec2 win_size(win_size_x, win_size_y);
+    ImVec2 win_pos(win_pos_x, win_pos_y);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+    push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+
+    std::wstring button_text;
+    button_text = ImGui::OpenButton;
+
+    if (ImGui::IsMouseHoveringRect(ImVec2(win_pos.x - m_line_height * 5.f, win_pos.y),
+        ImVec2(win_pos.x - m_line_height * 2.5f, win_pos.y + win_size.y),
+        true))
+    {
+        button_text = ImGui::OpenHoverButton;
+    }
+
+    ImVec2 button_pic_size = ImGui::CalcTextSize(boost::nowide::narrow(button_text).c_str());
+    ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 5.0f);
+    ImGui::SetCursorPosY(win_size.y / 2 - button_size.y);
+    if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+    {
+        trigger_user_action_callback(DownloaderUserAction::DownloadUserOpenedFolder);
+    }
+
+    //invisible large button
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 4.625f);
+    ImGui::SetCursorPosY(0);
+    if (imgui.button("  ", m_line_height * 2.f, win_size.y))
+    {
+        trigger_user_action_callback(DownloaderUserAction::DownloadUserOpenedFolder);
+    }
+    ImGui::PopStyleColor(5);
+}
+
+void NotificationManager::URLDownloadNotification::render_cancel_button_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ImVec2 win_size(win_size_x, win_size_y);
+    ImVec2 win_pos(win_pos_x, win_pos_y);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+    push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+
+
+    std::string button_text;
+    button_text = ImGui::CancelButton;
+
+    if (ImGui::IsMouseHoveringRect(ImVec2(win_pos.x - win_size.x / 10.f, win_pos.y),
+        ImVec2(win_pos.x, win_pos.y + win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)),
+        true))
+    {
+        button_text = ImGui::CancelHoverButton;
+    }
+    ImVec2 button_pic_size = ImGui::CalcTextSize(button_text.c_str());
+    ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.75f);
+    ImGui::SetCursorPosY(win_size.y / 2 - button_size.y);
+    if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+    {
+        trigger_user_action_callback(DownloaderUserAction::DownloadUserCanceled);
+    }
+
+    //invisible large button
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.35f);
+    ImGui::SetCursorPosY(0);
+    if (imgui.button(" ", m_line_height * 2.125, win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)))
+    {
+        trigger_user_action_callback(DownloaderUserAction::DownloadUserCanceled);
+    }
+    ImGui::PopStyleColor(5);
+
+}
+
+void NotificationManager::URLDownloadNotification::trigger_user_action_callback(DownloaderUserAction action)
+{
+    if (m_user_action_callback) {
+        if (m_user_action_callback(action, m_download_id)) {}
+    }
+}
+
+
+void NotificationManager::URLDownloadNotification::render_bar(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    auto shorten_to_line = [this](const std::string& text, bool dots) -> std::string {
+        std::string line = text;
+        bool did_shorten = false;
+        while (ImGui::CalcTextSize(line.c_str()).x > m_window_width - m_window_width_offset) {
+            line = line.substr(0, line.length() - 1);
+            did_shorten = true;
+        }
+        if (did_shorten && dots) {
+            line = line.substr(0, line.length() - 2);
+            line += "...";
+        }
+        return line;
+    };
+
+    ProgressBarNotification::render_bar(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+    std::string text;
+    if (m_percentage < 0.f) {
+        text = _u8L("ERROR") + ": " + m_error_message;
+    } else if (m_percentage >= 1.f) {
+        text = _u8L("COMPLETED");
+    } else {
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(2) << (int)(m_percentage * 100) << "%";
+        text = stream.str();
+    }
+    ImGui::SetCursorPosX(m_left_indentation);
+    ImGui::SetCursorPosY(win_size_y / 2 + win_size_y / 6 - (m_multiline ? 0 : m_line_height / 4));
+    imgui.text(shorten_to_line(text, true).c_str());
+}
+
+void NotificationManager::URLDownloadNotification::count_spaces()
+{
+    ProgressBarNotification::count_spaces();
+    m_window_width_offset = m_line_height * 6;
+}
+
 //------UpdatedItemsInfoNotification-------
 void NotificationManager::UpdatedItemsInfoNotification::count_spaces()
 {
@@ -1761,6 +1983,256 @@ void NotificationManager::init_slicing_progress_notification(std::function<bool(
 	};
 	push_notification_data(std::make_unique<NotificationManager::SlicingProgressNotification>(data, m_id_provider, m_evt_handler, cancel_callback), 0);
 }
+
+void NotificationManager::push_version_notification(NotificationType type, NotificationLevel level, const std::string& text, const std::string& hypertext, std::function<bool(wxEvtHandler*)> callback)
+{
+    assert (type == NotificationType::NewAlphaAvailable
+         || type == NotificationType::NewBetaAvailable
+         || type == NotificationType::NoNewReleaseAvailable);
+
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        // NoNewReleaseAvailable must not show if alfa / beta is on.
+        if (type == NotificationType::NoNewReleaseAvailable
+            && (notification->get_type() == NotificationType::NewAlphaAvailable
+                || notification->get_type() == NotificationType::NewBetaAvailable)) {
+            return;
+        }
+        // NoNewReleaseAvailable must close if alfa / beta is being push.
+        if (notification->get_type() == NotificationType::NoNewReleaseAvailable
+            && (type == NotificationType::NewAlphaAvailable
+                || type == NotificationType::NewBetaAvailable)) {
+            notification->close();
+        }
+    }
+    push_notification(type, level, text, hypertext, callback);
+}
+
+void NotificationManager::push_download_progress_notification(const std::string& text, std::function<bool()> cancel_callback)
+{
+    // If already exists, change text and reset progress
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::AppDownload) {
+            notification->update({ NotificationType::AppDownload, NotificationLevel::ProgressBarNotificationLevel, 10, text });
+            auto* pbwcn = dynamic_cast<ProgressBarWithCancelNotification*>(notification.get());
+            pbwcn->set_percentage(0.0f);
+            pbwcn->set_cancel_callback(cancel_callback);
+            return;
+        }
+    }
+    // push new one
+    NotificationData data{ NotificationType::AppDownload, NotificationLevel::ProgressBarNotificationLevel, 10, text };
+    push_notification_data(std::make_unique<NotificationManager::ProgressBarWithCancelNotification>(data, m_id_provider, m_evt_handler, cancel_callback), 0);
+}
+
+
+
+
+void NotificationManager::set_download_progress_percentage(float percentage)
+{
+     for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::AppDownload) {
+            ProgressBarWithCancelNotification* pbwcn = dynamic_cast<ProgressBarWithCancelNotification*>(notification.get());
+            // if this changes the percentage, it should be shown now
+            float percent_b4 = pbwcn->get_percentage();
+            pbwcn->set_percentage(percentage);
+            if (pbwcn->get_percentage() != percent_b4)
+                wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0);
+            return;
+        }
+    }
+}
+
+
+void NotificationManager::set_download_URL_progress(size_t id, float percentage)
+{
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::URLDownload) {
+            URLDownloadNotification* ntf = dynamic_cast<URLDownloadNotification*>(notification.get());
+            if (ntf->get_download_id() != id)
+                continue;
+            // if this changes the percentage, it should be shown now
+            float percent_b4 = ntf->get_percentage();
+            ntf->set_percentage(percentage);
+            ntf->set_paused(false);
+            if (ntf->get_percentage() != percent_b4)
+                wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0);
+            return;
+        }
+    }
+}
+
+void NotificationManager::set_download_URL_paused(size_t id)
+{
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::URLDownload) {
+            URLDownloadNotification* ntf = dynamic_cast<URLDownloadNotification*>(notification.get());
+            if (ntf->get_download_id() != id)
+                continue;
+            ntf->set_paused(true);
+            wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0);
+            return;
+        }
+    }
+}
+
+void NotificationManager::set_download_URL_canceled(size_t id)
+{
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::URLDownload) {
+            URLDownloadNotification* ntf = dynamic_cast<URLDownloadNotification*>(notification.get());
+            if (ntf->get_download_id() != id)
+                continue;
+            ntf->close();
+            wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0);
+            return;
+        }
+    }
+}
+void NotificationManager::set_download_URL_error(size_t id, const std::string& text)
+{
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::URLDownload) {
+            URLDownloadNotification* ntf = dynamic_cast<URLDownloadNotification*>(notification.get());
+            if (ntf->get_download_id() != id)
+                continue;
+            float percent_b4 = ntf->get_percentage();
+            ntf->set_percentage(-1.f);
+            ntf->set_error_message(text);
+            if (ntf->get_percentage() != percent_b4)
+                wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0);
+            return;
+        }
+    }
+}
+
+void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)
+{
+    // If already exists
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::URLDownload && dynamic_cast<URLDownloadNotification*>(notification.get())->get_download_id() == id) {
+            return;
+        }
+    }
+    // push new one
+    NotificationData data{ NotificationType::URLDownload, NotificationLevel::ProgressBarNotificationLevel, 5, _u8L("Download") + ": " + text };
+    push_notification_data(std::make_unique<NotificationManager::URLDownloadNotification>(data, m_id_provider, m_evt_handler, id, user_action_callback), 0);
+}
+
+//------ProgressBarWithCancelNotification----------------
+
+void NotificationManager::ProgressBarWithCancelNotification::render_close_button(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    if (m_percentage < 0.f || m_percentage >= 1.f)
+        render_close_button_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+    else
+        render_cancel_button_inner(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+}
+void NotificationManager::ProgressBarWithCancelNotification::render_close_button_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ImVec2 win_size(win_size_x, win_size_y);
+    ImVec2 win_pos(win_pos_x, win_pos_y);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+    push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+
+
+    std::string button_text;
+    button_text = ImGui::CloseNotifButton;
+
+    if (ImGui::IsMouseHoveringRect(ImVec2(win_pos.x - win_size.x / 10.f, win_pos.y),
+        ImVec2(win_pos.x, win_pos.y + win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)),
+        true))
+    {
+        button_text = ImGui::CloseNotifHoverButton;
+    }
+    ImVec2 button_pic_size = ImGui::CalcTextSize(button_text.c_str());
+    ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.75f);
+    ImGui::SetCursorPosY(win_size.y / 2 - button_size.y);
+    if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+    {
+        close();
+    }
+
+    //invisible large button
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.35f);
+    ImGui::SetCursorPosY(0);
+    if (imgui.button(" ", m_line_height * 2.125, win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)))
+    {
+        close();
+    }
+    ImGui::PopStyleColor(5);
+
+}
+
+void NotificationManager::ProgressBarWithCancelNotification::render_cancel_button_inner(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ImVec2 win_size(win_size_x, win_size_y);
+    ImVec2 win_pos(win_pos_x, win_pos_y);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+    push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_state == EState::FadingOut, m_current_fade_opacity);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+
+
+    std::string button_text;
+    button_text = ImGui::CancelButton;
+
+    if (ImGui::IsMouseHoveringRect(ImVec2(win_pos.x - win_size.x / 10.f, win_pos.y),
+        ImVec2(win_pos.x, win_pos.y + win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)),
+        true))
+    {
+        button_text = ImGui::CancelHoverButton;
+    }
+    ImVec2 button_pic_size = ImGui::CalcTextSize(button_text.c_str());
+    ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.75f);
+    ImGui::SetCursorPosY(win_size.y / 2 - button_size.y);
+    if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+    {
+        on_cancel_button();
+    }
+
+    //invisible large button
+    ImGui::SetCursorPosX(win_size.x - m_line_height * 2.35f);
+    ImGui::SetCursorPosY(0);
+    if (imgui.button(" ", m_line_height * 2.125, win_size.y - (m_minimize_b_visible ? 2 * m_line_height : 0)))
+    {
+        on_cancel_button();
+    }
+    ImGui::PopStyleColor(5);
+
+}
+
+void NotificationManager::ProgressBarWithCancelNotification::on_cancel_button()
+{
+    if (m_cancel_callback) {
+        if (m_cancel_callback()) {
+            close();
+        }
+    }
+}
+
+void NotificationManager::ProgressBarWithCancelNotification::render_bar(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)
+{
+    ProgressBarNotification::render_bar(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+    std::string text;
+    if (m_percentage < 0.f) {
+        text = _u8L("ERROR");
+    } else {
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(2) << (int)(m_percentage * 100) << "%";
+        text = stream.str();
+    }
+    ImGui::SetCursorPosX(m_left_indentation);
+    ImGui::SetCursorPosY(win_size_y / 2 + win_size_y / 6 - (m_multiline ? 0 : m_line_height / 4));
+    imgui.text(text.c_str());
+}
+
+
 void NotificationManager::set_slicing_progress_began()
 {
 	for (std::unique_ptr<PopNotification> & notification : m_pop_notifications) {

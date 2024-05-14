@@ -10,6 +10,8 @@
 #include "OpenGLManager.hpp"
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
+#include "AppUpdater.hpp"
+#include "Downloader.hpp"
 
 #include <wx/app.h>
 #include <wx/colour.h>
@@ -35,6 +37,7 @@ class PresetUpdater;
 class ModelObject;
 class PrintHostJobQueue;
 class Model;
+class AppUpdater;
 
 namespace GUI{
 
@@ -86,6 +89,8 @@ enum ConfigMenuIDs {
     ConfigMenuLanguage,
     ConfigMenuFlashFirmware,
     ConfigMenuCnt,
+    ConfigMenuUpdateConf,
+    ConfigMenuUpdateApp,
     //ConfigMenuModeSimple,
     //ConfigMenuModeAdvanced,
     //ConfigMenuModeExpert,
@@ -157,6 +162,8 @@ private:
 
     std::unique_ptr<ImGuiWrapper> m_imgui;
     std::unique_ptr<PrintHostJobQueue> m_printhost_job_queue;
+    std::unique_ptr <AppUpdater> m_app_updater;
+    std::unique_ptr <Downloader> m_downloader;
     std::unique_ptr <OtherInstanceMessageHandler> m_other_instance_message_handler;
     std::unique_ptr <wxSingleInstanceChecker> m_single_instance_checker;
     std::string m_instance_hash_string;
@@ -255,6 +262,7 @@ public:
     void            freecad_script_dialog();
     void            tiled_canvas_dialog();
 
+
     // Webview
     bool m_adding_script_handler{false};
     bool is_adding_script_handler() { return m_adding_script_handler; }
@@ -279,7 +287,7 @@ public:
     bool            switch_language();
     bool            load_language(wxString language, bool initial);
 
-    Tab*            get_tab(Preset::Type type);
+    Tab*            get_tab(Preset::Type type, bool only_completed = true);
     ConfigOptionMode get_mode();
     void            save_mode(const ConfigOptionMode mode) ;
     void            update_mode();
@@ -325,6 +333,8 @@ public:
     const Plater*        plater() const;
     Model&              model();
     NotificationManager * notification_manager();
+    Downloader*          downloader();
+
 
     // Parameters extracted from the command line to be passed to GUI after initialization.
     GUI_InitParams* init_params { nullptr };
@@ -383,6 +393,8 @@ public:
     void            associate_gcode_files();
 #endif // __WXMSW__
 
+    void            start_download(std::string url);
+
 private:
     bool            on_init_inner();
     // returns old config path to copy from if such exists,
@@ -396,7 +408,13 @@ private:
     bool            config_wizard_startup();
     // Returns true if the configuration is fine.
     // Returns true if the configuration is not compatible and the user decided to rather close the slicer instead of reconfiguring.
+    
+    // App updater functions
     bool            check_updates(const bool verbose);
+    void            on_version_read(wxCommandEvent& evt);
+    void            app_updater(bool from_user);
+
+    void            app_version_check(bool from_user);
 
     bool            m_datadir_redefined { false };
 };

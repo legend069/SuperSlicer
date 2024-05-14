@@ -12,12 +12,14 @@ include(PrecompiledHeader)
 set(SLIC3R_GUI_SOURCES
     pchheader.cpp
     pchheader.hpp
+    GUI/AppUpdater.cpp
+    GUI/AppUpdater.hpp
+    GUI/Downloader.cpp
+    GUI/Downloader.hpp
+    GUI/DownloaderFileGet.cpp
+    GUI/DownloaderFileGet.hpp
     GUI/PrinterWebView.cpp   
-     GUI/PrinterWebView.hpp
-    GUI/CR3DWebView.cpp
-    GUI/CR3DWebView.hpp
-
-
+    GUI/PrinterWebView.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
     GUI/SysInfoDialog.cpp
@@ -40,6 +42,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CalibrationFlowDialog.hpp
     GUI/CalibrationCr3dDialog.cpp
     GUI/CalibrationCr3dDialog.hpp
+    GUI/CR3DWebView.cpp
+    GUI/CR3DWebView.hpp
     GUI/Widgets/AxisCtrlButton.cpp
     GUI/Widgets/AxisCtrlButton.hpp
     GUI/Widgets/Button.cpp
@@ -258,6 +262,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/MsgDialog.hpp
     GUI/UpdateDialogs.cpp
     GUI/UpdateDialogs.hpp
+    GUI/SlicerUpdater.cpp
+    GUI/SlicerUpdater.hpp
     GUI/FirmwareDialog.cpp
     GUI/FirmwareDialog.hpp
     GUI/PrintHostDialogs.cpp
@@ -343,6 +349,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/MPMDv2.cpp
     Utils/MPMDv2.hpp
+    Utils/MacUtils.mm
 )
 
 if (APPLE)
