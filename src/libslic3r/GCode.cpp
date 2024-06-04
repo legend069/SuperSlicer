@@ -1311,6 +1311,7 @@ void GCode::_init_multiextruders(const Print& print, std::string& out, GCodeWrit
 void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     PROFILE_FUNC();
+    ToolOrdering tool_ordering;
 
     const Print &print = print_mod;
     Print::StatusMonitor status_monitor{print_mod};
@@ -1570,7 +1571,6 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
 
     // Get optimal tool ordering to minimize tool switches of a multi-exruder print.
     // For a print by objects, find the 1st printing object.
-
     uint16_t initial_extruder_id     = (uint16_t)-1;
     uint16_t final_extruder_id       = (uint16_t)-1;
     bool         has_wipe_tower      = false;

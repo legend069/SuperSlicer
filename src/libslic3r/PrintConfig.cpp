@@ -8752,7 +8752,11 @@ void DynamicPrintConfig::normalize_fdm()
             this->opt<ConfigOptionBool>("extra_perimeters_overhangs", true)->value = false;
             this->opt<ConfigOptionBool>("extra_perimeters_odd_layers", true)->value = false;
             this->opt<ConfigOptionBool>("overhangs_reverse", true)->value = false; 
+<<<<<<<<< Temporary merge branch 1
+            this->opt<ConfigOptionBool>("perimeter_reverse", true)->value = false; 
+=========
             this->opt<ConfigOptionBool>("perimeter_reverse", true)->value = false;
+>>>>>>>>> Temporary merge branch 2
         }
     }
 

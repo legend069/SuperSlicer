@@ -395,6 +395,26 @@ void combochecklist_set_flags(wxComboCtrl* comboCtrl, unsigned int flags)
 	}
 }
 
+
+void desktop_open_folder(const boost::filesystem::path& path)
+{
+    if (!boost::filesystem::is_directory(path))
+        return;
+
+    // Execute command to open a file explorer, platform dependent.
+#ifdef _WIN32
+    const wxString widepath = path.wstring();
+    const wchar_t* argv[] = { L"explorer", widepath.GetData(), nullptr };
+    ::wxExecute(const_cast<wchar_t**>(argv), wxEXEC_ASYNC, nullptr);
+#elif __APPLE__
+    const char* argv[] = { "open", path.string().c_str(), nullptr };
+    ::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr);
+#else
+    const char* argv[] = { "xdg-open", path.string().c_str(), nullptr };
+    desktop_execute(argv);
+#endif
+}
+
 AppConfig* get_app_config()
 {
     return wxGetApp().app_config.get();
@@ -478,5 +498,48 @@ void desktop_open_datadir_folder()
 		}
 #endif
 }
+
+#if _WIN32
+bool create_process(const boost::filesystem::path &path, const std::wstring &cmd_opt, std::string &error_msg)
+{
+    // find updater exe
+    if (boost::filesystem::exists(path)) {
+        // Using quoted string as mentioned in CreateProcessW docs.
+        std::wstring wcmd = L"\"" + path.wstring() + L"\"";
+        if (!cmd_opt.empty())
+            wcmd += L" " + cmd_opt;
+
+        // additional information
+        STARTUPINFOW        si;
+        PROCESS_INFORMATION pi;
+
+        // set the size of the structures
+        ZeroMemory(&si, sizeof(si));
+        si.cb = sizeof(si);
+        ZeroMemory(&pi, sizeof(pi));
+
+        // start the program up
+        if (CreateProcessW(NULL,        // the path
+                           wcmd.data(), // Command line
+                           NULL,        // Process handle not inheritable
+                           NULL,        // Thread handle not inheritable
+                           FALSE,       // Set handle inheritance to FALSE
+                           0,           // No creation flags
+                           NULL,        // Use parent's environment block
+                           NULL,        // Use parent's starting directory
+                           &si,         // Pointer to STARTUPINFO structure
+                           &pi          // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
+                           )) {
+            // Close process and thread handles.
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+            return true;
+        } else
+            error_msg = "CreateProcessW failed to create process " + boost::nowide::narrow(path.wstring());
+    } else
+        error_msg = "Executable doesn't exists. Path: " + boost::nowide::narrow(path.wstring());
+    return false;
+}
+#endif //_WIN32
 
 } }

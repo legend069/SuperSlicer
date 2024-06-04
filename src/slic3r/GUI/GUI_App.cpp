@@ -85,6 +85,9 @@
 #include "PrintHostDialogs.hpp"
 #include "DesktopIntegrationDialog.hpp"
 #include "SendSystemInfoDialog.hpp"
+#include "SlicerUpdater.hpp"
+#include "AppUpdater.hpp"
+
 
 #include "BitmapCache.hpp"
 #include "Notebook.hpp"
@@ -146,7 +149,7 @@ public:
 
         // this font will be used for the action string
         m_action_font = m_constant_text.credits_font.Bold();
-
+       
         // draw logo and constant info text
         Decorate();
     }
@@ -790,6 +793,7 @@ void GUI_App::post_init()
             return;
         CallAfter([this] {
             bool cw_showed = this->config_wizard_startup();
+            this->app_version_check(true);
             this->preset_updater->sync(preset_bundle.get());
             if (! cw_showed) {
                 // The CallAfter is needed as well, without it, GL extensions did not show.
@@ -831,6 +835,8 @@ GUI_App::GUI_App(EAppMode mode)
 	this->init_app_config();
     //ImGuiWrapper need the app config to get the colors
     m_imgui.reset(new ImGuiWrapper{});
+    m_app_updater = std::make_unique<AppUpdater>();
+    
 }
 
 // If formatted for github, plaintext with OpenGL extensions enclosed into <details>.
@@ -1290,43 +1296,49 @@ bool GUI_App::on_init_inner()
 #endif // __WXMSW__
 
         preset_updater.reset(new PresetUpdater());
-        Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
-        app_config->set("version_online", into_u8(evt.GetString()));
-        app_config->save();
-            std::string opt = app_config->get("notify_release");
-            if (this->plater_ != nullptr && (opt == "all" || opt == "release")) {
-                //if (*Semver::parse(SLIC3R_VERSION_FULL) < *Semver::parse(into_u8(evt.GetString()))) {
-                    this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable
-                        , NotificationManager::NotificationLevel::ImportantNotificationLevel
-                        , Slic3r::format(_u8L("New release version %1% is available."), evt.GetString())
-                        , _u8L("See Download page.")
-                        , [](wxEvtHandler* evnthndlr) {wxGetApp().open_web_page_localized(SLIC3R_DOWNLOAD); return true; }
-                    );
-                //}
-            }
-        });
-        Bind(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
-            app_config->save();
-            if (this->plater_ != nullptr && app_config->get("notify_release") == "all") {
-                std::string evt_string = into_u8(evt.GetString());
-                if (*Semver::parse(SLIC3R_VERSION) < *Semver::parse(evt_string)) {
-                    auto notif_type = (evt_string.find("beta") != std::string::npos ? NotificationType::NewBetaAvailable : NotificationType::NewAlphaAvailable);
-                    this->plater_->get_notification_manager()->push_notification( notif_type
-                        , NotificationManager::NotificationLevel::ImportantNotificationLevel
-                        , Slic3r::format(_u8L("New prerelease version %1% is available."), evt_string)
-                        , _u8L("See Releases page.")
-                        , [](wxEvtHandler* evnthndlr) {wxGetApp().open_browser_with_warning_dialog("https://github.com/" SLIC3R_GITHUB "/releases"); return true; }
-                    );
-    }
-            }
-            });
-    }
-    else {
-#ifdef __WXMSW__ 
-        if (app_config->get("associate_gcode") == "1")
-            associate_gcode_files();
-#endif // __WXMSW__
-    }
+          Bind(EVT_SLIC3R_VERSION_ONLINE, &GUI_App::on_version_read, this);
+          Bind(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
+              if (this->plater_ != nullptr && (m_app_updater->get_triggered_by_user() || app_config->get("notify_release") == "1")) {
+                  std::string evt_string = into_u8(evt.GetString());
+                  if (*Semver::parse(SLIC3R_VERSION) < *Semver::parse(evt_string)) {
+                      auto notif_type = (evt_string.find("beta") != std::string::npos ? NotificationType::NewBetaAvailable : NotificationType::NewAlphaAvailable);
+                      this->plater_->get_notification_manager()->push_version_notification( notif_type
+                          , NotificationManager::NotificationLevel::ImportantNotificationLevel
+                          , Slic3r::format(_u8L("New prerelease version %1% is available."), evt_string)
+                          , _u8L("See Releases page.")
+                          , [](wxEvtHandler* evnthndlr) {wxGetApp().open_browser_with_warning_dialog("https://github.com/CR-3D/SliCR-3D/releases"); return true; }
+                      );
+                  }
+              }
+              });
+          Bind(EVT_SLIC3R_APP_DOWNLOAD_PROGRESS, [this](const wxCommandEvent& evt) {
+              //lm:This does not force a render. The progress bar only updateswhen the mouse is moved.
+              if (this->plater_ != nullptr)
+                  this->plater_->get_notification_manager()->set_download_progress_percentage((float)std::stoi(into_u8(evt.GetString())) / 100.f );
+          });
+
+          Bind(EVT_SLIC3R_APP_DOWNLOAD_FAILED, [this](const wxCommandEvent& evt) {
+              if (this->plater_ != nullptr)
+                  this->plater_->get_notification_manager()->close_notification_of_type(NotificationType::AppDownload);
+              if(!evt.GetString().IsEmpty())
+                  show_error(nullptr, evt.GetString());
+          });
+
+          Bind(EVT_SLIC3R_APP_OPEN_FAILED, [](const wxCommandEvent& evt) {
+              show_error(nullptr, evt.GetString());
+          });
+
+          Bind(EVT_CONFIG_UPDATER_SYNC_DONE, [this](const wxCommandEvent& evt) {
+              this->check_updates(false);
+          });
+
+      }
+      else {
+  #ifdef __WXMSW__
+          if (app_config->get_bool("associate_gcode"))
+              associate_gcode_files();
+  #endif // __WXMSW__
+      }
 
     wxImage::AddHandler(new wxJPEGHandler());
     // Suppress the '- default -' presets.
@@ -2537,8 +2549,9 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
         local_menu->Append(config_id_base + ConfigMenuWizard, config_wizard_name + dots, config_wizard_tooltip);
         local_menu->Append(config_id_base + ConfigMenuSnapshots, _L("&Configuration Snapshots") + dots, _L("Inspect / activate configuration snapshots"));
         local_menu->Append(config_id_base + ConfigMenuTakeSnapshot, _L("Take Configuration &Snapshot"), _L("Capture a configuration snapshot"));
-        local_menu->Append(config_id_base + ConfigMenuUpdate, _L("Check for Configuration Updates"), _L("Check for configuration updates"));
-#if defined(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION) 
+        local_menu->Append(config_id_base + ConfigMenuUpdateConf, _L("Check for Configuration Updates"), _L("Check for configuration updates"));
+        local_menu->Append(config_id_base + ConfigMenuUpdateApp, _L("Check for Application Updates"), _L("Check for new version of application"));
+#if defined(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION)
         //if (DesktopIntegrationDialog::integration_possible())
         local_menu->Append(config_id_base + ConfigMenuDesktopIntegration, _L("Desktop Integration"), _L("Desktop Integration"));    
 #endif //(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION)        
@@ -2585,12 +2598,15 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
 
     local_menu->Bind(wxEVT_MENU, [this, config_id_base](wxEvent &event) {
         switch (event.GetId() - config_id_base) {
-        case ConfigMenuWizard:
-            run_wizard(ConfigWizard::RR_USER);
-            break;
-		case ConfigMenuUpdate:
-			check_updates(true);
-			break;
+            case ConfigMenuWizard:
+                 run_wizard(ConfigWizard::RR_USER);
+                 break;
+             case ConfigMenuUpdateConf:
+                 check_updates(true);
+                 break;
+             case ConfigMenuUpdateApp:
+                 app_updater(true);
+                 break;
 #ifdef __linux__
         case ConfigMenuDesktopIntegration:
             show_desktop_integration_dialog();
@@ -3143,10 +3159,15 @@ wxBookCtrlBase* GUI_App::tab_panel() const
     return mainframe->m_tabpanel;
 }
 
-NotificationManager * GUI_App::notification_manager()
+NotificationManager* GUI_App::notification_manager()
 {
     return plater_->get_notification_manager();
 }
+
+ Downloader* GUI_App::downloader()
+ {
+     return m_downloader.get();
+ }
 
 // extruders count from selected printer preset
 int GUI_App::extruders_cnt() const
@@ -3407,6 +3428,13 @@ bool GUI_App::check_updates(const bool verbose)
 	PresetUpdater::UpdateResult updater_result;
 	try {
 		updater_result = preset_updater->config_update(app_config->orig_version(), verbose ? PresetUpdater::UpdateParams::SHOW_TEXT_BOX : PresetUpdater::UpdateParams::SHOW_NOTIFICATION);
+
+
+        std::cout << "Current Version"
+                  << app_config->orig_version();
+        std::cout << "Online Version"
+                  << app_config->version_check_url();
+
 		if (updater_result == PresetUpdater::R_INCOMPAT_EXIT) {
 			mainframe->Close();
             // Applicaiton is closing.
@@ -3489,120 +3517,246 @@ bool GUI_App::open_browser_with_warning_dialog(const wxString& url, wxWindow* pa
 //     // The notifier also supported the Linux X D - bus notifications, but that support was broken.
 //     //TODO use wxNotificationMessage ?
 // }
+         
+         
+void GUI_App::on_version_read(wxCommandEvent& evt)
+ {
+    app_config->set("version_online", into_u8(evt.GetString()));
+    std::string opt = app_config->get("notify_release");
+    if (this->plater_ == nullptr || (!m_app_updater->get_triggered_by_user() && opt != "all" && opt != "release")) {
+        BOOST_LOG_TRIVIAL(info) << "Version online: " << evt.GetString() << ". User does not wish to be notified.";
+        return;
+    }
+    if (*Semver::parse(SLIC3R_VERSION) >= *Semver::parse(into_u8(evt.GetString()))) {
+        if (m_app_updater->get_triggered_by_user())
+        {
+            std::string text = (*Semver::parse(into_u8(evt.GetString())) == Semver())
+            ? _u8L("Check for application update has failed.")
+            : Slic3r::format(_u8L("You are currently running the latest released version %1%."), evt.GetString());
+            
+            if (*Semver::parse(SLIC3R_VERSION) > *Semver::parse(into_u8(evt.GetString())))
+                text = Slic3r::format(_u8L("There are no new released versions online. The latest release version is %1%."), evt.GetString());
+            
+            this->plater_->get_notification_manager()->push_version_notification(NotificationType::NoNewReleaseAvailable
+                                                                                 ,
+                                                                                 NotificationManager::NotificationLevel::RegularNotificationLevel
+                                                                                 , text
+                                                                                 , std::string()
+                                                                                 , std::function<bool(wxEvtHandler*)>()
+                                                                                 );
+        }
+        return;
+}
+// notification
+/*
+ this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable
+ , NotificationManager::NotificationLevel::ImportantNotificationLevel
+ , Slic3r::format(_u8L("New release version %1% is available."), evt.GetString())
+ , _u8L("See Download page.")
+ , [](wxEvtHandler* evnthndlr) {wxGetApp().open_web_page_localized("https://www.prusa3d.com/slicerweb"); return true; }
+ );
+ */
+// updater
+// read triggered_by_user that was set when calling  GUI_App::app_version_check
+app_updater(m_app_updater->get_triggered_by_user());
+}
+         
 
+void GUI_App::app_updater(bool from_user) {
+        DownloadAppData app_data = m_app_updater->get_app_data();
+        if (from_user && (!app_data.version || *app_data.version <= *Semver::parse(SLIC3R_VERSION)))
+        {
+            BOOST_LOG_TRIVIAL(info) << "There is no newer version online.";
+            MsgNoAppUpdates no_update_dialog;
+            no_update_dialog.ShowModal();
+            return;
+            
+        }
+        
+        assert(!app_data.url.empty());
+        assert(!app_data.target_path.empty());
+        
+        // dialog with new version info
+        AppUpdateAvailableDialog dialog(*Semver::parse(SLIC3R_VERSION), *app_data.version, from_user);
+        auto dialog_result = dialog.ShowModal();
+        // checkbox "do not show again"
+        if (dialog.disable_version_check()) {
+            app_config->set("notify_release", "none");
+        }
+        // Doesn't wish to update
+        if (dialog_result != wxID_OK) {
+            return;
+        }
+        // dialog with new version download (installer or app dependent on system) including path selection
+        AppUpdateDownloadDialog dwnld_dlg(*app_data.version, app_data.target_path);
+        dialog_result = dwnld_dlg.ShowModal();
+        //  Doesn't wish to download
+        if (dialog_result != wxID_OK) {
+            return;
+        }
+        app_data.target_path =dwnld_dlg.get_download_path();
+        // start download
+        this->plater_->get_notification_manager()->push_download_progress_notification(GUI::format(_L("Downloading %1%"), app_data.target_path.filename().string()), std::bind(&AppUpdater::cancel_callback, this->m_app_updater.get()));
+        app_data.start_after = dwnld_dlg.run_after_download();
+        m_app_updater->set_app_data(std::move(app_data));
+        m_app_updater->sync_download();
+    }
+         
+         
+void GUI_App::app_version_check(bool from_user) {
+        if (from_user) {
+            if (m_app_updater->get_download_ongoing()) {
+                MessageDialog msgdlg(nullptr, _L("Downloading of the new version is in progress. Do you want to continue?"), _L("Notice"), wxYES_NO);
+                if (msgdlg.ShowModal() != wxID_YES)
+                    return;
+            }
+        }
+        std::string version_check_url = app_config->version_check_url();
+        m_app_updater->sync_version(version_check_url, from_user);
+    }
+         
 
+void GUI_App::start_download(std::string url) {
+        if (!plater_) {
+            BOOST_LOG_TRIVIAL(error) << "Could not start URL download: plater is nullptr.";
+            return;
+        }
+        
+#if defined(__APPLE__) || (defined(__linux__) && !defined(SLIC3R_DESKTOP_INTEGRATION))
+        if (app_config && !app_config->get_bool("downloader_url_registered"))
+        {
+            notification_manager()->push_notification(NotificationType::URLNotRegistered);
+            BOOST_LOG_TRIVIAL(error) << "Received command to open URL, but it is not allowed in app configuration. URL: " << url;
+            return;
+        }
+#endif //defined(__APPLE__) || (defined(__linux__) && !defined(SLIC3R_DESKTOP_INTEGRATION))
+        
+        //lets always init so if the download dest folder was changed, new dest is used
+        boost::filesystem::path dest_folder(app_config->get("url_downloader_dest"));
+        if (dest_folder.empty() || !boost::filesystem::is_directory(dest_folder)) {
+            std::string msg = _u8L("Could not start URL download. Destination folder is not set. Please choose destination folder in Configuration Wizard.");
+            BOOST_LOG_TRIVIAL(error) << msg;
+            show_error(nullptr, msg);
+            return;
+        }
+        m_downloader->init(dest_folder);
+        m_downloader->start_download(url);
+    }
+         
+         
+         
 #ifdef __WXMSW__
-static bool set_into_win_registry(HKEY hkeyHive, const wchar_t* pszVar, const wchar_t* pszValue)
-{
-    // see as reference: https://stackoverflow.com/questions/20245262/c-program-needs-an-file-association
-    wchar_t szValueCurrent[1000];
-    DWORD dwType;
-    DWORD dwSize = sizeof(szValueCurrent);
-
-    int iRC = ::RegGetValueW(hkeyHive, pszVar, nullptr, RRF_RT_ANY, &dwType, szValueCurrent, &dwSize);
-
-    bool bDidntExist = iRC == ERROR_FILE_NOT_FOUND;
-
-    if ((iRC != ERROR_SUCCESS) && !bDidntExist)
-        // an error occurred
-        return false;
-
-    if (!bDidntExist) {
-        if (dwType != REG_SZ)
-            // invalid type
+         static bool set_into_win_registry(HKEY hkeyHive, const wchar_t* pszVar, const wchar_t* pszValue)
+         {
+        // see as reference: https://stackoverflow.com/questions/20245262/c-program-needs-an-file-association
+        wchar_t szValueCurrent[1000];
+        DWORD dwType;
+        DWORD dwSize = sizeof(szValueCurrent);
+        
+        int iRC = ::RegGetValueW(hkeyHive, pszVar, nullptr, RRF_RT_ANY, &dwType, szValueCurrent, &dwSize);
+        
+        bool bDidntExist = iRC == ERROR_FILE_NOT_FOUND;
+        
+        if ((iRC != ERROR_SUCCESS) && !bDidntExist)
+            // an error occurred
             return false;
-
-        if (::wcscmp(szValueCurrent, pszValue) == 0)
-            // value already set
-            return false;
+        
+        if (!bDidntExist) {
+            if (dwType != REG_SZ)
+                // invalid type
+                return false;
+            
+            if (::wcscmp(szValueCurrent, pszValue) == 0)
+                // value already set
+                return false;
+        }
+        
+        DWORD dwDisposition;
+        HKEY hkey;
+        iRC = ::RegCreateKeyExW(hkeyHive, pszVar, 0, 0, 0, KEY_ALL_ACCESS, nullptr, &hkey, &dwDisposition);
+        bool ret = false;
+        if (iRC == ERROR_SUCCESS) {
+            iRC = ::RegSetValueExW(hkey, L"", 0, REG_SZ, (BYTE*)pszValue, (::wcslen(pszValue) + 1) * sizeof(wchar_t));
+            if (iRC == ERROR_SUCCESS)
+                ret = true;
+        }
+        
+        RegCloseKey(hkey);
+        return ret;
     }
-
-    DWORD dwDisposition;
-    HKEY hkey;
-    iRC = ::RegCreateKeyExW(hkeyHive, pszVar, 0, 0, 0, KEY_ALL_ACCESS, nullptr, &hkey, &dwDisposition);
-    bool ret = false;
-    if (iRC == ERROR_SUCCESS) {
-        iRC = ::RegSetValueExW(hkey, L"", 0, REG_SZ, (BYTE*)pszValue, (::wcslen(pszValue) + 1) * sizeof(wchar_t));
-        if (iRC == ERROR_SUCCESS)
-            ret = true;
+         
+         void GUI_App::associate_3mf_files()
+         {
+        wchar_t app_path[MAX_PATH];
+        ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
+        
+        std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
+        std::wstring prog_id = SLIC3R_APP_WNAME L".1";
+        std::wstring prog_desc = SLIC3R_APP_WNAME;
+        std::wstring prog_command = prog_path + L" \"%1\"";
+        std::wstring reg_base = L"Software\\Classes";
+        std::wstring reg_extension = reg_base + L"\\.3mf";
+        std::wstring reg_prog_id = reg_base + L"\\" + prog_id;
+        std::wstring reg_prog_id_command = reg_prog_id + L"\\Shell\\Open\\Command";
+        
+        bool is_new = false;
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_extension.c_str(), prog_id.c_str());
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id.c_str(), prog_desc.c_str());
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id_command.c_str(), prog_command.c_str());
+        
+        if (is_new)
+            // notify Windows only when any of the values gets changed
+            ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
     }
-
-    RegCloseKey(hkey);
-    return ret;
-}
-
-void GUI_App::associate_3mf_files()
-{
-    wchar_t app_path[MAX_PATH];
-    ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
-
-    std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
-    std::wstring prog_id = SLIC3R_APP_WNAME L".1";
-    std::wstring prog_desc = SLIC3R_APP_WNAME;
-    std::wstring prog_command = prog_path + L" \"%1\"";
-    std::wstring reg_base = L"Software\\Classes";
-    std::wstring reg_extension = reg_base + L"\\.3mf";
-    std::wstring reg_prog_id = reg_base + L"\\" + prog_id;
-    std::wstring reg_prog_id_command = reg_prog_id + L"\\Shell\\Open\\Command";
-
-    bool is_new = false;
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_extension.c_str(), prog_id.c_str());
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id.c_str(), prog_desc.c_str());
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id_command.c_str(), prog_command.c_str());
-
-    if (is_new)
-        // notify Windows only when any of the values gets changed
-        ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
-}
-
-void GUI_App::associate_stl_files()
-{
-    wchar_t app_path[MAX_PATH];
-    ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
-
-    std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
-    std::wstring prog_id = L"Super.Slicer.1";
-    std::wstring prog_desc = SLIC3R_APP_WNAME;
-    std::wstring prog_command = prog_path + L" \"%1\"";
-    std::wstring reg_base = L"Software\\Classes";
-    std::wstring reg_extension = reg_base + L"\\.stl";
-    std::wstring reg_prog_id = reg_base + L"\\" + prog_id;
-    std::wstring reg_prog_id_command = reg_prog_id + L"\\Shell\\Open\\Command";
-
-    bool is_new = false;
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_extension.c_str(), prog_id.c_str());
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id.c_str(), prog_desc.c_str());
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id_command.c_str(), prog_command.c_str());
-
-    if (is_new)
-        // notify Windows only when any of the values gets changed
-        ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
-}
-
-void GUI_App::associate_gcode_files()
-{
-    wchar_t app_path[MAX_PATH];
-    ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
-
-    std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
-    std::wstring prog_id = SLIC3R_APP_WKEY L".GCodeViewer.1";
-    std::wstring prog_desc = L"" GCODEVIEWER_APP_NAME;
-    std::wstring prog_command = prog_path + L" \"%1\"";
-    std::wstring reg_base = L"Software\\Classes";
-    std::wstring reg_extension = reg_base + L"\\.gcode";
-    std::wstring reg_prog_id = reg_base + L"\\" + prog_id;
-    std::wstring reg_prog_id_command = reg_prog_id + L"\\Shell\\Open\\Command";
-
-    bool is_new = false;
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_extension.c_str(), prog_id.c_str());
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id.c_str(), prog_desc.c_str());
-    is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id_command.c_str(), prog_command.c_str());
-
-    if (is_new)
-        // notify Windows only when any of the values gets changed
-        ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
-}
+         
+         void GUI_App::associate_stl_files()
+         {
+        wchar_t app_path[MAX_PATH];
+        ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
+        
+        std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
+        std::wstring prog_id = L"Super.Slicer.1";
+        std::wstring prog_desc = SLIC3R_APP_WNAME;
+        std::wstring prog_command = prog_path + L" \"%1\"";
+        std::wstring reg_base = L"Software\\Classes";
+        std::wstring reg_extension = reg_base + L"\\.stl";
+        std::wstring reg_prog_id = reg_base + L"\\" + prog_id;
+        std::wstring reg_prog_id_command = reg_prog_id + L"\\Shell\\Open\\Command";
+        
+        bool is_new = false;
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_extension.c_str(), prog_id.c_str());
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id.c_str(), prog_desc.c_str());
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id_command.c_str(), prog_command.c_str());
+        
+        if (is_new)
+            // notify Windows only when any of the values gets changed
+            ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
+    }
+         
+         void GUI_App::associate_gcode_files()
+         {
+        wchar_t app_path[MAX_PATH];
+        ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
+        
+        std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
+        std::wstring prog_id = SLIC3R_APP_WKEY L".GCodeViewer.1";
+        std::wstring prog_desc = L"" GCODEVIEWER_APP_NAME;
+        std::wstring prog_command = prog_path + L" \"%1\"";
+        std::wstring reg_base = L"Software\\Classes";
+        std::wstring reg_extension = reg_base + L"\\.gcode";
+        std::wstring reg_prog_id = reg_base + L"\\" + prog_id;
+        std::wstring reg_prog_id_command = reg_prog_id + L"\\Shell\\Open\\Command";
+        
+        bool is_new = false;
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_extension.c_str(), prog_id.c_str());
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id.c_str(), prog_desc.c_str());
+        is_new |= set_into_win_registry(HKEY_CURRENT_USER, reg_prog_id_command.c_str(), prog_command.c_str());
+        
+        if (is_new)
+            // notify Windows only when any of the values gets changed
+            ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
+    }
 #endif // __WXMSW__
-
-} // GUI
-} //Slic3r
+         
+         } // GUI
+         } //Slic3r

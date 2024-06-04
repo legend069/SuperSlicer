@@ -135,7 +135,7 @@ void as_set_bool(std::string& key, bool b)
     }
 }
 
-int32_t as_get_int_idx(std::string& key, int idx)
+int32_t as_get_int_idx_merill(std::string& key, int idx)
 {
     const ConfigOption* opt = get_coll(key).second;
     if (opt == nullptr || (opt->type() != ConfigOptionType::coInt && opt->type() != ConfigOptionType::coInts && opt->type() != ConfigOptionType::coEnum))
@@ -147,7 +147,8 @@ int32_t as_get_int_idx(std::string& key, int idx)
         return (int32_t)(opt->get_int());
     }
 }
-int32_t as_get_int(std::string &key) { return as_get_int_idx(key, 0); }
+int32_t as_get_int(std::string &key) { return as_get_int_idx_merill(key, 0); }
+
 void    _set_int(DynamicPrintConfig &conf, const ConfigOption *opt, std::string &key, int idx, int i_val)
 {
     if (opt->type() == ConfigOptionType::coInt) {
@@ -419,14 +420,14 @@ void as_set_float(std::string& key, float f_val)
     if (result.second == nullptr)
         throw NoDefinitionExceptionEmitLog("set_float(): error, can't find float option " + key);
 
-    DynamicPrintConfig& conf = current_script->to_update()[result.first->type()];
-    if (auto newer_opt = conf.optptr(key)) {
-        _set_float(conf, newer_opt, key, -1, f_val);
-    } else {
-        _set_float(conf, result.second, key, -1, f_val);
-    }
-}
-bool as_is_percent_idx(std::string& key, int idx)
+      DynamicPrintConfig &conf = current_script->to_update()[result.first->type()];
+      if (auto newer_opt = conf.optptr(key)) {
+          _set_float(conf, newer_opt, key, -1, f_val);
+      } else {
+          _set_float(conf, result.second, key, -1, f_val);
+      }
+  }
+  bool as_is_percent_idx(std::string& key, int idx)
 {
     const ConfigOption* opt = get_coll(key).second;
     if (opt == nullptr)
@@ -614,7 +615,7 @@ void as_set_bool_idx(std::string& key, int idx, bool b_val)
     }
 }
 
-void as_set_int_idx(std::string& key, int idx, int i_val)
+void as_set_int_idx_merill(std::string& key, int idx, int i_val)
 {
     if (!current_script->can_set()) return;
     std::pair<const PresetCollection*, const ConfigOption*> result = get_coll(key);

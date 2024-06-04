@@ -35,8 +35,9 @@ namespace Slic3r {
 
 static const std::string VENDOR_PREFIX = "vendor:";
 static const std::string MODEL_PREFIX = "model:";
-static const std::string VERSION_CHECK_URL = "https://api.github.com/repos/" SLIC3R_GITHUB "/releases";
 
+// TODO: ADD STRATO VERSION CHECK URL 
+static const std::string VERSION_CHECK_URL = "http://files.cr3d.de/updates/SliCR-3D/SliCR-3D.version";
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
 const std::string AppConfig::SECTION_MATERIALS = "sla_materials";
 

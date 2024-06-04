@@ -23,10 +23,11 @@ public:
 		size_t dlnow;     // Bytes downloaded so far
 		size_t ultotal;   // Total bytes to upload
 		size_t ulnow;     // Bytes uploaded so far
+        const  std::string& buffer; // reference to buffer containing all data
 
-		Progress(size_t dltotal, size_t dlnow, size_t ultotal, size_t ulnow) :
-			dltotal(dltotal), dlnow(dlnow), ultotal(ultotal), ulnow(ulnow)
-		{}
+        Progress(size_t dltotal, size_t dlnow, size_t ultotal, size_t ulnow, const std::string& buffer) :
+            dltotal(dltotal), dlnow(dlnow), ultotal(ultotal), ulnow(ulnow), buffer(buffer)
+        {}
 	};
 
 	typedef std::shared_ptr<Http> Ptr;
@@ -67,6 +68,9 @@ public:
 	// Sets a maximum size of the data that can be received.
 	// A value of zero sets the default limit, which is is 5MB.
 	Http& size_limit(size_t sizeLimit);
+    // range of downloaded bytes.
+    Http& set_range(const std::string& range);
+    
 	// Sets a HTTP header field.
 	Http& header(std::string name, const std::string &value);
 	// Removes a header field.

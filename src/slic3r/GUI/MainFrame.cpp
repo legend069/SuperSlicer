@@ -1110,14 +1110,21 @@ void MainFrame::init_tabpanel()
                 } else
                     this->m_plater->select_view_3D("Preview");
             } else if (bt_idx_sel == 2) {
-                DynamicPrintConfig *selected_printer_config =
-                    wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+                DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+
                 if (!selected_printer_config) {
                     // No physical printer found, show blank screen for now
+                    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+                    auto cfg = preset_bundle.printers.get_edited_preset().config;
+                    wxString url = cfg.opt_string("print_host");
+                    if (!url) {
+                        m_webView->LoadURL("https://google.com");
+                    }
+                } else {
+                    // Device is selected, only show and enable m_webView
+                    m_webView->Show();
+                    m_webView->Enable();
                 }
-
-                m_webView->Show();
-                m_webView->Enable();
             }
 
             m_last_selected_plater_tab = bt_idx_sel;
@@ -1210,14 +1217,13 @@ void MainFrame::init_tabpanel()
         m_webViewPanel->load_url(url);
     });
 
-    m_webView = m_webViewPanel->m_webView;
+    m_webView = m_webViewPanel->m_webView;    
 
-    if (m_webView != nullptr) {
+        if (m_webView != nullptr) {
         m_webView->Hide();
     } else {
         m_webView->Show();
     }
-
     create_preset_tabs();
 
     m_plater->init_after_tabs();
@@ -1322,10 +1328,6 @@ void MainFrame::create_preset_tabs()
     add_created_tab(new TabSLAPrint(m_tabpanel));
     add_created_tab(new TabSLAMaterial(m_tabpanel));
     add_created_tab(new TabPrinter(m_tabpanel));
-    TabFrequent* freq = (new TabFrequent(m_tabpanel, "Freq_fff", Preset::Type::TYPE_FREQUENT_FFF));
-    freq->create_preset_tab();
-    freq = (new TabFrequent(m_tabpanel, "Freq_sla", Preset::Type::TYPE_FREQUENT_SLA));
-    freq->create_preset_tab();
 }
 
 void MainFrame::add_created_tab(Tab* panel)

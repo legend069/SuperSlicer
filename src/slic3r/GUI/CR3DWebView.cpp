@@ -49,17 +49,7 @@ namespace fs = boost::filesystem;
 DWORD DownloadAndInstallWV2RT() {
 
   int returnCode = 2; // Download failed
-  // Use fwlink to download WebView2 Bootstrapper at runtime and invoke installation
-  // Broken/Invalid Https Certificate will fail to download
-  // Use of the download link below is governed by the below terms. You may acquire the link
-  // for your use at https://developer.microsoft.com/microsoft-edge/webview2/. Microsoft owns
-  // all legal right, title, and interest in and to the WebView2 Runtime Bootstrapper
-  // ("Software") and related documentation, including any intellectual property in the
-  // Software. You must acquire all code, including any code obtained from a Microsoft URL,
-  // under a separate license directly from Microsoft, including a Microsoft download site
-  // (e.g., https://developer.microsoft.com/microsoft-edge/webview2/).
-  // HRESULT hr = URLDownloadToFileW(NULL, L"https://go.microsoft.com/fwlink/p/?LinkId=2124703",
-  //                               L".\\plugin\\MicrosoftEdgeWebview2Setup.exe", 0, 0);
+
   fs::path target_file_path = (fs::temp_directory_path() / "MicrosoftEdgeWebview2Setup.exe");
   bool downloaded = false;
   Slic3r::Http::get("https://go.microsoft.com/fwlink/p/?LinkId=2124703")
@@ -79,7 +69,7 @@ DWORD DownloadAndInstallWV2RT() {
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
 
-      if (downloaded) {
+  if (downloaded) {
     // Either Package the WebView2 Bootstrapper with your app or download it using fwlink
     // Then invoke install at Runtime.
     SHELLEXECUTEINFOW shExInfo = {0};
