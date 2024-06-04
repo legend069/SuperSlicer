@@ -212,6 +212,7 @@ group:title_width$0:Infill
 		setting:tags$Advanced$Expert$Prusa:label_left:label_width$6:label$Sparse:width$8:sidetext_width$1:fill_density
 		setting:tags$Advanced$Expert$Prusa:label_width$0:label$_:fill_pattern
 		setting:label$_:width$18:infill_connection
+        setting:label$Aligned:fill_aligned_z
 	end_line
 	line:_
 		setting:label$Connection length:label_width$12:sidetext_width$7:width$12:infill_anchor_max
@@ -398,13 +399,14 @@ group:label_width$8:sidetext_width$7:Speed for print moves
 		setting:width$4:bridge_speed_internal
 		setting:width$4:overhangs_speed
 	line:Gap fill speed
-		setting:width$4:label$maximum speed:gap_fill_speed
+		setting:width$4:label$Maximum speed:gap_fill_speed
 		setting:width$4:label$Cap with:sidetext$% of perimeter flow:sidetext_width$20:gap_fill_flow_match_perimeter
 	line:Other speed
 		setting:width$4:thin_walls_speed
 		setting:width$4:ironing_speed
-		setting:wipe_tower_speed
-		setting:wipe_tower_wipe_starting_speed
+	line:Wipe tower
+		setting:width$4:label$Main speed:wipe_tower_speed
+		setting:width$4:label$Wipe starting speed:wipe_tower_wipe_starting_speed
 group:Speed for non-print moves
 	line:Travel speed
 		setting:label$xy:travel_speed

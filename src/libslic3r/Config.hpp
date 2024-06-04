@@ -593,13 +593,9 @@ public:
     // Is this vector empty?
     virtual bool empty() const = 0;
     // Get if the size of this vector is/should be the same as nozzle_diameter
-    bool                    is_extruder_size() const { return (flags & FCO_EXTRUDER_ARRAY) != 0; }
-    ConfigOptionVectorBase *set_is_extruder_size(bool is_extruder_size)
-    {
-        if (is_extruder_size)
-            this->flags |= FCO_EXTRUDER_ARRAY;
-        else
-            this->flags &= uint8_t(0xFF ^ FCO_EXTRUDER_ARRAY);
+    bool is_extruder_size() const { return (flags & FCO_EXTRUDER_ARRAY) != 0; }
+    ConfigOptionVectorBase* set_is_extruder_size(bool is_extruder_size = true) {
+        if (is_extruder_size) this->flags |= FCO_EXTRUDER_ARRAY; else this->flags &= uint8_t(0xFF ^ FCO_EXTRUDER_ARRAY);
         return this;
     }
 
@@ -2619,13 +2615,14 @@ public:
 class ConfigBase : public ConfigOptionResolver
 {
 public:
-    // Definition of configuration values for the purpose of GUI presentation, editing, value mapping and config file
-    // handling. The configuration definition is static: It does not carry the actual configuration values, but it
-    // carries the defaults of the configuration values.
-
-    ConfigBase()           = default;
+    // Definition of configuration values for the purpose of GUI presentation, editing, value mapping and config file handling.
+    // The configuration definition is static: It does not carry the actual configuration values,
+    // but it carries the defaults of the configuration values.
+    
+    ConfigBase() = default;
+#ifndef _DEBUG
     ~ConfigBase() override = default;
-
+#endif
     // to get to the config more generic than this one, if available
     const ConfigBase *parent = nullptr;
 
@@ -2815,6 +2812,13 @@ public:
     static size_t                                     load_from_gcode_string_legacy(ConfigBase &               config,
                                                                                     const char *               str,
                                                                                     ConfigSubstitutionContext &substitutions);
+
+#ifdef _DEBUG
+    //little dirty test to be sure it exists (not needed, but it's good for testing)
+    int32_t m_exists = 0x55555555;
+    bool    exists() { return m_exists == 0x55555555; }
+    ~ConfigBase() override { m_exists = 0; }
+#endif
 
 private:
     // Set a configuration value from a string.

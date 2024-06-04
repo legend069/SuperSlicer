@@ -1009,7 +1009,7 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
         PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
 
         for (Tab* tab : wxGetApp().tabs_list)
-            if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
+            if (tab->supports_printer_technology(printer_technology) && tab->completed() && tab->current_preset_is_dirty()) {
                 const Preset& preset = tab->get_presets()->get_edited_preset();
                 if (preset.is_system || preset.is_default || preset.is_external)
                     types_for_save.emplace_back(preset.type);
@@ -1234,7 +1234,7 @@ void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent
         PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
         int presets_cnt = 0;
         for (Tab* tab : wxGetApp().tabs_list)
-            if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+            if (tab->supports_printer_technology(printer_technology) && tab->completed() && tab->current_preset_is_dirty())
                 presets_cnt++;
         m_action_line->SetLabel((header.IsEmpty() ? "" : header + "\n\n") + 
                                 _L_PLURAL("The following preset was modified",
@@ -1271,7 +1271,7 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
 
         for (Tab* tab : wxGetApp().tabs_list)
-            if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+            if (tab->supports_printer_technology(printer_technology) && tab->completed() && tab->current_preset_is_dirty())
                 presets_list.emplace_back(tab->get_presets());
     }
     else
@@ -1308,12 +1308,22 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         //TODO same for milling head?
 
         for (const std::string& opt_key : dirty_options) {
-            const Search::Option& option = searcher.get_option(opt_key, type);
+            const Search::Option& option = searcher.get_option(opt_key, type); //FIXME serach for current mode.
             if (option.opt_key_with_idx() != opt_key) {
                 // When founded option isn't the correct one.
                 // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
                 // because of they don't exist in searcher
+                if ((std::set<std::string>{"default_print_profile", "printer_model", "printer_settings_id",
+                                           "filament_settings_id", "print_settings_id", "inherits"})
+                        .count(opt_key) > 0)
+                    continue;
+
+                // may be a setting that isn't in the gui, but is still in the system (like seam_position when we use s_seam_position instead of it)
+                // TODO find a way to show the script widget. maybe the script widget must register itself for all dependencies (for the mode).
+                m_tree->Append(opt_key, type, "hidden", "hidden", opt_key,
+                    get_string_value(opt_key, old_config), get_string_value(opt_key, new_config), "wrench");
                 continue;
+
             }
 
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,

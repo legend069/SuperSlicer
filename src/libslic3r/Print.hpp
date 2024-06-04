@@ -301,6 +301,8 @@ public:
     Layer*			get_layer_at_printz(coordf_t print_z, coordf_t epsilon);
     // Get the first layer approximately bellow print_z.
     const Layer*	get_first_layer_bellow_printz(coordf_t print_z, coordf_t epsilon) const;
+    // For sparse infill, get the max spasing avaialable in this object (avaialable after prepare_infill)
+    coord_t         get_sparse_max_spacing() const { return m_max_sparse_spacing; }
 
     // print_z: top of the layer; slice_z: center of the layer.
     Layer*          add_layer(int id, coordf_t height, coordf_t print_z, coordf_t slice_z);
@@ -402,6 +404,7 @@ private:
     void clean_surfaces();
     void combine_infill();
     void _generate_support_material();
+    void _compute_max_sparse_spacing();
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> prepare_adaptive_infill_data();
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
 
@@ -433,6 +436,9 @@ private:
     // this is set to true when LayerRegion->slices is split in top/internal/bottom
     // so that next call to make_perimeters() performs a union() before computing loops
     bool                                    m_typed_slices = false;
+
+    //this setting allow fill_aligned_z to get the max sparse spacing spacing.
+    coord_t                                 m_max_sparse_spacing;
 
 
 };
@@ -479,7 +485,7 @@ struct PrintStatistics
     std::string                     estimated_normal_print_time;
     std::string                     estimated_silent_print_time;
     double                          total_used_filament;
-    std::vector<std::pair<size_t, double>> color_extruderid_to_used_filament;
+    std::vector<std::pair<size_t, double>> color_extruderid_to_used_filament; // id -> mm (length)
     double                          total_extruded_volume;
     double                          total_cost;
     int                             total_toolchanges;
@@ -491,7 +497,7 @@ struct PrintStatistics
     unsigned int                    initial_extruder_id;
     std::string                     initial_filament_type;
     std::string                     printing_filament_types;
-    std::map<size_t, double>        filament_stats;
+    std::map<size_t, double>        filament_stats; // extruder id -> volume in mm3
 
     // Config with the filled in print statistics.
     DynamicConfig           config() const;

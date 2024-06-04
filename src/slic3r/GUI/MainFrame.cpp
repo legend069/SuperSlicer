@@ -1322,6 +1322,10 @@ void MainFrame::create_preset_tabs()
     add_created_tab(new TabSLAPrint(m_tabpanel));
     add_created_tab(new TabSLAMaterial(m_tabpanel));
     add_created_tab(new TabPrinter(m_tabpanel));
+    TabFrequent* freq = (new TabFrequent(m_tabpanel, "Freq_fff", Preset::Type::TYPE_FREQUENT_FFF));
+    freq->create_preset_tab();
+    freq = (new TabFrequent(m_tabpanel, "Freq_sla", Preset::Type::TYPE_FREQUENT_SLA));
+    freq->create_preset_tab();
 }
 
 void MainFrame::add_created_tab(Tab* panel)
@@ -2888,10 +2892,10 @@ void MainFrame::on_value_changed(wxCommandEvent& event)
     }
 }
 
-void MainFrame::on_config_changed(DynamicPrintConfig* config) const
+void MainFrame::on_config_changed(const DynamicConfig &config) const
 {
     if (m_plater)
-        m_plater->on_config_change(*config); // propagate config change events to the plater
+        m_plater->on_config_change(config); // propagate config change events to the plater
 }
 
 void MainFrame::add_to_recent_projects(const wxString& filename)
@@ -2939,7 +2943,8 @@ void MainFrame::update_ui_from_settings()
     if (m_plater)
         m_plater->update_ui_from_settings();
     for (auto tab: wxGetApp().tabs_list)
-        tab->update_ui_from_settings();
+        if(tab->completed())
+            tab->update_ui_from_settings();
 }
 
 std::string MainFrame::get_base_name(const wxString &full_name, const char *extension) const

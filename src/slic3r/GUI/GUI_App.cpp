@@ -2467,11 +2467,11 @@ bool GUI_App::load_language(wxString language, bool initial)
 	return true;
 }
 
-Tab* GUI_App::get_tab(Preset::Type type)
+Tab* GUI_App::get_tab(Preset::Type type, bool only_completed)
 {
     for (Tab* tab: tabs_list)
         if (tab->type() == type)
-            return tab->completed() ? tab : nullptr; // To avoid actions with no-completed Tab
+            return tab->completed() || !only_completed ? tab : nullptr; // To avoid actions with no-completed Tab
     return nullptr;
 }
 
@@ -2782,7 +2782,7 @@ bool GUI_App::has_unsaved_preset_changes() const
 {
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
     for (const Tab* const tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology) && tab->saved_preset_is_dirty())
+        if (tab->supports_printer_technology(printer_technology) && tab->completed() && tab->saved_preset_is_dirty())
             return true;
     }
     return false;
@@ -2792,7 +2792,7 @@ bool GUI_App::has_current_preset_changes() const
 {
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
     for (const Tab* const tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+        if (tab->supports_printer_technology(printer_technology) && tab->completed() && tab->current_preset_is_dirty())
             return true;
         }
     return false;
@@ -2802,7 +2802,7 @@ void GUI_App::update_saved_preset_from_current_preset()
     {
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
     for (Tab* tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology))
+        if (tab->supports_printer_technology(printer_technology) && tab->completed())
             tab->update_saved_preset_from_current_preset();
     }
 }
@@ -2812,8 +2812,10 @@ std::vector<const PresetCollection*> GUI_App::get_active_preset_collections() co
     std::vector<const PresetCollection*> ret;
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
     for (const Tab* tab : tabs_list)
-        if (tab->supports_printer_technology(printer_technology))
+        if (tab->supports_printer_technology(printer_technology) && tab->completed()) {
+            assert(tab->get_presets());
             ret.push_back(tab->get_presets());
+        }
     return ret;
 }
 
@@ -2899,7 +2901,7 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
 
             PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
             for (const Tab* const tab : tabs_list) {
-                if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+                if (tab->supports_printer_technology(printer_technology) && tab->completed() && tab->current_preset_is_dirty())
                     tab->m_presets->discard_current_changes();
             }
             load_current_presets(false);
@@ -3014,7 +3016,7 @@ void GUI_App::load_current_presets(bool check_printer_presets_ /*= true*/)
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
 	this->plater()->set_printer_technology(printer_technology);
     for (Tab *tab : tabs_list)
-		if (tab->supports_printer_technology(printer_technology)) {
+		if (tab->supports_printer_technology(printer_technology) && tab->get_presets()) {
 			if (tab->type() == Preset::TYPE_PRINTER) {
 				static_cast<TabPrinter*>(tab)->update_pages();
 				// Mark the plater to update print bed by tab->load_current_preset() from Plater::on_config_change().

@@ -421,7 +421,7 @@ struct GlobalModelInfo {
 
 //Extract perimeter polygons of the given layer
 Polygons extract_perimeter_polygons(const Layer *layer, const SeamPosition configured_seam_preference,
-        std::vector<const LayerRegion*> &corresponding_regions_out) {
+        std::vector<const LayerRegion*> &corresponding_regions_out, PerimeterGeneratorType perimeter_type) {
     
 
     Polygons polygons;
@@ -430,13 +430,22 @@ Polygons extract_perimeter_polygons(const Layer *layer, const SeamPosition confi
         std::vector<const LayerRegion*>* corresponding_regions_out;
         const LayerRegion* current_layer_region;
         SeamPosition configured_seam_preference;
+        PerimeterGeneratorType perimeter_type;
     public:
         bool also_overhangs = false;
         bool also_thin_walls = false;
-        PerimeterCopy(std::vector<const LayerRegion*>* regions_out, Polygons* polys, SeamPosition configured_seam)
-            : corresponding_regions_out(regions_out), configured_seam_preference(configured_seam), polygons(polys) {
+        PerimeterCopy(std::vector<const LayerRegion*>* regions_out, Polygons* polys, SeamPosition configured_seam, PerimeterGeneratorType perimeter_type)
+            : corresponding_regions_out(regions_out), configured_seam_preference(configured_seam), polygons(polys), perimeter_type(perimeter_type) {
         }
         virtual void default_use(const ExtrusionEntity& entity) {};
+        virtual void use(const ExtrusionPath &path) override {
+            if (perimeter_type == PerimeterGeneratorType::Arachne && path.role() != erThinWall) {
+                path.polygons_covered_by_width(*polygons, SCALED_EPSILON);
+                while (corresponding_regions_out->size() < polygons->size()) {
+                    corresponding_regions_out->push_back(current_layer_region);
+                }
+            }
+        }
         virtual void use(const ExtrusionLoop& loop) override {
             if ((configured_seam_preference == spAllRandom && !loop.paths.empty() &&
                     is_perimeter(loop.paths.front().role()))
@@ -468,13 +477,27 @@ Polygons extract_perimeter_polygons(const Layer *layer, const SeamPosition confi
                 }
             }
         }
+        virtual void use(const ExtrusionMultiPath& collection) override {
+            
+            if (perimeter_type == PerimeterGeneratorType::Arachne) {
+                Polygons polys;
+                for (const ExtrusionPath& path : collection.paths) {
+                    path.polygons_covered_by_width(polys, SCALED_EPSILON);
+                }
+                polys = union_(polys);
+                append(*polygons, polys);
+                while (corresponding_regions_out->size() < polygons->size()) {
+                    corresponding_regions_out->push_back(current_layer_region);
+                }
+            }
+        }
         virtual void use(const ExtrusionEntityCollection& collection) override {
             for (const ExtrusionEntity* entity : collection.entities()) {
                 entity->visit(*this);
             }
         }
         void set_current_layer_region(const LayerRegion *set) { current_layer_region = set; }
-    } visitor(&corresponding_regions_out, &polygons, configured_seam_preference);
+    } visitor(&corresponding_regions_out, &polygons, configured_seam_preference, perimeter_type);
 
     for (const LayerRegion *layer_region : layer->regions()) {
         for (const ExtrusionEntity *ex_entity : layer_region->perimeters.entities()) {
@@ -504,13 +527,12 @@ Polygons extract_perimeter_polygons(const Layer *layer, const SeamPosition confi
             }
         }
     }
-
     if (polygons.empty()) { // If there are no perimeter polygons for whatever reason (disabled perimeters .. ) insert dummy point
         // it is easier than checking everywhere if the layer is not emtpy, no seam will be placed to this layer anyway
         polygons.emplace_back(std::vector { Point { 0, 0 } });
         corresponding_regions_out.push_back(nullptr);
     }
-
+    assert(corresponding_regions_out.size() == polygons.size());
     return polygons;
 }
 
@@ -835,7 +857,8 @@ struct SeamComparator {
         }
 
         //avoid overhangs
-        if (a.overhang > 0.0f || b.overhang > 0.0f) {
+        if ((a.overhang > a.perimeter.flow_width / 4 && b.overhang == 0.0f) ||
+            (b.overhang > b.perimeter.flow_width / 4 && a.overhang == 0.0f)) {
             return a.overhang < b.overhang;
         }
 
@@ -859,11 +882,11 @@ struct SeamComparator {
         }
 
         // the penalites are kept close to range [0-1.x] however, it should not be relied upon
-        float penalty_a = a.overhang
+        float penalty_a = 2 * a.overhang / a.perimeter.flow_width
                 + visibility_importance * a.visibility
                 + angle_importance * compute_angle_penalty(a.local_ccw_angle)
                 + travel_importance * distance_penalty_a;
-        float penalty_b = b.overhang 
+        float penalty_b = 2 * b.overhang / b.perimeter.flow_width
                 + visibility_importance * b.visibility
                 + angle_importance * compute_angle_penalty(b.local_ccw_angle)
                 + travel_importance * distance_penalty_b;
@@ -1144,7 +1167,7 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po,
                     auto unscaled_z = layer->slice_z;
                     std::vector<const LayerRegion*> regions;
                     //NOTE corresponding region ptr may be null, if the layer has zero perimeters
-                    Polygons polygons = extract_perimeter_polygons(layer, configured_seam_preference, regions);
+                    Polygons polygons = extract_perimeter_polygons(layer, configured_seam_preference, regions, po->config().perimeter_generator.value);
                     for (size_t poly_index = 0; poly_index < polygons.size(); ++poly_index) {
                         process_perimeter_polygon(polygons[poly_index], unscaled_z,
                                 regions[poly_index], global_model_info, layer_seams);
@@ -1198,10 +1221,12 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
                     for (SeamCandidate &perimeter_point : layers[layer_idx].points) {
                         Vec2f point = Vec2f { perimeter_point.position.head<2>() };
                         if (prev_layer_distancer.get() != nullptr) {
-                            perimeter_point.overhang = prev_layer_distancer->distance_from_perimeter(point)
-                                    + 0.6f * perimeter_point.perimeter.flow_width
-                                    - tan(SeamPlacer::overhang_angle_threshold)
-                                            * po->layers()[layer_idx]->height;
+                            perimeter_point.overhang = prev_layer_distancer->distance_from_perimeter(point);
+
+                            //perimeter_point.overhang = perimeter_point.overhang + 0.6f * perimeter_point.perimeter.flow_width
+                            //        - tan(SeamPlacer::overhang_angle_threshold)
+                            //                * po->layers()[layer_idx]->height;
+
                             perimeter_point.overhang =
                                     perimeter_point.overhang < 0.0f ? 0.0f : perimeter_point.overhang;
                         }
@@ -1622,6 +1647,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
 void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_canceled_func) {
     using namespace SeamPlacerImpl;
     m_seam_per_object.clear();
+    this->external_perimeters_first = print.default_region_config().external_perimeters_first;
 
     for (const PrintObject *po : print.objects()) {
         throw_if_canceled_func();
@@ -1690,7 +1716,6 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
         debug_export_points(m_seam_per_object[po].layers, po->bounding_box(), comparator);
 #endif
     }
-    this->external_perimeters_first = print.default_region_config().external_perimeters_first;
 }
 
 static constexpr float MINIMAL_POLYGON_SIDE = scaled<float>(0.2f);

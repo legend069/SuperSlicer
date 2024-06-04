@@ -77,7 +77,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         && config->opt_bool("support_material") == false
         && config->opt_int("support_material_enforce_layers") == 0
         && config->opt_enum<PerimeterGeneratorType>("perimeter_generator") == PerimeterGeneratorType::Classic
-        && config->opt_bool("exact_last_layer_height") == false
+        // && config->opt_bool("exact_last_layer_height") == false
         && config->opt_bool("ensure_vertical_shell_thickness") == true
         && config->opt_bool("infill_dense") == false
         && config->opt_bool("extra_perimeters") == false
@@ -97,7 +97,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             "- no support material\n"
             "- Ensure vertical shell thickness enabled\n"
             "- disabled 'no solid infill over perimeters'\n"
-            "- unchecked 'exact last layer height'\n"
+            // "- unchecked 'exact last layer height'\n"
             "- unchecked 'dense infill'\n"
             "- unchecked 'extra perimeters'"
             "- unchecked 'gap fill after last perimeter'"
@@ -123,8 +123,8 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 new_conf.set_key_value("support_material", new ConfigOptionBool(false));
             else if (this->local_config->get().optptr("support_material_enforce_layers"))
                 new_conf.set_key_value("support_material_enforce_layers", new ConfigOptionInt(0));
-            else if (this->local_config->get().optptr("exact_last_layer_height"))
-                new_conf.set_key_value("exact_last_layer_height", new ConfigOptionBool(false));
+            // else if (this->local_config->get().optptr("exact_last_layer_height"))
+                // new_conf.set_key_value("exact_last_layer_height", new ConfigOptionBool(false));
             else if (this->local_config->get().optptr("ensure_vertical_shell_thickness"))
                 new_conf.set_key_value("ensure_vertical_shell_thickness", new ConfigOptionBool(true));
             else if (this->local_config->get().optptr("infill_dense"))
@@ -154,7 +154,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             new_conf.set_key_value("perimeter_generator", new ConfigOptionEnum<PerimeterGeneratorType>(PerimeterGeneratorType::Classic));
             new_conf.set_key_value("support_material", new ConfigOptionBool(false));
             new_conf.set_key_value("support_material_enforce_layers", new ConfigOptionInt(0));
-            new_conf.set_key_value("exact_last_layer_height", new ConfigOptionBool(false));
+            // new_conf.set_key_value("exact_last_layer_height", new ConfigOptionBool(false));
             new_conf.set_key_value("ensure_vertical_shell_thickness", new ConfigOptionBool(true));
             new_conf.set_key_value("infill_dense", new ConfigOptionBool(false));
             new_conf.set_key_value("extra_perimeters", new ConfigOptionBool(false));
@@ -339,7 +339,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
     bool have_perimeters = config->opt_int("perimeters") > 0;
     for (auto el : { "ensure_vertical_shell_thickness", "external_perimeter_speed", "extra_perimeters", "extra_perimeters_odd_layers",
         "external_perimeters_first", "external_perimeter_extrusion_width", "external_perimeter_extrusion_spacing","external_perimeter_extrusion_change_odd_layers",
-        "overhangs","perimeter_speed",
+        "overhangs", "perimeter_speed", "perimeter_reverse",
         "seam_position", "small_perimeter_speed", "small_perimeter_min_length", " small_perimeter_max_length", "spiral_vase",
         "perimeter_generator", "seam_notch_all", "seam_notch_inner", "seam_notch_outer"})
         toggle_field(el, have_perimeters);
@@ -351,8 +351,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
        toggle_field(el, have_arachne);
 
     toggle_field("external_perimeters_vase", config->opt_bool("external_perimeters_first") && !config->opt_bool("perimeter_loop"));
-    for (auto el : { "external_perimeters_nothole", "external_perimeters_hole", "perimeter_bonding"})
+    for (auto el : { "external_perimeters_nothole", "external_perimeters_hole"})
         toggle_field(el, config->opt_bool("external_perimeters_first") && !have_arachne);
+
+    toggle_field("perimeter_bonding", config->opt_bool("external_perimeters_first") && !have_arachne && config->option("perimeter_overlap")->get_float() == 100.f && config->option("external_perimeter_overlap")->get_float() == 100.f);
 
     for (auto el : {"perimeter_loop", "extra_perimeters_overhangs", "no_perimeter_unsupported_algo",
                     "thin_perimeters", "perimeter_round_corners"})
@@ -400,7 +402,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
 
     bool have_infill = config->option<ConfigOptionPercent>("fill_density")->value > 0;
     // infill_extruder uses the same logic as in Print::extruders()
-    for (auto el : { "fill_pattern", "infill_connection", "infill_every_layers", "infill_only_where_needed",
+    for (auto el : { "fill_aligned_z", "fill_pattern", "infill_connection", "infill_every_layers", "infill_only_where_needed",
                     "solid_infill_every_layers", "solid_infill_below_area", "infill_extruder", "infill_anchor_max" })
         toggle_field(el, have_infill);
     // Only allow configuration of open anchors if the anchoring is enabled.
