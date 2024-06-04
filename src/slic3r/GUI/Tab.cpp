@@ -210,6 +210,8 @@ void Tab::create_preset_tab()
         }
     });
 
+    m_presets_choice->Enable();
+
     auto color = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 
     //buttons

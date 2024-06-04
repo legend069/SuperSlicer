@@ -363,130 +363,126 @@ void FreqChangedParams::sys_color_changed()
     wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
 }
 
-FreqChangedParams::FreqChangedParams(wxWindow* parent) :
-    OG_Settings(parent, false)
+FreqChangedParams::FreqChangedParams(wxWindow *parent) : OG_Settings(parent, false)
 {
-
     m_sizer = new wxBoxSizer(wxVERTICAL);
 }
 
 void FreqChangedParams::init()
 {
-    DynamicPrintConfig*	config = &wxGetApp().preset_bundle->fff_prints.get_edited_preset().config;
+    DynamicPrintConfig *config       = &wxGetApp().preset_bundle->fff_prints.get_edited_preset().config;
+    Tab *               tab_freq_fff = wxGetApp().get_tab(Preset::TYPE_FREQUENT_FFF, false);
 
-    Tab* tab_print = wxGetApp().get_tab(Preset::TYPE_FFF_PRINT);
+    Tab *tab_print   = wxGetApp().get_tab(Preset::TYPE_FFF_PRINT);
     Tab *tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
 
     /* Not a best solution, but
      * Temporary workaround for right border alignment
      */
-    auto empty_widget = [this](wxWindow* parent) {
+    auto empty_widget = [this](wxWindow *parent) {
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto btn = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString,
-            wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
+        auto btn   = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString, wxDefaultSize,
+                                      wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
         sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, int(0.3 * wxGetApp().em_unit()));
         m_empty_buttons.push_back(btn);
         return sizer;
     };
-    
+
     DynamicPrintConfig printer_config = tab_printer->get_config()->full_print_config();
-    DynamicPrintConfig conf = tab_print->m_preset_bundle->full_config();
+    DynamicPrintConfig conf           = tab_print->m_preset_bundle->full_config();
 
     std::vector<PageShp> pages;
 
-    if(tab_print != nullptr) {
+    if (tab_print != nullptr) {
         pages.clear();
         pages = tab_print->create_pages("freq_fff.ui");
     }
 
-    
     if (!pages.empty()) {
         m_og->set_config(config);
         m_og->hide_labels();
 
-        m_og->m_on_change = Tab::set_or_add(m_og->m_on_change, [tab_print, this](t_config_option_key opt_key, boost::any value)
-            {
-                Option opt = this->m_og->create_option_from_def(opt_key);
-                if (!opt.opt.is_script) {
-                    tab_print->update_dirty();
-                    tab_print->reload_config();
-                    tab_print->update();
-                }
-            });
-        
+        m_og->m_on_change = Tab::set_or_add(m_og->m_on_change,
+                                            [tab_print, this](t_config_option_key opt_key, boost::any value) {
+                                                const Option *opt_def = this->m_og->get_option_def(opt_key);
+                                                if (opt_def && !opt_def->opt.is_script) {
+                                                    tab_print->update_dirty();
+                                                    tab_print->reload_config();
+                                                    tab_print->update();
+                                                }
+                                            });
+
         assert(pages.size() == 1);
         assert(pages[0]->m_optgroups.size() == 1);
         m_og->copy_for_freq_settings(*(pages[0]->m_optgroups[0].get()));
 
         // hacks
-        Line* line_for_purge = nullptr;
-        for (Line& l : pages[0]->m_optgroups[0]->set_lines()) {
+        Line *line_for_purge = nullptr;
+        for (Line &l : pages[0]->m_optgroups[0]->set_lines()) {
             if (l.label_tooltip == "freq_purging_volumes") {
                 l.label_tooltip = "";
-                line_for_purge = &l;
+                line_for_purge  = &l;
             }
             if (l.get_options().size() == 1 && l.get_options().front().opt.full_width) {
                 l.append_widget(empty_widget);
             }
         }
-        
-        
-        //Purging volumesbutton
+
+        // Purging volumesbutton
         if (line_for_purge) {
-            auto wiping_dialog_btn = [this](wxWindow* parent) {
-                m_wiping_dialog_button = new wxButton(parent, wxID_ANY, _L("Purging volumes") + dots, wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+            auto wiping_dialog_btn = [this](wxWindow *parent) {
+                m_wiping_dialog_button = new wxButton(parent, wxID_ANY, _L("Purging volumes") + dots,
+                                                      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
                 m_wiping_dialog_button->SetFont(wxGetApp().normal_font());
                 wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
 
-                    auto sizer = new wxBoxSizer(wxHORIZONTAL);
-                    sizer->Add(m_wiping_dialog_button, 0, wxALIGN_CENTER_VERTICAL);
-                    m_wiping_dialog_button
-                        ->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
-                                   auto &project_config = wxGetApp().preset_bundle->project_config;
-                                   const std::vector<double> &init_matrix =
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->values;
-                                   const std::vector<double> &init_extruders =
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->values;
+                auto sizer = new wxBoxSizer(wxHORIZONTAL);
+                sizer->Add(m_wiping_dialog_button, 0, wxALIGN_CENTER_VERTICAL);
+                m_wiping_dialog_button
+                    ->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
+                               auto &                     project_config = wxGetApp().preset_bundle->project_config;
+                               const std::vector<double> &init_matrix =
+                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->values;
+                               const std::vector<double> &init_extruders =
+                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->values;
 
-                                   const std::vector<std::string> extruder_colours =
-                                       wxGetApp().plater()->get_extruder_colors_from_plater_config();
+                               const std::vector<std::string> extruder_colours =
+                                   wxGetApp().plater()->get_extruder_colors_from_plater_config();
 
-                                   WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
-                                                    extruder_colours);
+                               WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
+                                                extruder_colours);
 
-                                   if (dlg.ShowModal() == wxID_OK) {
-                                       std::vector<float> matrix    = dlg.get_matrix();
-                                       std::vector<float> extruders = dlg.get_extruders();
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->values =
-                                           std::vector<double>(matrix.begin(), matrix.end());
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))
-                                           ->values = std::vector<double>(extruders.begin(), extruders.end());
-                                       wxGetApp().plater()->update_project_dirty_from_presets();
-                                       wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
-                                   }
-                               }));
+                               if (dlg.ShowModal() == wxID_OK) {
+                                   std::vector<float> matrix    = dlg.get_matrix();
+                                   std::vector<float> extruders = dlg.get_extruders();
+                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->values =
+                                       std::vector<double>(matrix.begin(), matrix.end());
+                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->values =
+                                       std::vector<double>(extruders.begin(), extruders.end());
+                                   wxGetApp().plater()->update_project_dirty_from_presets();
+                                   wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+                               }
+                           }));
 
-                    auto btn = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString,
-                                                  wxDefaultSize, wxDefaultPosition,
-                                                  wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
-                    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, int(0.3 * wxGetApp().em_unit()));
-                    m_empty_buttons.push_back(btn);
+                auto btn = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString,
+                                              wxDefaultSize, wxDefaultPosition,
+                                              wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
+                sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, int(0.3 * wxGetApp().em_unit()));
+                m_empty_buttons.push_back(btn);
 
-                    return sizer;
-                };
-                line_for_purge->append_widget(wiping_dialog_btn);
-            }
+                return sizer;
+            };
+            line_for_purge->append_widget(wiping_dialog_btn);
+        }
 
-            for (const Line &l : page->m_optgroups[0]->get_lines()) { m_og->append_line(l); }
+        for (const Line &l : pages[0]->m_optgroups[0]->get_lines()) { m_og->append_line(l); }
 
-        //current_group->m_on_change = on_change;
+        // current_group->m_on_change = on_change;
         m_og->activate();
         m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
     }
 
-
     // Frequently changed parameters for SLA_technology
-    
 }
 
 
@@ -922,6 +918,7 @@ void Sidebar::update_all_preset_comboboxes()
     }
     // Update the printer choosers, update the dirty flags.
     p->combo_printer->update();
+    
     // Update the filament choosers to only contain the compatible presets, update the color preview,
     // update the dirty flags.
     if (print_tech == ptFFF) {

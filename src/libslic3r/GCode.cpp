@@ -1315,7 +1315,6 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
 
     const Print &print = print_mod;
     Print::StatusMonitor status_monitor{print_mod};
-    ToolOrdering tool_ordering;
     
     this->m_throw_if_canceled =
         [&print]() { print.throw_if_canceled(); };
