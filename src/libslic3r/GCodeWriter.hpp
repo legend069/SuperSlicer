@@ -13,19 +13,11 @@ namespace Slic3r {
 class GCodeWriter {
 public:
     GCodeConfig config;
-    bool multiple_extruders;
+    bool multiple_extruders = false;
     // override from region
     const PrintRegionConfig* config_region = nullptr;
     
-    GCodeWriter() : 
-        multiple_extruders(false), m_extrusion_axis("E"), m_tool(nullptr),
-        m_single_extruder_multi_material(false),
-        m_last_acceleration(0), m_current_acceleration(0), m_current_speed(0),
-        m_current_travel_acceleration(0),m_last_fan_speed(0), m_last_temperature(0),m_last_temperature_with_offset(0),//stops a couple compiler warnings
-        //m_current_gcode_per_object(""),m_last_per_object_gcode(""),
-        m_last_bed_temperature(0), m_last_bed_temperature_reached(true), 
-        m_lifted(0)
-        {}
+    GCodeWriter() {}
     Tool*               tool()             { return m_tool; }
     const Tool*         tool()     const   { return m_tool; }
 
@@ -100,28 +92,35 @@ private:
 	// Extruders are sorted by their ID, so that binary search is possible.
     std::vector<Extruder> m_extruders;
     std::vector<Mill> m_millers;
-    std::string     m_extrusion_axis;
-    bool            m_single_extruder_multi_material;
-    Tool*           m_tool;
-    uint32_t        m_last_acceleration;
-    uint32_t        m_current_acceleration;
-    uint32_t        m_current_travel_acceleration;
-    double          m_current_speed;
-    std::string     m_current_per_object_gcode;
-    std::string     m_last_per_object_gcode;
-    uint8_t         m_last_fan_speed;
-    int16_t         m_last_temperature;
-    int16_t         m_last_temperature_with_offset;
-    int16_t         m_last_bed_temperature;
-    bool            m_last_bed_temperature_reached;
+    std::string     m_extrusion_axis = "E";
+    bool            m_single_extruder_multi_material = false;
+    Tool*           m_tool = nullptr;
+    uint32_t        m_last_acceleration = 0;
+    uint32_t        m_last_travel_acceleration = 0;
+    uint32_t        m_current_acceleration = 0;
+    uint32_t        m_current_travel_acceleration = 0;
+    double          m_current_speed = 0;
+    uint8_t         m_last_fan_speed = 0;
+    int16_t         m_last_temperature = 0;
+    int16_t         m_last_temperature_with_offset = 0;
+    int16_t         m_last_bed_temperature = 0;
+    bool            m_last_bed_temperature_reached = true;
+
     // if positive, it's set, and the next lift wil have this extra lift
     double          m_extra_lift = 0;
     // current lift, to remove from m_pos to have the current height.
-    double          m_lifted;
+    double          m_lifted = 0;
     Vec3d           m_pos = Vec3d::Zero();
+    // cached string representation of x & y m_pos
+    std::string     m_pos_str_x;
+    std::string     m_pos_str_y;
+    // stored de that wasn't written, because of the rounding
+    double          m_de_left = 0;
+    std::pair<std::string, bool> _compute_de(double dE);
 
+    
     std::string _travel_to_z(double z, const std::string &comment);
-    std::string _retract(double length, double restart_extra, double restart_extra_toolchange, const std::string &comment);
+    std::string _retract(double length, std::optional<double> restart_extra, std::optional<double> restart_extra_toolchange, const std::string &comment);
 
 };
 
@@ -187,6 +186,17 @@ public:
         if (! axis.empty()) {
             // not gcfNoExtrusion
             this->emit_axis(axis[0], v, m_gcode_precision_e);
+        }
+    }
+
+    void emit(const std::string &axis, std::string str) {
+        if (! axis.empty()) {
+            * ptr_err_ptr++ = ' ';
+            assert(axis.size() == 1);
+            *ptr_err_ptr++ = axis.front();
+            for (char c : str) {
+                * ptr_err_ptr++ = c;
+            }
         }
     }
 

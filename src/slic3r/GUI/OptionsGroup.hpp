@@ -31,7 +31,9 @@ class OG_CustomCtrl;
 /// Widget type describes a function object that returns a wxWindow (our widget) and accepts a wxWidget (parent window).
 using widget_t = std::function<wxSizer*(wxWindow*)>;//!std::function<wxWindow*(wxWindow*)>;
 
-class ScriptContainer;
+namespace script {
+	class ScriptContainer;
+}
 /// Wraps a ConfigOptionDef and adds function object for creating a side_widget.
 struct Option {
 	ConfigOptionDef			opt { ConfigOptionDef() };
@@ -39,7 +41,7 @@ struct Option {
     widget_t				side_widget {nullptr};
     bool					readonly {false};
     //for fake config
-	ScriptContainer* script = nullptr;
+	script::ScriptContainer* script = nullptr;
 	//std::vector<std::string> depends_on; // moved to configoptiondef
 
 	bool operator==(const Option& rhs) const {
@@ -67,6 +69,9 @@ public:
 	wxWindow*	near_label_widget_win {nullptr};
     wxSizer*	widget_sizer {nullptr};
     wxSizer*	extra_widget_sizer {nullptr};
+     // mode for the whole line visibility. Useful when it's a widget. If none, then it's not overriding anything
+     // note: not used yet (in custom og), as the comments are out of the visibility loop
+    ConfigOptionMode tags_override{comNone};
 
     void append_option(const Option& option) {
         m_options.push_back(option);
@@ -157,7 +162,7 @@ public:
     }
 	bool			set_value(const t_config_option_key& id, const boost::any& value, bool change_event = false) {
 							if (m_fields.find(id) == m_fields.end()) return false;
-							m_fields.at(id)->set_value(value, change_event);
+							m_fields.at(id)->set_any_value(value, change_event);
 							return true;
     }
 	boost::any		get_value(const t_config_option_key& id) {
@@ -247,12 +252,12 @@ public:
 
 class ConfigOptionsGroup: public OptionsGroup {
 public:
-	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, DynamicConfig* config = nullptr,
+	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, ConfigBase* config = nullptr,
 						bool is_tab_opt = false, column_t extra_clmn = nullptr) :
-		OptionsGroup(parent, title, is_tab_opt, extra_clmn), m_config(config) {}
+		OptionsGroup(parent, title, is_tab_opt, extra_clmn), m_config(config), m_modelconfig(nullptr), m_config_mutable(config) {}
 	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, ModelConfig* config, 
 						bool is_tab_opt = false, column_t extra_clmn = nullptr) :
-		OptionsGroup(parent, title, is_tab_opt, extra_clmn), m_config(&config->get()), m_modelconfig(config) {}
+		OptionsGroup(parent, title, is_tab_opt, extra_clmn), m_config(&config->get()), m_modelconfig(config), m_config_mutable(nullptr) {}
 	ConfigOptionsGroup(	wxWindow* parent) :
 		OptionsGroup(parent, wxEmptyString, true, nullptr) {}
 
@@ -262,15 +267,19 @@ public:
 	void		copy_for_freq_settings(const ConfigOptionsGroup& origin) { this->m_opt_map = origin.m_opt_map; }
 
 	void 		set_config_category_and_type(const wxString &category, int type) { m_config_category = category; m_config_type = type; }
-	void        set_config(DynamicPrintConfig* config) { 
-		m_config = config; m_modelconfig = nullptr; 
+	void        set_config(ConfigBase* config) { 
+		m_config = config; m_modelconfig = nullptr; m_config_mutable = config;
 	}
-	bool		has_option(const std::string& opt_key, int opt_index = -1);
-	// more like "create option from def"
-	Option		get_option(const std::string& opt_key, int opt_index = -1);
+
+    bool has_option_def(const std::string &opt_key);
+    const Option* get_option_def(const std::string &opt_key);
+	//these 'has' and 'get' are about m_opt_map and not m_options. it's the option + id
+    bool has_option(const std::string &opt_key, int opt_index = -1);
+	// more like "create option from def" (old "get_option")
+	Option		create_option_from_def(const std::string& opt_key, int opt_index = -1);
 	void		register_to_search(const std::string& opt_key, const ConfigOptionDef& option_def, int opt_index, bool reset);
 	Option		get_option_and_register(const std::string& opt_key, int opt_index = -1) {
-		Option opt = get_option(opt_key, opt_index);
+        Option opt = create_option_from_def(opt_key, opt_index);
 		if(m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
 			register_to_search(opt_key, opt.opt, opt_index, true);
 		return opt;
@@ -305,9 +314,6 @@ public:
     void        msw_rescale();
     void        sys_color_changed();
     void        refresh();
-	boost::any	config_value(const std::string& opt_key, int opt_index, bool deserialize);
-	// return option value from config 
-	boost::any	get_config_value(const DynamicConfig& config, const std::string& opt_key, int opt_index = -1);
 	Field*		get_fieldc(const t_config_option_key& opt_key, int opt_index);
 	std::pair<OG_CustomCtrl*, bool*>	get_custom_ctrl_with_blinking_ptr(const t_config_option_key& opt_key, int opt_index/* = -1*/);
 
@@ -315,7 +321,10 @@ private:
     // Reference to libslic3r config or ModelConfig::get(), non-owning pointer.
     // The reference is const, so that the spots which modify m_config are clearly
     // demarcated by const_cast and m_config_changed_callback is called afterwards.
-    const DynamicConfig*		m_config {nullptr};
+    //const DynamicConfig*		m_config {nullptr};
+    const ConfigBase*		m_config {nullptr};
+	// if nom_modelconfig, we can set.
+    ConfigBase*				m_config_mutable {nullptr};
     // If the config is modelconfig, then ModelConfig::touch() has to be called after value change.
     ModelConfig*				m_modelconfig { nullptr };
 	t_opt_map					m_opt_map;

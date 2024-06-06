@@ -65,7 +65,7 @@ std::string to_string_nozero(double value, int32_t max_precision) {
     double intpart;
     if (modf(value, &intpart) == 0.0) {
         //shortcut for int
-        return boost::lexical_cast<std::string>(intpart);
+        return std::to_string(intpart);
     } else {
         std::stringstream ss;
         //first, get the int part, to see how many digit it takes
@@ -124,6 +124,32 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
     return to_string_nozero(value, precision < 0 ? 6 : precision);
 }
 
+void remove_not_ascii(std::string &tomodify) {
+    size_t pos_read = 0;
+    bool previous_ascii = true;
+    //skip until a not-ascii character
+    while (pos_read < tomodify.length() && ((tomodify[pos_read] & 0x80) == 0)) { ++pos_read; }
+    size_t pos_write = pos_read;
+    //then modify the string
+    while (pos_read < tomodify.length()) {
+        if ((tomodify[pos_read] & 0x80) == 0) {
+            //ascii, write
+            tomodify[pos_write] = tomodify[pos_read];
+            ++pos_write;
+            previous_ascii = true;
+        } else {
+            //not-ascii, remove
+            if (previous_ascii) {
+                tomodify[pos_write] = '_';
+                ++pos_write;
+            }
+            previous_ascii = false;
+        }
+        ++pos_read;
+    }
+    //remove extra bits
+    tomodify.resize(pos_write);
+}
 
 } // namespace Slic3r
 

@@ -777,6 +777,7 @@ void GCodeProcessorResult::reset() {
 #endif // ENABLE_SPIRAL_VASE_LAYERS
     time = 0;
     computed_timestamp = std::time(0);
+    print_statistics.reset();
 }
 #else
 void GCodeProcessorResult::reset() {
@@ -795,6 +796,7 @@ void GCodeProcessorResult::reset() {
     spiral_vase_layers = std::vector<std::pair<float, std::pair<size_t, size_t>>>();
 #endif // ENABLE_SPIRAL_VASE_LAYERS
     computed_timestamp = std::time(0);
+    print_statistics.reset();
 }
 #endif // ENABLE_GCODE_VIEWER_STATISTICS
 
@@ -1342,6 +1344,7 @@ void GCodeProcessor::reset()
     // 1st move must be a dummy move
     assert(m_result.moves.empty());
     m_result.moves.emplace_back();
+    m_has_reset = true;
 
     m_use_volumetric_e = false;
     m_last_default_color_id = 0;
@@ -1414,7 +1417,7 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
             // thus a probability of incorrect substitution is low and the G-code viewer is a consumer-only anyways.
             config.load_from_gcode_file(filename, ForwardCompatibilitySubstitutionRule::EnableSilent);
             if (m_producer == EProducer::PrusaSlicer || m_producer == EProducer::Slic3rPE)
-                config.convert_from_prusa();
+                config.convert_from_prusa(true);
             apply_config(config);
         } else if (m_producer == EProducer::Simplify3D)
             apply_config_simplify3d(filename);
@@ -1592,7 +1595,7 @@ ConfigSubstitutions load_from_superslicer_gcode_file(const std::string& filename
     if (key_value_pairs < 80)
         throw Slic3r::RuntimeError(format("Suspiciously low number of configuration values extracted from %1%: %2%", filename, key_value_pairs));
 
-    return std::move(substitutions_ctxt.substitutions);
+    return std::move(substitutions_ctxt).data();
 }
 
 void GCodeProcessor::apply_config_superslicer(const std::string& filename)
