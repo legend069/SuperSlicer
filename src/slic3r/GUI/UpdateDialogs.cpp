@@ -295,8 +295,9 @@ AppUpdateAvailableDialog::AppUpdateAvailableDialog(const Semver& version_current
         
         add_button(wxID_CANCEL);
         
+        
         if (auto* btn_ok = get_button(wxID_OK); btn_ok != NULL) {
-            btn_ok->SetLabel(_L("Next"));
+            btn_ok->SetLabel(_L("Ok"));
         }
         
         finalize();
@@ -309,7 +310,7 @@ bool AppUpdateAvailableDialog::disable_version_check() const {
     if (!cbox) {
         return false;
     }
-    
+    std::cout << cbox->GetValue();
     return cbox->GetValue();
 }
 
