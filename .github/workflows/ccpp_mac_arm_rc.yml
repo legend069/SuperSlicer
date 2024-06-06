@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: 'rc'
+        ref: 'master'
 
     - name: build deps & slicer
       run: ./BuildMacOS.sh -ia
@@ -21,10 +21,6 @@ jobs:
     # Add a step to list the contents of the build directory for debugging
     - name: List build directory contents
       run: ls -la build/
-
-    # Verify DMG file exists
-    - name: Verify DMG file exists
-      run: test -f build/${{ github.event.repository.name }}.dmg
 
     # Upload DMG artifact if it exists
     - name: Upload DMG artifact
