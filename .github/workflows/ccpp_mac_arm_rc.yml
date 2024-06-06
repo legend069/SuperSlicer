@@ -8,21 +8,39 @@ on:
 
 jobs:
   build:
-
     runs-on: macos-14
 
     steps:
     - uses: actions/checkout@v2
       with:
         ref: 'rc'
+
     - name: build deps & slicer
       run: ./BuildMacOS.sh -ia
-    - name: Upload artifact
+
+    # Add a step to list the contents of the build directory for debugging
+    - name: List build directory contents
+      run: ls -la build/
+
+    # Verify DMG file exists
+    - name: Verify DMG file exists
+      run: test -f build/${{ github.event.repository.name }}.dmg
+
+    # Upload DMG artifact if it exists
+    - name: Upload DMG artifact
+      if: success()
       uses: actions/upload-artifact@v1.0.0
       with:
         name: rc_arm_macos.dmg
         path: build/${{ github.event.repository.name }}.dmg
-    - name: Upload artifact
+
+    # Verify TAR file exists
+    - name: Verify TAR file exists
+      run: test -f build/${{ github.event.repository.name }}.tar
+
+    # Upload TAR artifact if it exists
+    - name: Upload TAR artifact
+      if: success()
       uses: actions/upload-artifact@v1.0.0
       with:
         name: rc_arm_macos.tar
