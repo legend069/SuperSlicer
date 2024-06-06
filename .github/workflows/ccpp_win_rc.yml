@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - rc
+      - master
 jobs:
 
   build:
@@ -22,7 +23,7 @@ jobs:
     - name: copy deps
       working-directory: ./deps/destdir
       shell: powershell
-      run: '(new-object System.Net.WebClient).DownloadFile("https://github.com/supermerill/SuperSlicer_deps/releases/download/deps_25/deps_win.zip", "deps_win.zip")'
+      run: '(new-object System.Net.WebClient).DownloadFile("https://www.dropbox.com/scl/fi/76n5gcmgxw1e1h89lfy5b/deps_win.zip?rlkey=378sze4ts91yvlyjgzxi9ut7i&st=11zbi5x0&dl=1", "deps_win.zip")'
     - name: unzip deps
       working-directory: ./deps/destdir
       shell: cmd
