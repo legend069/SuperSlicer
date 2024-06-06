@@ -47,14 +47,15 @@ set(CMAKE_CXX_STANDARD 17)
     set(wxWidgets_USE_DEBUG ON)
     set(wxWidgets_USE_UNICODE ON)
     set(wxUSE_WEBVIEW_EDGE ON)
+    set(wxUSE_MEDIACTRL ON)
 
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
         if (SLIC3R_WX_STABLE)
-            find_package(wxWidgets 3.0 REQUIRED COMPONENTS base core adv html gl aui net media webview)
+            find_package(wxWidgets 3.1 REQUIRED COMPONENTS base core adv html gl aui net media webview)
         else ()
-            find_package(wxWidgets 3.0 REQUIRED COMPONENTS base core adv html gl aui net media webview)
+            find_package(wxWidgets 3.1 REQUIRED COMPONENTS base core adv html gl aui net media webview)
 
             if (NOT wxWidgets_FOUND)
                 message(FATAL_ERROR "\nCould not find wxWidgets 3.1.\n"
@@ -62,7 +63,7 @@ set(CMAKE_CXX_STANDARD 17)
             endif ()
         endif ()
     else ()
-        find_package(wxWidgets 3.0 REQUIRED COMPONENTS base core adv html gl aui net media webview)
+        find_package(wxWidgets 3.1 REQUIRED COMPONENTS base core adv html gl aui net media webview)
     endif ()
 
     if(UNIX)
