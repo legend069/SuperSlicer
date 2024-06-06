@@ -413,8 +413,9 @@ private:
     bool            check_updates(const bool verbose);
     void            on_version_read(wxCommandEvent& evt);
     void            app_updater(bool from_user);
+    bool            m_check_for_application_update = false;
 
-    void            app_version_check(bool from_user);
+    void            app_version_check(bool from_user = false);
 
     bool            m_datadir_redefined { false };
 };

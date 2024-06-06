@@ -276,7 +276,7 @@ MsgNoUpdates::MsgNoUpdates()
 wxSize AppUpdateAvailableDialog::AUAD_size;
 
 AppUpdateAvailableDialog::AppUpdateAvailableDialog(const Semver& version_current, const Semver& version_online, bool from_user)
-    : MsgDialog(nullptr, _L("App Update available"), wxString::Format(_L("New version of %s is available. \n Do you want to download it?"), SLIC3R_APP_NAME)) {
+    : MsgDialog(nullptr, _L("App Update available"), wxString::Format(_L("New version of %s is available. \nDo you want to download it?"), SLIC3R_APP_NAME)) {
     
         auto* versions = new wxFlexGridSizer(1, 0, wxVERTICAL);
         versions->Add(new wxStaticText(this, wxID_ANY, _L("Current Version:")));
@@ -295,8 +295,9 @@ AppUpdateAvailableDialog::AppUpdateAvailableDialog(const Semver& version_current
         
         add_button(wxID_CANCEL);
         
+        
         if (auto* btn_ok = get_button(wxID_OK); btn_ok != NULL) {
-            btn_ok->SetLabel(_L("Next"));
+            btn_ok->SetLabel(_L("Ok"));
         }
         
         finalize();
@@ -309,12 +310,12 @@ bool AppUpdateAvailableDialog::disable_version_check() const {
     if (!cbox) {
         return false;
     }
-    
+    std::cout << cbox->GetValue();
     return cbox->GetValue();
 }
 
 AppUpdateDownloadDialog::AppUpdateDownloadDialog(const Semver& version_online, boost::filesystem::path& path)
-: MsgDialog(nullptr, _L("App Update download"), wxString::Format(_L("New version of %s is available."), SLIC3R_APP_NAME)) {
+: MsgDialog(nullptr, _L("App Update Download"), wxString::Format(_L("Download new version."), SLIC3R_APP_NAME)) {
     
     auto* versions = new wxFlexGridSizer(1, 0, wxVERTICAL);
     versions->Add(new wxStaticText(this, wxID_ANY, _L("New Version:")));

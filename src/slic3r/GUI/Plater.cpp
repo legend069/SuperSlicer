@@ -4534,7 +4534,8 @@ void Plater::priv::set_project_filename(const wxString& filename)
 
     m_project_filename = from_path(full_path);
     wxGetApp().mainframe->update_title();
-
+    
+    
     if (!filename.empty())
         wxGetApp().mainframe->add_to_recent_projects(filename);
 }

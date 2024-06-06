@@ -2609,6 +2609,7 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
                  break;
              case ConfigMenuUpdateApp:
                  app_updater(true);
+                m_check_for_application_update = true;
                  break;
 #ifdef __linux__
         case ConfigMenuDesktopIntegration:
@@ -3548,7 +3549,7 @@ void GUI_App::on_version_read(wxCommandEvent& evt)
                                                                                  );
         }
         return;
-}
+    }
 // notification
 /*
  this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable
@@ -3561,6 +3562,7 @@ void GUI_App::on_version_read(wxCommandEvent& evt)
 // updater
 // read triggered_by_user that was set when calling  GUI_App::app_version_check
 app_updater(m_app_updater->get_triggered_by_user());
+        
 }
          
 
@@ -3577,31 +3579,37 @@ void GUI_App::app_updater(bool from_user) {
         
         assert(!app_data.url.empty());
         assert(!app_data.target_path.empty());
+        std::string opt = app_config->get("notify_release");
         
         // dialog with new version info
-        AppUpdateAvailableDialog dialog(*Semver::parse(SLIC3R_VERSION), *app_data.version, from_user);
-        auto dialog_result = dialog.ShowModal();
-        // checkbox "do not show again"
-        if (dialog.disable_version_check()) {
-            app_config->set("notify_release", "none");
+        if (opt != "none" || m_check_for_application_update) {
+            AppUpdateAvailableDialog dialog(*Semver::parse(SLIC3R_VERSION), *app_data.version, from_user);
+            auto dialog_result = dialog.ShowModal();
+            
+            // checkbox "do not show again"
+            if (dialog.disable_version_check()) {
+                app_config->set("notify_release", "none");
+            }
+                        
+            // Doesn't wish to update
+            if (dialog_result != wxID_OK) {
+                return;
+            }
+            
+            // dialog with new version download (installer or app dependent on system) including path selection
+            AppUpdateDownloadDialog dwnld_dlg(*app_data.version, app_data.target_path);
+            dialog_result = dwnld_dlg.ShowModal();
+            //  Doesn't wish to download
+            if (dialog_result != wxID_OK) {
+                return;
+            }
+            app_data.target_path =dwnld_dlg.get_download_path();
+            // start download
+            this->plater_->get_notification_manager()->push_download_progress_notification(GUI::format(_L("Downloading %1%"), app_data.target_path.filename().string()), std::bind(&AppUpdater::cancel_callback, this->m_app_updater.get()));
+            app_data.start_after = dwnld_dlg.run_after_download();
+            m_app_updater->set_app_data(std::move(app_data));
+            m_app_updater->sync_download();
         }
-        // Doesn't wish to update
-        if (dialog_result != wxID_OK) {
-            return;
-        }
-        // dialog with new version download (installer or app dependent on system) including path selection
-        AppUpdateDownloadDialog dwnld_dlg(*app_data.version, app_data.target_path);
-        dialog_result = dwnld_dlg.ShowModal();
-        //  Doesn't wish to download
-        if (dialog_result != wxID_OK) {
-            return;
-        }
-        app_data.target_path =dwnld_dlg.get_download_path();
-        // start download
-        this->plater_->get_notification_manager()->push_download_progress_notification(GUI::format(_L("Downloading %1%"), app_data.target_path.filename().string()), std::bind(&AppUpdater::cancel_callback, this->m_app_updater.get()));
-        app_data.start_after = dwnld_dlg.run_after_download();
-        m_app_updater->set_app_data(std::move(app_data));
-        m_app_updater->sync_download();
     }
          
          
