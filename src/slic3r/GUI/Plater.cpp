@@ -1141,7 +1141,7 @@ void Sidebar::jump_to_option(size_t selected)
         }
     }
 
-    wxGetApp().get_tab(opt.type)->activate_option(opt.opt_key_with_idx(), boost::nowide::narrow(opt.category));
+    wxGetApp().get_tab(opt.type, false)->activate_option(opt.opt_key_with_idx(), boost::nowide::narrow(opt.category));
 
     // Switch to the Settings NotePad
 //    wxGetApp().mainframe->select_tab(MainFrame::ETabType::tpLastSettings);
@@ -4695,6 +4695,7 @@ void Plater::priv::enable_preview_moves_slider(bool enable)
 
 void Plater::priv::reset_gcode_toolpaths()
 {
+    gcode_result.reset();
     preview->reset_gcode_toolpaths();
 }
 

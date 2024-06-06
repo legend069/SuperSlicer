@@ -453,11 +453,11 @@ template<typename THING = ExtrusionEntity> class ExtrusionMultiEntity : public E
 public:
     std::vector<THING> paths;
 
-    ExtrusionMultiEntity() : ExtrusionEntity(false){};
-    ExtrusionMultiEntity(const ExtrusionMultiEntity &rhs) : paths(rhs.paths), ExtrusionEntity(false) {}
-    ExtrusionMultiEntity(ExtrusionMultiEntity &&rhs) : paths(std::move(rhs.paths)), ExtrusionEntity(false) {}
-    ExtrusionMultiEntity(const std::vector<THING> &paths) : paths(paths), ExtrusionEntity(false){};
-    ExtrusionMultiEntity(const THING &path) : ExtrusionEntity(false) { this->paths.push_back(path); }
+    ExtrusionMultiEntity(): ExtrusionEntity(false) {};
+    ExtrusionMultiEntity(const ExtrusionMultiEntity &rhs) : paths(rhs.paths), ExtrusionEntity(rhs.m_can_reverse) {}
+    ExtrusionMultiEntity(ExtrusionMultiEntity &&rhs) : paths(std::move(rhs.paths)), ExtrusionEntity(rhs.m_can_reverse) {}
+    ExtrusionMultiEntity(const std::vector<THING> &paths) : paths(paths), ExtrusionEntity(false) {};
+    ExtrusionMultiEntity(const THING &path): ExtrusionEntity(false) { this->paths.push_back(path); }
 
     ExtrusionMultiEntity &operator=(const ExtrusionMultiEntity &rhs)
     {
@@ -852,31 +852,16 @@ struct HasThisRoleVisitor : public HasRoleVisitor
 };
 
 
-// call simplify for all paths.
-class SimplifyVisitor : public ExtrusionVisitorRecursive
-{
-    bool                              m_use_arc_fitting;
-    coordf_t                          m_scaled_resolution;
-    const ConfigOptionFloatOrPercent *m_arc_fitting_tolearance;
-
+//call simplify for all paths.
+class ConfigOptionFloatOrPercent;
+class SimplifyVisitor : public ExtrusionVisitorRecursive {
+    bool m_use_arc_fitting;
+    coordf_t m_scaled_resolution;
+    const ConfigOptionFloatOrPercent* m_arc_fitting_tolearance;
 public:
-    SimplifyVisitor(coordf_t                          scaled_resolution,
-                    bool                              use_arc_fitting,
-                    const ConfigOptionFloatOrPercent *arc_fitting_tolearance)
-        : m_scaled_resolution(scaled_resolution)
-        , m_use_arc_fitting(use_arc_fitting)
-        , m_arc_fitting_tolearance(arc_fitting_tolearance)
-    {}
-    virtual void use(ExtrusionPath &path) override
-    {
-        path.simplify(m_scaled_resolution, m_use_arc_fitting,
-                      scale_d(m_arc_fitting_tolearance->get_abs_value(path.width)));
-    }
-    virtual void use(ExtrusionPath3D &path3D) override
-    {
-        path3D.simplify(m_scaled_resolution, m_use_arc_fitting,
-                        scale_d(m_arc_fitting_tolearance->get_abs_value(path3D.width)));
-    }
+    SimplifyVisitor(coordf_t scaled_resolution, bool use_arc_fitting, const ConfigOptionFloatOrPercent* arc_fitting_tolearance) : m_scaled_resolution(scaled_resolution), m_use_arc_fitting(use_arc_fitting), m_arc_fitting_tolearance(arc_fitting_tolearance){}
+    virtual void use(ExtrusionPath& path) override;
+    virtual void use(ExtrusionPath3D& path3D) override;
 };
 class GetPathsVisitor : public ExtrusionVisitorRecursive
 {
