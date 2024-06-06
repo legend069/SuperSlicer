@@ -3,10 +3,8 @@ name: C/C++ Nightly ubuntu-GTK3
 on:
   push:
     branches:
-      - Nigthly
+      - pressure_advance
       - nightly_dev
-      - nightly_master
-      - debug_ubuntu
 
 jobs:
   build:
