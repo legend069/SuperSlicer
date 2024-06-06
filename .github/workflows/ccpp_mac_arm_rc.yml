@@ -15,6 +15,9 @@ jobs:
       with:
         ref: 'master'
 
+    - name: Make build script executable
+      run: chmod +x ./BuildMacOS.sh
+      
     - name: build deps & slicer
       run: ./BuildMacOS.sh -ia
 
