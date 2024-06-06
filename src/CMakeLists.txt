@@ -63,7 +63,7 @@ set(CMAKE_CXX_STANDARD 17)
             endif ()
         endif ()
     else ()
-        find_package(wxWidgets 3.1 REQUIRED COMPONENTS base core adv html gl aui net media webview)
+        find_package(wxWidgets 3.1 REQUIRED COMPONENTS html adv gl core base webview aui net media)
     endif ()
 
     if(UNIX)
