@@ -1528,7 +1528,7 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 
 void TabFrequent::activate_option(const std::string &opt_key, const wxString &category){
     wxGetApp().plater()->collapse_sidebar(false);
-    wxGetApp().mainframe->select_tab(MainFrame::ETabType::Plater3D);
+    wxGetApp().mainframe->select_tab(MainFrame::TabPosition::tpPlater);
 }
 
 void Tab::cache_config_diff(const std::vector<std::string>& selected_options)

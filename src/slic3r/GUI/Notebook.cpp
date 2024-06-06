@@ -21,7 +21,7 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, bool add_mode_buttons/* = fal
 #endif //__WINDOWS__
 
     int em = em_unit(this);// Slic3r::GUI::wxGetApp().em_unit();
-    m_btn_margin  = std::lround(0.3 * em);
+    m_btn_margin  = std::lround(0.4 * em);
     m_line_margin = std::lround(0.1 * em);
 
     m_sizer = new wxBoxSizer(wxHORIZONTAL);

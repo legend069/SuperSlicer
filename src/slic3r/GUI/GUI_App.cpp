@@ -1302,12 +1302,7 @@ bool GUI_App::on_init_inner()
                   std::string evt_string = into_u8(evt.GetString());
                   if (*Semver::parse(SLIC3R_VERSION) < *Semver::parse(evt_string)) {
                       auto notif_type = (evt_string.find("beta") != std::string::npos ? NotificationType::NewBetaAvailable : NotificationType::NewAlphaAvailable);
-                      this->plater_->get_notification_manager()->push_version_notification( notif_type
-                          , NotificationManager::NotificationLevel::ImportantNotificationLevel
-                          , Slic3r::format(_u8L("New prerelease version %1% is available."), evt_string)
-                          , _u8L("See Releases page.")
-                          , [](wxEvtHandler* evnthndlr) {wxGetApp().open_browser_with_warning_dialog("https://github.com/CR-3D/SliCR-3D/releases"); return true; }
-                      );
+                      
                   }
               }
               });
