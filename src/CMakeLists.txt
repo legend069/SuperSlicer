@@ -47,8 +47,6 @@ set(CMAKE_CXX_STANDARD 17)
     set(wxWidgets_USE_DEBUG ON)
     set(wxWidgets_USE_UNICODE ON)
     set(wxUSE_WEBVIEW_EDGE ON)
-    set(wxUSE_MEDIACTRL ON)
-
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
@@ -63,7 +61,7 @@ set(CMAKE_CXX_STANDARD 17)
             endif ()
         endif ()
     else ()
-        find_package(wxWidgets 3.1 REQUIRED COMPONENTS html adv gl core base webview aui net media)
+        find_package(wxWidgets 3.1 REQUIRED COMPONENTS html adv gl core base webview aui net)
     endif ()
 
     if(UNIX)
