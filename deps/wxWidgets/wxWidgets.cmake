@@ -45,6 +45,7 @@ prusaslicer_add_cmake_project(
         ${_wx_private_font}
         -DwxUSE_OPENGL=ON
         -DwxUSE_WEBVIEW=ON
+        -DwxUSE_MEDIACTRL=ON
         ${_wx_edge}
         -DwxUSE_WEBVIEW_IE=OFF
         -DwxUSE_WEBVIEW_WEBKIT=ON
