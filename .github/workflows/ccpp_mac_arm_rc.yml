@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: 'master'
+        ref: 'rc'
 
     - name: build deps & slicer
       run: ./BuildMacOS.sh -ia
