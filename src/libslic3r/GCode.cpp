@@ -1900,6 +1900,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
      this->m_throw_if_canceled();
 
     // Collect custom seam data from all objects.
+    print.set_status(0, L("Computing seam visibility areas: object %s / %s"), {"1", std::to_string(print.objects().size())}, PrintBase::SlicingStatus::FORCE_SHOW | PrintBase::SlicingStatus::SECONDARY_STATE);
     m_seam_placer.init(print, this->m_throw_if_canceled);
 
     //activate first extruder is multi-extruder and not in start-gcode
@@ -3033,8 +3034,12 @@ LayerResult GCode::process_layer(
     const Layer         *object_layer  = nullptr;
     const SupportLayer  *support_layer = nullptr;
     const SupportLayer  *raft_layer    = nullptr;
-    const size_t layer_id = layers.front().layer()->id();
+    
+    size_t layer_id = size_t(-1);
+    
     for (const LayerToPrint &l : layers) {
+        if (l.layer())
+            layer_id = l.layer()->id();
         if (l.object_layer && ! object_layer)
             object_layer = l.object_layer;
         if (l.support_layer) {
@@ -3045,12 +3050,30 @@ LayerResult GCode::process_layer(
         }
         assert(l.layer() == nullptr || layer_id == l.layer()->id());
     }
+    assert(layer_id < layer_count());
+    
     const Layer         &layer         = (object_layer != nullptr) ? *object_layer : *support_layer;
     LayerResult   result { {}, layer.id(), false, last_layer, false};
     if (layer_tools.extruders.empty())
         // Nothing to extrude.
         return result;
 
+    if (object_layer) {
+         if (single_object_instance_idx != size_t(-1)) {
+             size_t nb_layers = object_layer->object()->layer_count();
+             m_object_sequentially_printed.insert(object_layer->object());
+             print.set_status(int((layer.id() * 100) / nb_layers),
+                              std::string(L("Generating G-code layer %s / %s for object %s / %s")),
+                              std::vector<std::string>{std::to_string(layer.id()), std::to_string(nb_layers), std::to_string(m_object_sequentially_printed.size()), std::to_string(print.num_object_instances())},
+                              PrintBase::SlicingStatus::DEFAULT | PrintBase::SlicingStatus::SECONDARY_STATE);
+         } else {
+             print.set_status(int((layer.id() * 100) / layer_count()),
+                              std::string(L("Generating G-code layer %s / %s")),
+                              std::vector<std::string>{std::to_string(layer.id()), std::to_string(layer_count())},
+                              PrintBase::SlicingStatus::DEFAULT | PrintBase::SlicingStatus::SECONDARY_STATE);
+         }
+     }
+    
     // Extract 1st object_layer and support_layer of this set of layers with an equal print_z.
     coordf_t print_z           = layer.print_z;
     bool     first_layer       = layer_id == 0;
@@ -3729,9 +3752,6 @@ LayerResult GCode::process_layer(
     BOOST_LOG_TRIVIAL(trace) << "Exported layer " << layer.id() << " print_z " << print_z <<
     log_memory_info();
 
-    if(object_layer)
-        print.set_status(int((layer.id() * 100) / layer_count()), std::string(L("Generating G-code layer %s / %s")), std::vector<std::string>{ std::to_string(layer.id()), std::to_string(layer_count()) }, PrintBase::SlicingStatus::DEFAULT | PrintBase::SlicingStatus::SECONDARY_STATE);
-
     result.gcode = std::move(gcode);
     result.cooling_buffer_flush = object_layer || raft_layer || last_layer;
     return result;
@@ -4110,6 +4130,18 @@ void GCode::split_at_seam_pos(ExtrusionLoop& loop, bool was_clockwise)
 {
     if (loop.paths.empty())
         return;
+
+    #if _DEBUG
+     ExtrusionLoop old_loop = loop;
+     for (const ExtrusionPath &path : loop.paths)
+         for (int i = 1; i < path.polyline.get_points().size(); ++i)
+             assert(!path.polyline.get_points()[i - 1].coincides_with_epsilon(path.polyline.get_points()[i]));
+     for (auto it = std::next(loop.paths.begin()); it != loop.paths.end(); ++it) {
+         assert(it->polyline.size() >= 2);
+         assert(std::prev(it)->polyline.back() == it->polyline.front());
+     }
+     assert(loop.first_point() == loop.last_point());
+ #endif
 
 //    SeamPosition seam_position = m_config.seam_position;
 //    if (loop.loop_role() == elrSkirt)

@@ -668,7 +668,7 @@ void MainFrame::update_layout()
             notebook->InsertBtPage(1, m_plater, _L("GCode Preview"), std::string("tab_preview_menu"), icon_size, false);
             notebook->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size, false);
 
-            notebook->GetBtnsListCtrl()->InsertSpacer(3, 40);
+            notebook->GetBtnsListCtrl()->InsertSpacer(3, 60);
             notebook->GetBtnsListCtrl()->GetPageButton(0)->Bind(wxCUSTOMEVT_NOTEBOOK_BT_PRESSED, [this](wxCommandEvent& event) {
                 this->m_plater->Show();
                 this->m_plater->select_view_3D("3D");
@@ -717,7 +717,7 @@ void MainFrame::update_layout()
         m_tabpanel->InsertPage(2, m_webView, _L("Device"));
 
 
-        if (m_tabpanel->GetPageCount() == 7) {
+        if (m_tabpanel->GetPageCount() == 6) {
             m_tabpanel->GetPage(0)->SetSizer(new wxBoxSizer(wxVERTICAL));
             m_tabpanel->GetPage(1)->SetSizer(new wxBoxSizer(wxVERTICAL));
             m_tabpanel->GetPage(2)->SetSizer(new wxBoxSizer(wxVERTICAL));
@@ -732,7 +732,7 @@ void MainFrame::update_layout()
 
         m_plater->Show();
         m_tabpanel->Show();
-        m_webView->Hide();
+       // m_webView->Hide();
 
         if (need_freeze) this->Thaw();
 #endif

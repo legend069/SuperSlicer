@@ -294,12 +294,14 @@ namespace Slic3r {
         const PrintRegion &region = this->printing_region(region_id);
             if (!region.config().extra_perimeters || region.config().perimeters == 0 || region.config().fill_density == 0 || this->layer_count() < 2)
                 continue;
-
+            std::atomic_size_t next_layer_idx(0);
             BOOST_LOG_TRIVIAL(debug) << "Generating extra perimeters for region " << region_id << " in parallel - start";
             tbb::parallel_for(
                 tbb::blocked_range<size_t>(0, m_layers.size() - 1),
-                [this, &region, region_id](const tbb::blocked_range<size_t>& range) {
-                for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+
+                [this, &region, region_id, &next_layer_idx](const tbb::blocked_range<size_t>& range) {
+                for (size_t layer_idx = next_layer_idx++; layer_idx < m_layers.size() - 1; layer_idx = next_layer_idx++) {
+
                     m_print->throw_if_canceled();
                     LayerRegion &layerm                     = *m_layers[layer_idx]->get_region(region_id);
                     const LayerRegion &upper_layerm         = *m_layers[layer_idx+1]->get_region(region_id);
@@ -354,10 +356,12 @@ namespace Slic3r {
         }
 
         BOOST_LOG_TRIVIAL(debug) << "Generating perimeters in parallel - start";
+        std::atomic_size_t next_layer_idx(0);
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
-            [this, &atomic_count, nb_layers_update](const tbb::blocked_range<size_t>& range) {
-            for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+            [this, &atomic_count, nb_layers_update, &next_layer_idx](const tbb::blocked_range<size_t>& range) {
+
+        for (size_t layer_idx = next_layer_idx++; layer_idx < m_layers.size(); layer_idx = next_layer_idx++) {
                 std::chrono::time_point<std::chrono::system_clock> start_make_perimeter = std::chrono::system_clock::now();
                 m_print->throw_if_canceled();
                 m_layers[layer_idx]->make_perimeters();
@@ -415,6 +419,8 @@ namespace Slic3r {
         // Then the classifcation of $layerm->slices is transfered onto 
         // the $layerm->fill_surfaces by clipping $layerm->fill_surfaces
         // by the cummulative area of the previous $layerm->fill_surfaces.
+        m_print->set_status(0, L("Detect surfaces type"), {}, PrintBase::SlicingStatus::SECONDARY_STATE);
+
         this->detect_surfaces_type();
         m_print->throw_if_canceled();
 
@@ -422,11 +428,17 @@ namespace Slic3r {
         // Here the stTop / stBottomBridge / stBottom infill is turned to just stInternal if zero top / bottom infill layers are configured.
         // Also tiny stInternal surfaces are turned to stInternalSolid.
         BOOST_LOG_TRIVIAL(info) << "Preparing fill surfaces..." << log_memory_info();
-        for (auto* layer : m_layers)
-            for (auto* region : layer->m_regions) {
+        for (size_t layer_idx = 0; layer_idx < m_layers.size(); ++layer_idx) {
+             Layer *layer = m_layers[layer_idx];
+             m_print->set_status(int(100 * layer_idx / m_layers.size()),
+                                 L("Prepare fill surfaces: layer %s / %s"),
+                                 {std::to_string(layer_idx), std::to_string(m_layers.size())},
+                                 PrintBase::SlicingStatus::SECONDARY_STATE);
+             for (auto *region : layer->m_regions) {
                 region->prepare_fill_surfaces();
                 m_print->throw_if_canceled();
             }
+        }
 
         // this will detect bridges and reverse bridges
         // and rearrange top/bottom/internal surfaces
@@ -437,10 +449,13 @@ namespace Slic3r {
         // 3) Clip the internal surfaces by the grown top/bottom surfaces.
         // 4) Merge surfaces with the same style. This will mostly get rid of the overlaps.
         //FIXME This does not likely merge surfaces, which are supported by a material with different colors, but same properties.
+        
+        m_print->set_status( 20, L("Process external surfaces"), {}, PrintBase::SlicingStatus::SECONDARY_STATE);
         this->process_external_surfaces();
         m_print->throw_if_canceled();
 
         // Add solid fills to ensure the shell vertical thickness.
+        m_print->set_status( 40, L("Discover shells"), {}, PrintBase::SlicingStatus::SECONDARY_STATE);
         this->discover_vertical_shells();
         m_print->throw_if_canceled();
 
@@ -466,6 +481,7 @@ namespace Slic3r {
         m_print->throw_if_canceled();
 
     //as there is some too thin solid surface, please deleted them and merge all of the surfacesthat are contigous.
+        m_print->set_status( 55, L("Clean surfaces"), {}, PrintBase::SlicingStatus::SECONDARY_STATE);
         this->clean_surfaces();
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -484,6 +500,7 @@ namespace Slic3r {
     //FIXME The surfaces are supported by a sparse infill, but the sparse infill is only as large as the area to support.
     // Likely the sparse infill will not be anchored correctly, so it will not work as intended.
     // Also one wishes the perimeters to be supported by a full infill.
+    m_print->set_status( 70, L("Clip surfaces"), {}, PrintBase::SlicingStatus::SECONDARY_STATE);
         this->clip_fill_surfaces();
         m_print->throw_if_canceled();
 
@@ -519,6 +536,7 @@ namespace Slic3r {
         m_print->throw_if_canceled();
 
         // combine fill surfaces to honor the "infill every N layers" option
+        m_print->set_status( 85, L("Combine infill"), {}, PrintBase::SlicingStatus::SECONDARY_STATE);
         this->combine_infill();
         m_print->throw_if_canceled();
 
@@ -593,10 +611,14 @@ namespace Slic3r {
             const int nb_layers_update = std::max(1, (int)m_layers.size() / 20);
 
             BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - start";
+            std::atomic_size_t next_layer_idx(0);
+            
             tbb::parallel_for(
                 tbb::blocked_range<size_t>(0, m_layers.size()),
-                [this, &adaptive_fill_octree = adaptive_fill_octree, &support_fill_octree = support_fill_octree, &lightning_generator, &atomic_count, nb_layers_update](const tbb::blocked_range<size_t>& range) {
-                for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+                [this, &adaptive_fill_octree = adaptive_fill_octree, &support_fill_octree = support_fill_octree, &lightning_generator, &atomic_count, nb_layers_update, &next_layer_idx]
+                 (const tbb::blocked_range<size_t>& range) {
+                 //for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+                 for (size_t layer_idx = next_layer_idx++; layer_idx < m_layers.size(); layer_idx = next_layer_idx++) {
                     std::chrono::time_point<std::chrono::system_clock> start_make_fill = std::chrono::system_clock::now();
                     m_print->throw_if_canceled();
                     m_layers[layer_idx]->make_fills(adaptive_fill_octree.get(), support_fill_octree.get(), lightning_generator.get());

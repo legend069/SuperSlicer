@@ -543,7 +543,7 @@ protected:
         // the base class version.
     }
 
-    virtual wxBookCtrlEvent * CreatePageChangingEvent() const override
+    virtual wxBookCtrlEvent* CreatePageChangingEvent() const override
     {
         return new wxBookCtrlEvent(wxEVT_BOOKCTRL_PAGE_CHANGING,
                                    GetId());
