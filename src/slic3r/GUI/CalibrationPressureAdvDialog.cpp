@@ -162,8 +162,8 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
     GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
     const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
-    assert(nozzle_diameter_config->values.size() > 0);
-    double nozzle_diameter = nozzle_diameter_config->values[0];//get extruderID too?
+    assert(nozzle_diameter_config->size() > 0);
+    double nozzle_diameter = nozzle_diameter_config->get_at(0);//get extruderID too?
 
     double first_layer_height = full_print_config.get_computed_value("first_layer_height");
     double base_layer_height = full_print_config.get_computed_value("layer_height");
@@ -515,31 +515,20 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         }
     
     }
-    /// --- main config, modify object config when possible ---
+    /// --- main config ---
+    // => settings that are for object or region should be added to the model (see below, in the for loop), not here
     DynamicPrintConfig new_print_config = *print_config;
     DynamicPrintConfig new_printer_config = *printer_config;
-    new_print_config.set_key_value("brim_width", new ConfigOptionFloat(0));
-    new_print_config.set_key_value("complete_objects", new ConfigOptionBool(false)); //true is required for multi tests on single plate.
-    new_print_config.set_key_value("gap_fill_enabled", new ConfigOptionBool(true)); //should be false?, enabled for testing
-    new_print_config.set_key_value("top_solid_layers", new ConfigOptionInt(0));
-    new_print_config.set_key_value("only_one_perimeter_top", new ConfigOptionBool(false));
-    new_print_config.set_key_value("only_one_perimeter_first_layer", new ConfigOptionBool(true));
-    new_print_config.set_key_value("bottom_solid_layers", new ConfigOptionInt(1));
-    new_print_config.set_key_value("fill_density", new ConfigOptionPercent(0));
-    new_print_config.set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0.0,false));
-    new_print_config.set_key_value("bottom_fill_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicWGapFill));
-    new_print_config.set_key_value("seam_position", new ConfigOptionEnum<SeamPosition>(spRear)); //BUG: should be fixed in 2.7 merge/SS 2.5.59.7, when this is changed the "perimeters & shell" doesn't turn red indicating a change.
     new_print_config.set_key_value("avoid_crossing_perimeters", new ConfigOptionBool(false));
-    new_print_config.set_key_value("perimeter_overlap", new ConfigOptionPercent(100));
-    new_print_config.set_key_value("external_perimeter_overlap", new ConfigOptionPercent(100));
-    
+    new_print_config.set_key_value("complete_objects", new ConfigOptionBool(false)); //true is required for multi tests on single plate.
+
     //fix this later need to fix the loops
     //new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 0} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));
 
 
     //assert(filament_temp_item_name.size() == nb_runs);
     //assert(model.objects.size() == nb_runs);
-
+    assert(objs_idx.size() == currentTestCount);
     for (int id_item = 0; id_item < currentTestCount; id_item++) {
 
         wxString firstPaValue = dynamicFirstPa[id_item]->GetValue();
@@ -591,6 +580,20 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         gcfMachinekit,
         gcfSmoothie,
         gcfNoExtrusion*/
+
+        // config for the this model
+        model.objects[objs_idx[id_item]]->config.set_key_value("bottom_fill_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicWGapFill));
+        model.objects[objs_idx[id_item]]->config.set_key_value("bottom_solid_layers", new ConfigOptionInt(1));
+        model.objects[objs_idx[id_item]]->config.set_key_value("brim_width", new ConfigOptionFloat(0));
+        model.objects[objs_idx[id_item]]->config.set_key_value("external_perimeter_overlap", new ConfigOptionPercent(100));
+        model.objects[objs_idx[id_item]]->config.set_key_value("fill_density", new ConfigOptionPercent(0));
+        model.objects[objs_idx[id_item]]->config.set_key_value("gap_fill_enabled", new ConfigOptionBool(true)); //should be false?, enabled for testing
+        model.objects[objs_idx[id_item]]->config.set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0.0,false));
+        model.objects[objs_idx[id_item]]->config.set_key_value("only_one_perimeter_top", new ConfigOptionBool(false));
+        model.objects[objs_idx[id_item]]->config.set_key_value("only_one_perimeter_first_layer", new ConfigOptionBool(true));
+        model.objects[objs_idx[id_item]]->config.set_key_value("perimeter_overlap", new ConfigOptionPercent(100));
+        model.objects[objs_idx[id_item]]->config.set_key_value("seam_position", new ConfigOptionEnum<SeamPosition>(spRear)); //BUG: should be fixed in 2.7 merge/SS 2.5.59.7, when this is changed the "perimeters & shell" doesn't turn red indicating a change.
+        model.objects[objs_idx[id_item]]->config.set_key_value("top_solid_layers", new ConfigOptionInt(0));
 
         size_t num_part = 0;
         const int extra_vol = 1;
@@ -655,21 +658,22 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
             }
             num_part++;
         }
-    
 
-        //update plater
-        this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->load_config(new_print_config);
-        plat->on_config_change(new_print_config);
-        this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
-        plat->on_config_change(new_printer_config);
-        plat->changed_objects(objs_idx);
-        this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
-        this->gui_app->get_tab(Preset::TYPE_PRINTER)->update_dirty();
-        plat->is_preview_shown();
-        //update everything, easier to code.
-        ObjectList* obj = this->gui_app->obj_list();
-        obj->update_after_undo_redo();
     }
+
+    //update plater
+    this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->load_config(new_print_config);
+    plat->on_config_change(new_print_config);
+    this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
+    plat->on_config_change(new_printer_config);
+    for (size_t obj_idx : objs_idx) { model.objects[obj_idx]->ensure_on_bed(); } // put at the correct z (kind of arrange-z))
+    plat->changed_objects(objs_idx);
+    this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
+    this->gui_app->get_tab(Preset::TYPE_PRINTER)->update_dirty();
+    plat->is_preview_shown();
+    //update everything, easier to code.
+    ObjectList* obj = this->gui_app->obj_list();
+    obj->update_after_undo_redo();
 
     // arrange if needed, after new settings, to take them into account
     // BUG:(borders don't slice. with 2+ generated models.) after updating to 2.5.59.11 the generating 2+ models they have "sinking label" have to click "drop to bed" to resolve, clicking "arrange" doesn't fix issue.
@@ -684,7 +688,6 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         arranger.process();
         arranger.finalize();
     }
-
 
     if (extrusion_role != "Verify") {//don't auto slice so user can manual add PA values
         plat->reslice(); //forces a slice of plater.
