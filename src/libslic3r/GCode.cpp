@@ -906,6 +906,16 @@ namespace DoExport {
                     break;
             }
         }
+        if (ret.size() < MAX_TAGS_COUNT) {
+            std::set<std::string> per_object_gcodes;
+            for (const PrintObject *obj : print.objects())
+                per_object_gcodes.insert(obj->config().object_gcode.value);
+            for (const std::string &gcode : per_object_gcodes) {
+                check(_(L("Per object G-code")), gcode);
+                if (ret.size() == MAX_TAGS_COUNT)
+                    break;
+            }
+        }
 
         return ret;
     }
@@ -1083,7 +1093,7 @@ namespace DoExport {
                 excluded.insert(erTopSolidInfill);
             if (config->option("bridge_speed") != nullptr && config->get_computed_value("bridge_speed") != 0)
                 excluded.insert(erBridgeInfill);
-            if (config->option("bridge_speed_internal") != nullptr && config->get_computed_value("bridge_speed_internal") != 0)
+            if (config->option("internal_bridge_speed") != nullptr && config->get_computed_value("internal_bridge_speed") != 0)
                 excluded.insert(erInternalBridgeInfill);
             if (config->option("support_material_speed") != nullptr && config->get_computed_value("support_material_speed") != 0)
                 excluded.insert(erSupportMaterial);
@@ -1622,6 +1632,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
         file.write("M486 T" + std::to_string(nb_items) + "\n");
     }
     if (this->config().gcode_label_objects) {
+        file.write("; Total objects to print: " + std::to_string(nb_items) + "\n");
         file.write_format( "; plater:{\"center\":[%f,%f,%f],\"boundingbox_center\":[%f,%f,%f],\"boundingbox_size\":[%f,%f,%f]}\n",
             global_bounding_box.center().x(), global_bounding_box.center().y(), 0.,
             global_bounding_box.center().x(), global_bounding_box.center().y(), global_bounding_box.center().z(),
@@ -3051,8 +3062,9 @@ LayerResult GCode::process_layer(
         assert(l.layer() == nullptr || layer_id == l.layer()->id());
     }
     assert(layer_id < layer_count());
-    
+    assert(object_layer != nullptr || support_layer != nullptr);
     const Layer         &layer         = (object_layer != nullptr) ? *object_layer : *support_layer;
+    assert(layer_id == layer.id());
     LayerResult   result { {}, layer.id(), false, last_layer, false};
     if (layer_tools.extruders.empty())
         // Nothing to extrude.
@@ -3511,8 +3523,9 @@ LayerResult GCode::process_layer(
                 if (m_config.avoid_crossing_perimeters)
                     m_avoid_crossing_perimeters.init_layer(*m_layer);
                 //print object label to help the printer firmware know where it is (for removing the objects)
+                m_gcode_label_objects_start = "";
                 if (this->config().gcode_label_objects) {
-                    m_gcode_label_objects_start =
+                    m_gcode_label_objects_start +=
                         std::string("; printing object ") +
                         instance_to_print.print_object.model_object()->name +
                         " id:" + instance_id + " copy " + instance_copy +
@@ -3544,6 +3557,14 @@ LayerResult GCode::process_layer(
                             instance_full_id +
                             "\n";
                     }
+                }
+                if (!instance_to_print.print_object.config().object_gcode.value.empty()) {
+                    DynamicConfig config;
+                    config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
+                    config.set_key_value("layer_z",     new ConfigOptionFloat(print_z));
+                    m_gcode_label_objects_start += this->placeholder_parser_process("object_gcode",
+                        instance_to_print.print_object.config().object_gcode.value, m_writer.tool()->id(), &config)
+                        + "\n";
                 }
                 // ask for a bigger lift for travel to object when moving to another object
                 if (single_object_instance_idx == size_t(-1) && !first_object)
@@ -3622,7 +3643,7 @@ LayerResult GCode::process_layer(
                     }
                 }
                 // Don't set m_gcode_label_objects_end if you don't had to write the m_gcode_label_objects_start.
-                if (m_gcode_label_objects_start != "") {
+                if (!m_gcode_label_objects_start.empty()) {
                     m_gcode_label_objects_start = "";
                 } else if (this->config().gcode_label_objects) {
                     m_gcode_label_objects_end = std::string("; stop printing object ") + instance_to_print.print_object.model_object()->name
@@ -5290,6 +5311,41 @@ std::string GCode::extrude_path_3D(const ExtrusionPath3D &path, const std::strin
     return gcode;
 }
 
+// Apply region-specific settings
+void GCode::apply_region_config(std::string &gcode) {
+    // modify our fullprintconfig with it. (works as all items avaialable in the regionconfig are present in this config, ie: it write everything region-defined)
+    m_config.apply(m_region->config());
+    // pass our region config to the gcode writer
+    m_writer.apply_print_region_config(m_region->config());
+    // perimeter-only (but won't break anything if done also in infill & ironing): pass needed settings to seam placer.
+    m_seam_placer.external_perimeters_first = m_region->config().external_perimeters_first.value;
+    // temperature override from region
+    if (m_config.print_temperature > 0) {
+        if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.print_first_layer_temperature.value > 0) {
+            gcode += m_writer.set_temperature(m_config.print_first_layer_temperature.value, false, m_writer.tool()->id());
+        } else {
+            gcode += m_writer.set_temperature(m_config.print_temperature.value, false, m_writer.tool()->id());
+        }
+    } else if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.first_layer_temperature.get_at(m_writer.tool()->id()) > 0) {
+        gcode += m_writer.set_temperature(m_config.first_layer_temperature.get_at(m_writer.tool()->id()), false,
+                                          m_writer.tool()->id());
+    } else if (m_config.temperature.get_at(m_writer.tool()->id()) > 0) { // don't set it if disabled
+        gcode += m_writer.set_temperature(m_config.temperature.get_at(m_writer.tool()->id()), false,
+                                          m_writer.tool()->id());
+    }
+    // apply region_gcode
+    if (!m_region->config().region_gcode.value.empty()) {
+        DynamicConfig config;
+        config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
+        config.set_key_value("layer_z", new ConfigOptionFloat(m_layer == nullptr ? m_last_height : m_layer->print_z));
+        m_gcode_label_objects_start += this->placeholder_parser_process("region_gcode",
+                                                                        m_region->config().region_gcode.value,
+                                                                        m_writer.tool()->id(), &config) +
+                                       "\n";
+    }
+    
+}
+
 // Extrude perimeters: Decide where to put seams (hide or align seams).
 std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region)
 {
@@ -5303,7 +5359,10 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
             m_writer.apply_print_region_config(m_region->config());
             m_seam_placer.external_perimeters_first = m_region->config().external_perimeters_first.value;
             if (m_config.print_temperature > 0)
-                gcode += m_writer.set_temperature(m_config.print_temperature.value, false, m_writer.tool()->id());
+                if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.print_first_layer_temperature.value > 0)
+                    gcode += m_writer.set_temperature(m_config.print_first_layer_temperature.value, false, m_writer.tool()->id());
+                else
+                    gcode += m_writer.set_temperature(m_config.print_temperature.value, false, m_writer.tool()->id());
             else if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.first_layer_temperature.get_at(m_writer.tool()->id()) > 0)
                 gcode += m_writer.set_temperature(m_config.first_layer_temperature.get_at(m_writer.tool()->id()), false, m_writer.tool()->id());
             else if (m_config.temperature.get_at(m_writer.tool()->id()) > 0) { // don't set it if disabled
@@ -5328,14 +5387,7 @@ std::string GCode::extrude_infill(const Print& print, const std::vector<ObjectBy
         m_region = &print.get_print_region(&region - &by_region.front());
         if (!region.infills.empty() &&
             (m_region->config().infill_first == is_infill_first)) {
-            m_config.apply(m_region->config());
-            m_writer.apply_print_region_config(m_region->config());
-            if (m_config.print_temperature > 0)
-                gcode += m_writer.set_temperature(m_config.print_temperature.value, false, m_writer.tool()->id());
-            else if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.first_layer_temperature.get_at(m_writer.tool()->id()) > 0)
-                    gcode += m_writer.set_temperature(m_config.first_layer_temperature.get_at(m_writer.tool()->id()), false, m_writer.tool()->id());
-            else if (m_config.temperature.get_at(m_writer.tool()->id()) > 0) // don't set it if disabled
-                gcode += m_writer.set_temperature(m_config.temperature.get_at(m_writer.tool()->id()), false, m_writer.tool()->id());
+            apply_region_config(gcode);
             ExtrusionEntitiesPtr extrusions{ region.infills };
             chain_and_reorder_extrusion_entities(extrusions, &m_last_pos);
             for (const ExtrusionEntity* fill : extrusions) {
@@ -5354,14 +5406,7 @@ std::string GCode::extrude_ironing(const Print& print, const std::vector<ObjectB
     for (const ObjectByExtruder::Island::Region& region : by_region) {
         if (!region.ironings.empty()) {
             m_region = &print.get_print_region(&region - &by_region.front());
-            m_config.apply(m_region->config());
-            m_writer.apply_print_region_config(m_region->config());
-            if (m_config.print_temperature > 0)
-                gcode += m_writer.set_temperature(m_config.print_temperature.value, false, m_writer.tool()->id());
-            else if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.first_layer_temperature.get_at(m_writer.tool()->id()) > 0)
-                    gcode += m_writer.set_temperature(m_config.first_layer_temperature.get_at(m_writer.tool()->id()), false, m_writer.tool()->id());
-            else if (m_config.temperature.get_at(m_writer.tool()->id()) > 0)
-                gcode += m_writer.set_temperature(m_config.temperature.get_at(m_writer.tool()->id()), false, m_writer.tool()->id());
+            apply_region_config(gcode);
             ExtrusionEntitiesPtr extrusions{ region.ironings };
             chain_and_reorder_extrusion_entities(extrusions, &m_last_pos);
             for (const ExtrusionEntity* fill : extrusions) {
@@ -5678,8 +5723,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &descri
     return gcode;
 }
 
-double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double speed) {
-
+double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath &path, double speed, std::string *comment)
+{
     float factor = 1;
     // set speed
     if (speed < 0) {
@@ -5690,24 +5735,34 @@ double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double spee
         //it's a bit hacky, so if you want to rework it, help yourself.
         if (path.role() == erPerimeter) {
             speed = m_config.get_computed_value("perimeter_speed");
+            if(comment) *comment = "perimeter_speed";
         } else if (path.role() == erExternalPerimeter) {
             speed = m_config.get_computed_value("external_perimeter_speed");
+            if(comment) *comment = "external_perimeter_speed";
         } else if (path.role() == erBridgeInfill) {
             speed = m_config.get_computed_value("bridge_speed");
+            if(comment) *comment = "bridge_speed";
         } else if (path.role() == erInternalBridgeInfill) {
-            speed = m_config.get_computed_value("bridge_speed_internal");
+            speed = m_config.get_computed_value("internal_bridge_speed");
+            if(comment) *comment = "internal_bridge_speed";
         } else if (path.role() == erOverhangPerimeter) {
             speed = m_config.get_computed_value("overhangs_speed");
+            if(comment) *comment = "overhangs_speed";
         } else if (path.role() == erInternalInfill) {
             speed = m_config.get_computed_value("infill_speed");
+            if(comment) *comment = "infill_speed";
         } else if (path.role() == erSolidInfill) {
             speed = m_config.get_computed_value("solid_infill_speed");
+            if(comment) *comment = "solid_infill_speed";
         } else if (path.role() == erTopSolidInfill) {
             speed = m_config.get_computed_value("top_solid_infill_speed");
+            if(comment) *comment = "top_solid_infill_speed";
         } else if (path.role() == erThinWall) {
             speed = m_config.get_computed_value("thin_walls_speed");
+            if(comment) *comment = "thin_walls_speed";
         } else if (path.role() == erGapFill) {
             speed = m_config.get_computed_value("gap_fill_speed");
+            if(comment) *comment = "gap_fill_speed";
             double max_ratio = m_config.gap_fill_flow_match_perimeter.get_abs_value(1.);
             if (max_ratio > 0 && m_region) {
                 //compute intended perimeter flow
@@ -5716,68 +5771,101 @@ double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double spee
                 double current_vol_speed = path.mm3_per_mm * speed;
                 if (max_vol_speed < current_vol_speed) {
                     speed = max_vol_speed / path.mm3_per_mm;
+                    if(comment) *comment = "max_vol_speed (from " + (*comment) + ")";
                 }
             }
         } else if (path.role() == erIroning) {
             speed = m_config.get_computed_value("ironing_speed");
+            if(comment) *comment = "ironing_speed";
         } else if (path.role() == erNone || path.role() == erTravel) {
             assert(path.role() != erNone);
             speed = m_config.get_computed_value("travel_speed");
+            if(comment) *comment = "travel_speed";
         } else if (path.role() == erMilling) {
             speed = m_config.get_computed_value("milling_speed");
+            if(comment) *comment = "milling_speed";
         } else if (path.role() == erSupportMaterial) {
             speed = m_config.get_computed_value("support_material_speed");
+            if(comment) *comment = "support_material_speed";
         } else if (path.role() == erSupportMaterialInterface) {
             speed = m_config.get_computed_value("support_material_interface_speed");
+            if(comment) *comment = "support_material_interface_speed";
         } else if (path.role() == erSkirt) {
             speed = m_config.get_computed_value("brim_speed");
+            if(comment) *comment = "brim_speed";
         } else {
             throw Slic3r::InvalidArgument("Invalid speed");
         }
+    } else {
+        if (comment) *comment = "previous speed";
     }
+    const std::string comment_auto_speed = "(from autospeed)";
     if (m_volumetric_speed != 0. && speed == 0) {
         //if m_volumetric_speed, use the max size for thinwall & gapfill, to avoid variations
         double vol_speed = m_volumetric_speed / path.mm3_per_mm;
         double max_print_speed = m_config.get_computed_value("max_print_speed");
-        if (vol_speed > max_print_speed)
+        if (vol_speed > max_print_speed) {
             vol_speed = max_print_speed;
+            if(comment) *comment = std::string("% of max_volumetric_speed limited by max_print_speed") + std::to_string(vol_speed);
+        } else {
+            if(comment) *comment = std::string("% of max_volumetric_speed ") + std::to_string(vol_speed);
+        }
+
         // if using a % of an auto speed, use the % over the volumetric speed.
         if (path.role() == erPerimeter) {
             speed = m_config.perimeter_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("perimeter_speed ") + *comment;
         } else if (path.role() == erExternalPerimeter) {
             speed = m_config.external_perimeter_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("external_perimeter_speed ") + *comment;
         } else if (path.role() == erBridgeInfill) {
             speed = m_config.bridge_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("bridge_speed ") + *comment;
         } else if (path.role() == erInternalBridgeInfill) {
-            speed = m_config.bridge_speed_internal.get_abs_value(vol_speed);
+            speed = m_config.internal_bridge_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("internal_bridge_speed ") + *comment;
         } else if (path.role() == erOverhangPerimeter) {
             speed = m_config.overhangs_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("overhangs_speed ") + *comment;
         } else if (path.role() == erInternalInfill) {
             speed = m_config.infill_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("infill_speed ") + *comment;
         } else if (path.role() == erSolidInfill) {
             speed = m_config.solid_infill_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("solid_infill_speed ") + *comment;
         } else if (path.role() == erTopSolidInfill) {
             speed = m_config.top_solid_infill_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("top_solid_infill_speed ") + *comment;
         } else if (path.role() == erThinWall) {
             speed = m_config.thin_walls_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("thin_walls_speed ") + *comment;
         } else if (path.role() == erGapFill) {
             speed = m_config.gap_fill_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("gap_fill_speed ") + *comment;
         } else if (path.role() == erIroning) {
             speed = m_config.ironing_speed.get_abs_value(vol_speed);
+            if(comment) *comment = std::string("ironing_speed ") + *comment;
         }
         if (speed == 0) {
             speed = vol_speed;
+            if(comment) *comment = "max_volumetric_speed";
+            if (vol_speed > max_print_speed)
+                if(comment) *comment += " limited by max_print_speed";
         }
     }
-    if (speed == 0) // if you don't have a m_volumetric_speed
+    if (speed == 0) { // if you don't have a m_volumetric_speed
         speed = m_config.max_print_speed.value;
+        if(comment) *comment = "max_print_speed";
+    }
     // Apply small perimeter 'modifier
     //  don't modify bridge speed
     if (factor < 1 && !(is_bridge(path.role()))) {
         float small_speed = (float)m_config.small_perimeter_speed.get_abs_value(m_config.get_computed_value("perimeter_speed"));
-        if (small_speed > 0)
-            //apply factor between feature speed and small speed
+        if (small_speed > 0) {
+            // apply factor between feature speed and small speed
             speed = (speed * factor) + double((1.f - factor) * small_speed);
+            if(comment) *comment += ", reduced by small_perimeter_speed";
+        }
     }
     // Apply first layer modifier
     if (this->on_first_layer()) {
@@ -5785,44 +5873,61 @@ double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double spee
         double first_layer_speed = m_config.first_layer_speed.get_abs_value(base_speed);
         if (path.role() == erInternalInfill || path.role() == erSolidInfill) {
             double first_layer_infill_speed = m_config.first_layer_infill_speed.get_abs_value(base_speed);
-            if (first_layer_infill_speed > 0)
-                speed = std::min(first_layer_infill_speed, speed);
-            else if (first_layer_speed > 0)
-                speed = std::min(first_layer_speed, speed);
+            if (first_layer_infill_speed > 0) {
+                if (first_layer_infill_speed < speed) {
+                    speed = first_layer_infill_speed;
+                    if(comment) *comment += ", reduced to first_layer_infill_speed";
+                }
+            } else if (first_layer_speed > 0) {
+                if (first_layer_speed < speed) {
+                    speed = first_layer_speed;
+                    if(comment) *comment += ", reduced to first_layer_speed";
+                }
+            }
         } else {
-            if (first_layer_speed > 0)
-                speed = std::min(first_layer_speed, speed);
+            if (first_layer_speed > 0 && first_layer_speed < speed) {
+                speed = first_layer_speed;
+                if(comment) *comment += ", reduced to first_layer_speed";
+            }
         }
         double first_layer_min_speed = m_config.first_layer_min_speed.value;
-        speed = std::max(first_layer_min_speed, speed);
+        if (first_layer_min_speed > speed) {
+            speed = first_layer_min_speed;
+            if(comment) *comment += ", increased to first_layer_min_speed";
+        }
     } else if (this->object_layer_over_raft()) {
         const double base_speed = speed;
         double first_layer_over_raft_speed = m_config.first_layer_speed_over_raft.get_abs_value(base_speed);
-        if (first_layer_over_raft_speed > 0)
-            speed = std::min(first_layer_over_raft_speed, speed);
+        if (first_layer_over_raft_speed > 0 && first_layer_over_raft_speed < speed) {
+            speed = first_layer_over_raft_speed;
+            if(comment) *comment += ", reduced to first_layer_over_raft_speed";
+        }
     }
 
     // the first_layer_flow_ratio is added at the last time to take into account everything. So do the compute like it's here.
     double path_mm3_per_mm = path.mm3_per_mm;
-    if (m_layer->bottom_z() < EPSILON)
+    if (m_layer->bottom_z() < EPSILON) {
         path_mm3_per_mm *= this->config().first_layer_flow_ratio.get_abs_value(1);
+    }
     // cap speed with max_volumetric_speed anyway (even if user is not using autospeed)
-    if (m_config.max_volumetric_speed.value > 0 && path_mm3_per_mm > 0) {
-        speed = std::min(m_config.max_volumetric_speed.value / path_mm3_per_mm, speed);
+    if (m_config.max_volumetric_speed.value > 0 && path_mm3_per_mm > 0 && m_config.max_volumetric_speed.value / path_mm3_per_mm < speed) {
+        speed = m_config.max_volumetric_speed.value / path_mm3_per_mm;
+        if(comment) *comment += ", reduced by max_volumetric_speed";
     }
     // filament cap (volumetric & raw speed)
     double filament_max_volumetric_speed = EXTRUDER_CONFIG_WITH_DEFAULT(filament_max_volumetric_speed, 0);
-    if (filament_max_volumetric_speed > 0 && path_mm3_per_mm > 0) {
-        speed = std::min(filament_max_volumetric_speed / path_mm3_per_mm, speed);
+    if (filament_max_volumetric_speed > 0 && path_mm3_per_mm > 0 && filament_max_volumetric_speed / path_mm3_per_mm < speed) {
+        speed = filament_max_volumetric_speed / path_mm3_per_mm;
+        if(comment) *comment += ", reduced by filament_max_volumetric_speed";
     }
     double filament_max_speed = EXTRUDER_CONFIG_WITH_DEFAULT(filament_max_speed, 0);
-    if (filament_max_speed > 0) {
-        speed = std::min(filament_max_speed, speed);
+    if (filament_max_speed > 0 && filament_max_speed < speed) {
+        speed = filament_max_speed;
+        if(comment) *comment += ", reduced by filament_max_speed";
     }
 
     return speed;
 }
-
 
 void GCode::cooldown_marker_init() {
     if (_cooldown_marker_speed[ExtrusionRole::erExternalPerimeter].empty()) {
@@ -5960,10 +6065,10 @@ std::string GCode::_before_extrude(const ExtrusionPath &path, const std::string 
                 }
                 break;
             case erInternalBridgeInfill:
-                if (m_config.bridge_internal_acceleration.value > 0) {
-                    double bridge_internal_acceleration = m_config.get_computed_value("bridge_internal_acceleration");
-                    if (bridge_internal_acceleration > 0) {
-                        acceleration = bridge_internal_acceleration;
+                if (m_config.internal_bridge_acceleration.value > 0) {
+                    double internal_bridge_acceleration = m_config.get_computed_value("internal_bridge_acceleration");
+                    if (internal_bridge_acceleration > 0) {
+                        acceleration = internal_bridge_acceleration;
                         break;
                     }
                 }

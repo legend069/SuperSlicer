@@ -2,46 +2,40 @@
 #define slic3r_GUI_CalibrationPressureAdvDialog_hpp_
 
 #include "CalibrationAbstractDialog.hpp"
+//pressure advance PressureAdv
+namespace Slic3r { 
 
-namespace Slic3r {
+namespace GUI {
 
-	namespace GUI {
-
+class CalibrationPressureAdvDialog : public CalibrationAbstractDialog
+{
 
 	class CalibrationPressureAdvDialog : public CalibrationAbstractDialog {
-        public:
-			CalibrationPressureAdvDialog(GUI_App* app, MainFrame* mainframe)
-				: CalibrationAbstractDialog(app, mainframe, "Pressure Calibration")
-			{
-                create(boost::filesystem::path("calibration") / "filament_pressure", "filament_pressure.html",
-                       wxSize(1600, 600));
-                Centre(wxBOTH);
-		}
-
+public:
+    CalibrationPressureAdvDialog(GUI_App* app, MainFrame* mainframe) : CalibrationAbstractDialog(app, mainframe, "Pressure calibration") 
+    { create(boost::filesystem::path("calibration") / "filament_pressure", "filament_pressure.html", wxSize(1600, 600)); Centre(wxBOTH);}
+    virtual ~CalibrationPressureAdvDialog(){ }
+    
 			virtual ~CalibrationPressureAdvDialog() { }
 
-		protected:
-            void create_buttons(wxStdDialogButtonSizer *sizer) override;
-            void create_geometry(wxCommandEvent &event_args);
-            double      magical_scaling(double, double, double, double, double, double, double);
+protected:
+    void create_buttons(wxStdDialogButtonSizer* sizer) override;
+    void create_geometry(wxCommandEvent& event_args);
+    double magical_scaling(double, double, double, double, double, double, double );
 
-			wxComboBox* firstPa; //first layer PA 
+    //i've set choice boxes for now just to save me typing numbers in when i want to test it :)
+    wxComboBox* firstPa;    //first layer PA -user manual entry
+    wxComboBox* startPa;    //starting PA value -user manual entry
+    //wxTextCtrl* firstPa;  //edit to suit for manual data entry,
+    wxComboBox* endPa;      //ending PA value -user manual entry
+    wxComboBox* paIncrement;//increment PA by this value -user manual entry~~ or have drop down box ?
+    wxComboBox* erPa;       //extrusion role Pressure/Linear Advance -user choice select
+    wxComboBox* nbRuns;
+    wxCheckBox* enableST;   // checkbox for "smooth_time" - klipper only feature?
 
-            wxComboBox* startPa; // starting PA value
+};
 
-            wxComboBox *endPa; // ending PA value
-
-            wxComboBox *paIncrement; // increment PA by this value
-
-            wxComboBox *erPa; // extrusion role Pressure/Linear Advance 
-
-            wxComboBox *nbRuns;
-
-            wxCheckBox *enableST; // checkbox for smooth_time
-
-	};
-
-	}
-}
+} // namespace GUI
+} // namespace Slic3r
 
 #endif
