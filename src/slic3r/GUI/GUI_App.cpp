@@ -1400,6 +1400,8 @@ bool GUI_App::on_init_inner()
 
     obj_list()->set_min_height();
 
+    show_printer_webview_tab();
+
     update_mode(); // update view mode after fix of the object_list size
 
 #ifdef __APPLE__
@@ -3763,5 +3765,10 @@ void GUI_App::start_download(std::string url) {
     }
 #endif // __WXMSW__
          
+    void GUI_App::show_printer_webview_tab()
+    {
+        mainframe->show_printer_webview_tab(preset_bundle->physical_printers.get_selected_printer_config());
+    }
+
          } // GUI
          } //Slic3r

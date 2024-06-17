@@ -360,7 +360,7 @@ void FreqChangedParams::sys_color_changed()
     for (auto btn: m_empty_buttons)
         btn->msw_rescale();
 
-    wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
+//    wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
 }
 
 FreqChangedParams::FreqChangedParams(wxWindow *parent) : OG_Settings(parent, false)
