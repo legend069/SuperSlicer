@@ -1889,9 +1889,9 @@ void GUI_App::recreate_GUI(const wxString& msg_name)
     mainframe = new MainFrame();
     if (is_editor())
         // hide settings tabs after first Layout
-        mainframe->select_tab(MainFrame::TabPosition::tpLastPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
     else
-        mainframe->select_tab(MainFrame::TabPosition::tpPlaterGCode);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
     // Propagate model objects to object list.
     sidebar().obj_list()->init_objects();
     SetTopWindow(mainframe);
