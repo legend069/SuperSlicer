@@ -320,7 +320,6 @@ void MainFrame::update_icon() {
         {
             m_tabpanel->SetPageImage(0, 0);
             m_tabpanel->SetPageImage(1, 1);
-            m_tabpanel->SetPageImage(2, 2);
             m_tabpanel->SetPageImage(3, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 3);
             m_tabpanel->SetPageImage(4, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 4);
             m_tabpanel->SetPageImage(5, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 8 : 5);
@@ -334,7 +333,7 @@ void MainFrame::update_icon() {
             m_tabpanel->SetPageImage(1, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 4);
             m_tabpanel->SetPageImage(2, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 5);
         }
-        break;
+        break; 
     }
     case ESettingsLayout::GCodeViewer:
     {
@@ -357,11 +356,10 @@ static void append_tab_menu_items_to_menubar(wxMenuBar* bar, PrinterTechnology p
     if (layout == MainFrame::ESettingsLayout::Tabs) {
         bar->Append(new wxMenu(), pref() + _L("3D view") + suff());
         bar->Append(new wxMenu(),  _L("GCode preview"));
-        bar->Append(new wxMenu(),  _L("Device"));
         has_marker = true;
         // Add separator
         bar->Append(new wxMenu(), "          ");
-        bar->EnableTop(MAINFRAME_MENU_ITEM_COUNT + 4, false);
+        bar->EnableTop(MAINFRAME_MENU_ITEM_COUNT + 3, false);
     } else if (layout == MainFrame::ESettingsLayout::Old) {
         bar->Append(new wxMenu(), pref() + _L("Platter") + suff());
         has_marker = true;
@@ -1022,7 +1020,6 @@ void MainFrame::init_tabpanel()
         std::vector<std::string> icon_list =  {
             "tab_editor_menu",
             "tab_preview_menu",
-            "tab_device_active",
             "cog",
             "spool",
             "printer",
@@ -1034,7 +1031,6 @@ void MainFrame::init_tabpanel()
             icon_list = {
                 "tab_editor_menu",
                 "tab_preview_menu",
-                "tab_device_active",
                 "cog",
                 "spool",
                 "printer",
@@ -1097,6 +1093,7 @@ void MainFrame::init_tabpanel()
                     this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
                     this->m_plater->select_view_3D("Preview");
                     this->m_plater->refresh_print();
+                    this->m_plater->Refresh();
                 } else
                     this->m_plater->select_view_3D("Preview");
             } else if (bt_idx_sel == 2) {

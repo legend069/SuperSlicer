@@ -4195,9 +4195,12 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
 
 void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
 {
-    if( ( wxGetApp().app_config->get("auto_switch_preview") == "1" || (wxGetApp().app_config->get("auto_switch_preview") == "2" && main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) )
-        && !this->preview->can_display_gcode())
+    if ((wxGetApp().app_config->get("auto_switch_preview") == "1" ||
+         (wxGetApp().app_config->get("auto_switch_preview") == "2" &&
+          main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode)) &&
+        !this->preview->can_display_gcode()) {
         main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
+    }
 
     if (view3D->is_dragging()) // updating scene now would interfere with the gizmo dragging
         delayed_scene_refresh = true;

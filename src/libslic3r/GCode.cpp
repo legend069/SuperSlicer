@@ -1911,7 +1911,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
      this->m_throw_if_canceled();
 
     // Collect custom seam data from all objects.
-    print.set_status(0, L("Computing seam visibility areas: object %s / %s"), {"1", std::to_string(print.objects().size())}, PrintBase::SlicingStatus::FORCE_SHOW | PrintBase::SlicingStatus::SECONDARY_STATE);
+    print.set_status(0, L("Computing seam visibility areas: object %s / %s"), {"1", std::to_string(print.objects().size())}, PrintBase::SlicingStatus::SECONDARY_STATE);
     m_seam_placer.init(print, this->m_throw_if_canceled);
 
     //activate first extruder is multi-extruder and not in start-gcode
@@ -5228,7 +5228,7 @@ std::string GCode::extrude_path(const ExtrusionPath &path, const std::string &de
     const double max_gcode_per_second = this->config().max_gcode_per_second.value;
     double current_scaled_min_length = scaled_min_length;
     if (max_gcode_per_second > 0) {
-        current_scaled_min_length = std::max(current_scaled_min_length, scale_(_compute_speed_mm_per_sec(path, speed_mm_per_sec)) / max_gcode_per_second);
+        current_scaled_min_length = std::max(current_scaled_min_length, scale_(_compute_speed_mm_per_sec(path, speed_mm_per_sec, nullptr)) / max_gcode_per_second);
     }
     simplifed_path.polyline.ensure_fitting_result_valid();
     if (current_scaled_min_length > 0 && !m_last_too_small.empty()) {
@@ -6123,7 +6123,8 @@ std::string GCode::_before_extrude(const ExtrusionPath &path, const std::string 
     }
 
     // compute speed here to be able to know it for travel_deceleration_use_target
-    speed = _compute_speed_mm_per_sec(path, speed);
+    std::string speed_comment = "";
+    speed = _compute_speed_mm_per_sec(path, speed, m_config.gcode_comments ? &speed_comment : nullptr);
         
     if (m_config.travel_deceleration_use_target){
         if (travel_acceleration <= acceleration || travel_acceleration == 0 || acceleration == 0) {
