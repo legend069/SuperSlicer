@@ -6905,10 +6905,10 @@ bool Plater::search_string_getter(int idx, const char **label, const char **tool
 
 void Plater::on_extruders_change(size_t num_extruders)
 {
-    Tab *              tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
-    DynamicPrintConfig config      = tab_printer->m_preset_bundle->full_config();
-
-    auto &choices = sidebar().combos_filament();
+    Tab* tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+    DynamicPrintConfig config = tab_printer->m_preset_bundle->full_config();
+    
+    auto& choices = sidebar().combos_filament();
 
     if (num_extruders == choices.size())
         return;
@@ -6954,13 +6954,57 @@ bool Plater::update_filament_colors_in_full_config()
     return true;
 }
 
+void Plater::filament_notification_plater() {
+    const PresetCollection& filaments = wxGetApp().preset_bundle->filaments;
+    std::string filament_name = filaments.get_selected_preset_name();
+    std::string recommendation_message;
+    
+    std::map<std::vector<std::string>, std::string> filament_to_plate = {
+        {{"CR-3D PA", "CR-3D Nylon"}, "---- Recommendation ----\n- MagnetiCR Swap: FR4\n"},
+        {{"CR-3D PC", "CR-3D PP"}, "---- Recommendation ----\n- MagnetiCR Swap:FR4 | PowdCR Coated PEI\n"},
+        {{"CR-3D PETG", "CR-3D ABS", "CR-3D ASA", "CR-3D TPU", "CR-3D Bambus", "CR-3D Flex", "CR-3D Soft", "CR-3D PLA", "CR-3D CRystal"},
+            "---- Recommendation ----\n- MagnetiCR Swap: FR4 | PowdCR Coated PEI | CaRbon\n"}
+    };
+    
+    std::map<std::vector<std::string>, std::string> filament_to_nozzle = {
+        {{"CR-3D ABS FibCR20", "CR-3D PC FibCR20", "CR-3D PA 6 G4 (Glasfaser)", "CR-3D PA 6 C4 (Carbon)", "CR-3D PA12 CRbon15", "CR-3DPP FibCR20", "CR-3D Flex FibCR20", "CR-3D Bambus", "CR-3D ABS ESD", "CR-3D TPU ESD", "CR-3D Nylon ESD", "CR-3D PETG ESD"},
+            "- Print surface: Min. nozzle size of 0.6 & hardened steel nozzle"}
+    };
+    
+    bool found_plate_recommendation = false;
+    
+    for (const auto& [filaments, plate_recommendation] : filament_to_plate) {
+        for (const auto& filament : filaments) {
+            if (filament_name.rfind(filament, 0) == 0) {
+                recommendation_message = plate_recommendation;
+                found_plate_recommendation = true;
+                break;
+            }
+        }
+        if (found_plate_recommendation) break;
+    }
+    
+    for (const auto& [filaments, nozzle_recommendation] : filament_to_nozzle) {
+        for (const auto& filament : filaments) {
+            if (filament_name.rfind(filament, 0) == 0) {
+                recommendation_message += "\n" + nozzle_recommendation;
+                break;
+            }
+        }
+    }
+    get_notification_manager()->push_notification(GUI::format(_L(recommendation_message)));
+
+}
+
 void Plater::on_config_change(const DynamicConfig &config)
 {
-    bool                     update_scheduled  = false;
-    bool                     bed_shape_changed = false;
-    std::vector<std::string> diff              = p->config->diff(config);
+    bool update_scheduled = false;
+    bool bed_shape_changed = false;
+    std::vector<std::string> diff = p->config->diff(config);
+    const PresetCollection& filaments = wxGetApp().preset_bundle->filaments;
+    std::string filament_name = filaments.get_selected_preset_name();
     
-    for (const std::string &opt_key : diff) {
+    for (const std::string& opt_key : diff) {
         if (opt_key == "nozzle_diameter") {
             if (p->config->option<ConfigOptionFloats>(opt_key)->size() >
                 config.option<ConfigOptionFloats>(opt_key)->size()) {
@@ -6971,6 +7015,7 @@ void Plater::on_config_change(const DynamicConfig &config)
         }
         if (opt_key == "filament_colour") {
             update_scheduled = true; // update should be scheduled (for update 3DScene) #2738
+            filament_notification_plater();
 
             if (update_filament_colors_in_full_config()) {
                 p->sidebar->obj_list()->update_extruder_colors();
