@@ -255,4 +255,3 @@ void Notebook::EmitEventSelChanged(int16_t new_sel) {
     }
 }
  
-

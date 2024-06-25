@@ -1276,7 +1276,7 @@ void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc)
         // No physical printer is selected
     } else {
          if (m_tabpanel->GetPageText(m_tabpanel->GetSelection()) == _L("Device"))
-             select_tab(size_t(0));
+             select_tab(TabPosition::tpDevice, false);
          remove_printer_webview_tab();
      }
  }
