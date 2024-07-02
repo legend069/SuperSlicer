@@ -937,7 +937,7 @@ struct MyContext : public ConfigOptionResolver {
                 if (!vector_opt->is_extruder_size())
                     ctx->throw_exception("Referencing a vector variable when scalar is expected", opt.it_range);
             }
-            const ConfigOptionDef* opt_def;
+            const ConfigOptionDef* opt_def = nullptr;
             switch (opt.opt->type()) {
             case coFloat:   output.set_d(opt.opt->get_float());   break;
             case coInt:     output.set_i(opt.opt->get_int());     break;
@@ -959,7 +959,7 @@ struct MyContext : public ConfigOptionResolver {
 			        opt_def = print_config_def.get(opt_key);
 			        assert(opt_def != nullptr);
 			        double v = opt.opt->get_float() * 0.01; // percent to ratio
-			        for (;;) {
+                    if (opt_def) for (;;) {
 			        	const ConfigOption *opt_parent = opt_def->ratio_over.empty() ? nullptr : ctx->resolve_symbol(opt_def->ratio_over);
 			        	if (opt_parent == nullptr)
 			                ctx->throw_exception("FloatOrPercent variable failed to resolve the \"ratio_over\" dependencies", opt.it_range);
@@ -988,7 +988,7 @@ struct MyContext : public ConfigOptionResolver {
 		    }
             case coInts:
                 opt_def = print_config_def.get(opt_key);
-                if (opt_def->is_vector_extruder) {
+                if (opt_def && opt_def->is_vector_extruder) {
                     output.set_i(int(((ConfigOptionVectorBase*)opt.opt)->get_float(int(ctx->current_extruder_id))));
                     break;
                 } else

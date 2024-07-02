@@ -343,7 +343,7 @@ public:
 
 void FreqChangedParams::msw_rescale()
 {
-    m_og->msw_rescale();
+    if(m_og) m_og->msw_rescale();
     for(auto& entry : m_og_other)
         entry.second->msw_rescale();
 
@@ -353,7 +353,7 @@ void FreqChangedParams::msw_rescale()
 
 void FreqChangedParams::sys_color_changed()
 {
-    m_og->sys_color_changed();
+    if(m_og) m_og->sys_color_changed();
     for (auto& entry : m_og_other)
         entry.second->sys_color_changed();
 
