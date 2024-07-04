@@ -29,141 +29,7 @@ static wxSize get_screen_size(wxWindow* window)
 namespace Slic3r {
 namespace GUI {
 
-void CalibrationPressureAdvDialog::create_buttons(wxStdDialogButtonSizer* buttons){
-
-    const DynamicPrintConfig* printer_config = this->gui_app->get_tab(Preset::TYPE_PRINTER)->get_config();
-    GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value; //there a better way to only load the flavor ?
-
-    wxString choices_first_layerPA[] = {
-        "0.025",
-        "0.030",
-        "0.035",
-        "0.040",
-        "0.045",
-        "0.050"
-    };
-    firstPa = new wxComboBox(this, wxID_ANY, wxString{ "0.040" }, wxDefaultPosition, wxDefaultSize, 6, choices_first_layerPA);
-    firstPa->SetToolTip(_L("Select the first layer PA value to be used for the first layer only."));
-    firstPa->SetSelection(3);// starting at 0!
-
-
-    wxString choices_start_PA[] = {
-        "0.0",
-        "0.010",
-        "0.020",
-        "0.030",
-        "0.040",
-        "0.050"
-    };
-    startPa = new wxComboBox(this, wxID_ANY, wxString{ "0.0" }, wxDefaultPosition, wxDefaultSize, 6, choices_start_PA);
-    startPa->SetToolTip(_L("Select the starting PA value to be used."));
-    startPa->SetSelection(0);
-
-    wxString choices_end_PA[] = {
-        "0.10",
-        "0.20",
-        "0.30",
-        "0.40",
-        "0.50",
-        "0.60",
-        "0.70",
-        "0.80",
-        "0.90",
-        "1.00"
-    };
-    endPa = new wxComboBox(this, wxID_ANY, wxString{ "0.10" }, wxDefaultPosition, wxDefaultSize, 10, choices_end_PA);
-    endPa->SetToolTip(_L("Select the ending PA value to be used."));
-    endPa->SetSelection(0);
-
-    wxString choices_increment_PA[] = {
-        "0.0010",///1000 hits
-        "0.0025",
-        "0.0035",
-        "0.005", //200 hits
-        "0.006",
-        "0.007",
-        "0.01",//100 hits
-        "0.1"//10 hits
-    };
-    paIncrement = new wxComboBox(this, wxID_ANY, wxString{ "0.0025" }, wxDefaultPosition, wxDefaultSize, 8, choices_increment_PA);
-    paIncrement->SetToolTip(_L("Select the PA increment amount."));
-    paIncrement->SetSelection(1);
-
-    wxString choices_extrusion_role[] = {
-    "InternalInfill",
-    "BridgeInfill",
-    "ExternalPerimeter",
-    "GapFill",
-    "InternalBridgeInfill",
-    "Ironing",
-    "OverhangPerimeter",
-    "Perimeter",
-    "SolidInfill",
-    "SupportMaterial",
-    "SupportMaterialInterface",
-    "ThinWall",
-    "TopSolidInfill",
-    "FirstLayer",
-    "Verify"//if this selected, disable/hide other buttons?
-            // 'verify' this choice will require the user to manually add in the PA numbers with the GUI from their realworld tests.
-            //      the code will then load a 90_bend for each ER role, and give each bend seperate ER speed/width/ect values
-            //      when printed and user added in the PA numbers correctly. it should make it easy to spot what ER roles need adjusting.
-            //TODO: once the main pressure advance feature is added, this can pull that values and insert here to save the manual adding in the numbers.
-    };
-    erPa = new wxComboBox(this, wxID_ANY, wxString{ "InternalInfill" }, wxDefaultPosition, wxDefaultSize, 15, choices_extrusion_role);
-    erPa->SetToolTip(_L("Select the extrusion role you want to generate a calibration for"));
-    erPa->SetSelection(0);
-
-
-    wxString number_of_runs[] = {"1","2","3","4","5"};
-    nbRuns = new wxComboBox(this, wxID_ANY, wxString{ "1" }, wxDefaultPosition, wxDefaultSize, 5, number_of_runs);
-    nbRuns->SetToolTip(_L("Select the number of tests to generate, max 2 is reccomended due to bed size limits"));
-    nbRuns->SetSelection(0);
-
-    enableST = new wxCheckBox(this, wxID_ANY, _L(""), wxDefaultPosition, wxDefaultSize );
-    enableST->SetToolTip(_L("generate smooth time values"));
-    enableST->SetValue(false);
-
-    // TODO : add another row of boxes for the 2nd/3rd ect of tests to create, user adjust parameters of new row for the 2nd/3rd test
-    //      this will allow multi plate PA tests to be run
-
-
-    std::string prefix = (gcfMarlinFirmware == flavor) ? " LA " : ((gcfKlipper == flavor || gcfRepRap == flavor) ? " PA " : "unsupported firmware type");
-
-    if (prefix != "unsupported firmware type"){
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Number of tests: ")));
-        buttons->Add(nbRuns);
-        buttons->AddSpacer(15);
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L("First Layers" + prefix + "value: ")));
-        buttons->Add(firstPa);
-        buttons->AddSpacer(15);
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Starting" + prefix + "value: ")));
-        buttons->Add(startPa);
-        buttons->AddSpacer(15);
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Ending" + prefix + "value: ")));
-        buttons->Add(endPa);
-        buttons->AddSpacer(15);
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix + "increments: ")));
-        buttons->Add(paIncrement);
-        buttons->AddSpacer(15);
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L("Extrusion role: ")));
-        buttons->Add(erPa);
-        if (gcfKlipper == flavor) {
-            buttons->AddSpacer(15);
-            buttons->Add(new wxStaticText(this, wxID_ANY, _L("Smooth time: ")));
-            buttons->Add(enableST);
-        }
-        buttons->AddSpacer(25);
-
-        wxButton* bt = new wxButton(this, wxID_FILE1, _L("Generate"));
-        bt->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::create_geometry, this);
-        buttons->Add(bt);
-        //this->CenterOnParent();
-    }
-    else{
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix)));
-    }
-}
+//BUG: custom gcode ' between extrusion role changes' should that be before or after region gcode?
 
 void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     /*
@@ -174,29 +40,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     erPa
     enableST
     */
-    double first_pa, start_pa, end_pa, pa_increment = 0.01;
-    bool smooth_time = enableST->IsChecked();
-    size_t nb_runs = nbRuns->GetSelection();
-    nb_runs=nb_runs+1;
-    first_pa = firstPa->GetValue().ToDouble(&first_pa);
-    
-    if (!firstPa->GetValue().ToDouble(&first_pa)) {
-        first_pa = 0.025;
-    }
-    start_pa = startPa->GetValue().ToDouble(&start_pa);
-    if (!startPa->GetValue().ToDouble(&start_pa)) {
-        start_pa = 0.0;
-    }
-    end_pa = endPa->GetValue().ToDouble(&end_pa);
-    if (!endPa->GetValue().ToDouble(&end_pa)) {
-        end_pa = 1.0;
-    }
-    pa_increment = paIncrement->GetValue().ToDouble(&pa_increment);
-    if (!paIncrement->GetValue().ToDouble(&pa_increment)) {
-        pa_increment = 0.05;
-    }    
-
-    std::string extrusion_role = erPa->GetValue().ToStdString();
+   
     std::string  choice_extrusion_role[] = {
     "InternalInfill",
     "BridgeInfill",
@@ -284,49 +128,6 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     {"FirstLayer", "first_layer_speed"}
     };
 
-/*
-struct ExtrusionSettings {// think a struct is better instead of all the maps ?
-    std::string extrusionWidth;
-    std::string acceleration;
-    std::string speed;
-};
-
-    std::unordered_map<std::string, ExtrusionSettings> extrusionRoleToOptionKey = {
-        {"InternalInfill", {"infill_extrusion_width", "infill_acceleration", "placeholder"}},
-        //{"BridgeInfill", {"placeholder", "bridge_acceleration", "placeholder"}},//special calc required
-        {"ExternalPerimeter", {"external_perimeter_extrusion_width", "external_perimeter_acceleration"}},
-        //{"GapFill", {"placeholder", "gap_fill_acceleration"}},//special calc required
-        //{"InternalBridgeInfill", {"placeholder", "bridge_internal_acceleration"}},//special calc required
-        {"Ironing", {"top_infill_extrusion_width", "ironing_acceleration"}},
-        {"OverhangPerimeter", {"overhangs_width", "overhangs_acceleration"}},
-        {"Perimeter", {"perimeter_extrusion_width", "perimeter_acceleration"}},
-        {"SolidInfill", {"solid_infill_extrusion_width", "solid_infill_acceleration"}},
-        {"SupportMaterial", {"support_material_extrusion_width", "support_material_acceleration"}},
-        {"SupportMaterialInterface", {"support_material_extrusion_width", "support_material_interface_acceleration"}},
-        {"ThinWall", {"external_perimeter_extrusion_width", "thin_walls_acceleration"}},
-        {"TopSolidInfill", {"top_infill_extrusion_width", "top_solid_infill_acceleration"}}
-    };*/
-    
-    int countincrements = 0;
-    int sizeofarray = static_cast<int>((end_pa - start_pa) / pa_increment) + 2;//'+2' needed for odd/even numbers 
-    std::vector<double> pa_values(sizeofarray);
-    std::vector<std::string> c_pa_values_c(sizeofarray);
-    
-    double incremented_pa_value = start_pa;
-    while (incremented_pa_value <= end_pa + pa_increment / 2) {//this makes a number to be used to load x number of 90 bend models for the PA test.
-        if (incremented_pa_value <= end_pa) {
-            double rounded_Pa = std::round(incremented_pa_value * 1000000.0) / 1000000.0;
-            pa_values[countincrements] = rounded_Pa;//store PA numbers in array to be used later.
-            c_pa_values_c[countincrements] = rounded_Pa;
-            countincrements++;
-            incremented_pa_value += pa_increment;
-        }
-        else { 
-            pa_values[countincrements] = end_pa;
-            countincrements++;//failsafe if werid input numbers are provided that can't add the "ending pa" number to the array.
-            break; }
-        
-    }// is there a limit of how many models SS can load ? might be good to set a failsafe just so it won't load 10k+ models...
 
     Plater* plat = this->main_frame->plater();
     Model& model = plat->model();
@@ -340,79 +141,62 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     }
     
     std::vector<std::string> items;
-    for (size_t i = 0; i < nb_runs; i++){
+    //for (size_t i = 0; i < nb_runs; i++){
+    for (int i = 0; i < currentTestCount; i++) {
         items.emplace_back((boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "base_plate.3mf").string());
     }
     std::vector<size_t> objs_idx = plat->load_files(items, true, false, false, false);
-    assert(objs_idx.size() == nb_runs);
+    //assert(objs_idx.size() == nb_runs);
+    assert(objs_idx.size() == currentTestCount);
     const DynamicPrintConfig* print_config = this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->get_config();
     const DynamicPrintConfig* filament_config = this->gui_app->get_tab(Preset::TYPE_FFF_FILAMENT)->get_config();
     const DynamicPrintConfig* printer_config = this->gui_app->get_tab(Preset::TYPE_PRINTER)->get_config();
+
+    DynamicPrintConfig full_print_config;
+    full_print_config.apply(*print_config);
+    full_print_config.apply(*printer_config);
+    full_print_config.apply(*filament_config);
     
     // --- scale ---
     //models is created for nozzles from 0.1-2mm walls should be nozzle_size*4 spaced, scale xy model by widths down is futher
+
+    GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
     const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
     assert(nozzle_diameter_config->values.size() > 0);
     double nozzle_diameter = nozzle_diameter_config->values[0];//get extruderID too?
-    double first_layer_height = print_config->get_abs_value("first_layer_height", nozzle_diameter);
-    double base_layer_height = print_config->get_computed_value("layer_height",0);
-    GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-    
+
+    double first_layer_height = full_print_config.get_computed_value("first_layer_height");
+    double base_layer_height = full_print_config.get_computed_value("layer_height");
     double er_width = print_config->get_abs_value("solid_infill_extrusion_width", nozzle_diameter);
-    double er_accel = print_config->get_abs_value("solid_infill_acceleration", nozzle_diameter);
-    double er_speed = print_config->get_abs_value("solid_infill_speed", nozzle_diameter);
+    double er_accel = full_print_config.get_computed_value("solid_infill_acceleration");
+    double er_speed = full_print_config.get_computed_value("solid_infill_speed");
     double er_spacing = print_config->get_abs_value("external_perimeter_extrusion_spacing",1.0);
 
     double default_er_width = print_config->get_abs_value("extrusion_width", nozzle_diameter);
-    double default_er_speed = print_config->get_abs_value("default_speed", nozzle_diameter);
-    double default_er_accel = print_config->get_abs_value("default_acceleration", nozzle_diameter);
+    double default_er_speed = full_print_config.get_computed_value("default_speed");
+    double default_er_accel = full_print_config.get_computed_value("default_acceleration");
     double default_er_spacing = print_config->get_abs_value("extrusion_spacing", nozzle_diameter);
-    double spacing_ratio = print_config->get_abs_value("perimeter_overlap",1.0);
-    double spacing_ratio_external = print_config->get_abs_value("external_perimeter_overlap",1.0);
+    double spacing_ratio = full_print_config.get_computed_value("perimeter_overlap");
+    double spacing_ratio_external = full_print_config.get_computed_value("external_perimeter_overlap");
     double filament_max_overlap = filament_config->get_computed_value("filament_max_overlap",0);//maybe check for extruderID ?
 
-    if (extrusion_role == "Verify") {
-        countincrements = 13;
-        er_width = default_er_width;
-        er_spacing = default_er_spacing;
-        er_width = er_width * 100 / nozzle_diameter;
-        er_width = std::round(er_width * 100.0) / 100.0;  // Change number to percentage and round
-    }
-    else{
-        for (int i = 0; i < sizeof(choice_extrusion_role) / sizeof(choice_extrusion_role[0]); i++) {
-            
-            if (er_width_ToOptionKey.find(extrusion_role) != er_width_ToOptionKey.end()) {
 
-                er_width = print_config->get_abs_value(er_width_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);//look at maps at match speed/width ect to the selecter ER role
-                er_speed = print_config->get_abs_value(er_speed_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);//need to load this here??
-                er_accel = print_config->get_abs_value(er_accel_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);//need to load this here??
-                er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);
+    // --- translate ---
+    //bool autocenter = gui_app->app_config->get("autocenter") == "1";
+    bool has_to_arrange = plat->config()->opt_float("init_z_rotate") != 0;
+    has_to_arrange = true;
 
-                //potential BUG if any of the values are 0 everything else would fail, need to pull the default value too and assign that?
-                if(er_width == 0){er_width =default_er_width; }
-                if(er_speed == 0){er_speed =default_er_speed; }
-                if(er_accel == 0){er_accel =default_er_accel; }
-                if(er_spacing == 0){er_spacing = default_er_spacing; }
-                
-                er_width = er_width * 100 / nozzle_diameter;
-                er_width = std::round(er_width * 100.0) / 100.0;
-            } else {
-                er_width = print_config->get_abs_value("solid_infill_extrusion_width", nozzle_diameter); //used for gapfill_width/bridges selection. TODO: add the bits for this here since gapfill/bridges need special calculations
-                er_width = er_width * 100 / nozzle_diameter;
-                er_width = std::round(er_width * 100.0) / 100.0;  // Change number to percentage and round
-
-            }
-        
-        }
-    }
+    
+    /*if (!autocenter) {
+        const ConfigOptionPoints* bed_shape = printer_config->option<ConfigOptionPoints>("bed_shape");
+        Vec2d bed_size = BoundingBoxf(bed_shape->values).size();
+        Vec2d bed_min = BoundingBoxf(bed_shape->values).min;
+        model.objects[objs_idx[0]]->translate({ bed_min.x() + bed_size.x() / 2, bed_min.y() + bed_size.y() / 2, 5 * xyzScale - 5 });
+    }*/
     
 
-    //-- magical scaling is done here :)
-    //the 90_bend models need to be scaled correctly so there is no 'gapfill' since gapfill will effect results.
-    double xyzScale = nozzle_diameter / 0.4;
-    double er_width_to_scale = magical_scaling(nozzle_diameter,er_width,filament_max_overlap,spacing_ratio,spacing_ratio_external,base_layer_height,er_spacing);
-    //-- magical scaling 
-    //std::vector < std::vector<ModelObject*>> pressure_tower;
+    std::vector < std::vector<ModelObject*>> pressure_tower;
+    bool smooth_time = false;
 
     std::string nozzle_diameter_str = std::to_string(nozzle_diameter);
     nozzle_diameter_str.erase(nozzle_diameter_str.find_last_not_of('0') + 2, std::string::npos);
@@ -431,10 +215,102 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     }*/
 
     std::string bend_90_nozzle_size_3mf = "90_bend_" + nozzle_diameter_str + ".3mf";
+    std::string extrusion_role = dynamicExtrusionRole[0]->GetValue().ToStdString();
 
-    for (size_t id_item = 0; id_item < nb_runs; id_item++) {
-        
-        //pressure_tower.emplace_back();
+    for (int id_item = 0; id_item < currentTestCount; id_item++) {
+        //need to move this to another function.....
+        wxString firstPaValue = dynamicFirstPa[id_item]->GetValue();
+        wxString startPaValue = dynamicStartPa[id_item]->GetValue();
+        wxString endPaValue = dynamicEndPa[id_item]->GetValue();
+        wxString paIncrementValue = dynamicPaIncrement[id_item]->GetValue();
+        wxString erPaValue = dynamicExtrusionRole[id_item]->GetValue();
+        smooth_time = dynamicEnableST[id_item]->GetValue();
+
+        double first_pa = wxAtof(firstPaValue);
+        double start_pa = wxAtof(startPaValue);
+        double end_pa = wxAtof(endPaValue);
+        double pa_increment = wxAtof(paIncrementValue);
+        extrusion_role = dynamicExtrusionRole[id_item]->GetValue().ToStdString();
+
+        int countincrements = 0;
+        int sizeofarray = static_cast<int>((end_pa - start_pa) / pa_increment) + 2;//'+2' needed for odd/even numbers 
+        std::vector<double> pa_values(sizeofarray);
+        std::vector<std::string> c_pa_values_c(sizeofarray);
+
+        double incremented_pa_value = start_pa;
+        while (incremented_pa_value <= end_pa + pa_increment / 2) {//this makes a number to be used to load x number of 90 bend models for the PA test.
+            if (incremented_pa_value <= end_pa) {
+                double rounded_Pa = std::round(incremented_pa_value * 1000000.0) / 1000000.0;
+                pa_values[countincrements] = rounded_Pa;//store PA numbers in array to be used later.
+                c_pa_values_c[countincrements] = rounded_Pa;
+                countincrements++;
+                incremented_pa_value += pa_increment;
+            }
+            else { 
+                pa_values[countincrements] = end_pa;
+                countincrements++;//failsafe if werid input numbers are provided that can't add the "ending pa" number to the array.
+            break; }
+
+        }// is there a limit of how many models SS can load ? might be good to set a failsafe just so it won't load 10k+ models...
+
+        std::string set_advance_prefix ="";
+        if (gcfKlipper == flavor) {
+            if(smooth_time == false){
+                set_advance_prefix = "SET_PRESSURE_ADVANCE ADVANCE=";
+            }
+            else{
+                set_advance_prefix = "SET_PRESSURE_ADVANCE SMOOTH_TIME=";
+            }
+        }
+        else if (gcfMarlinFirmware == flavor) {
+            set_advance_prefix = "M900 K";
+        }
+        else if(gcfRepRap == flavor){
+            set_advance_prefix = "M572 S";
+        }
+
+        if (extrusion_role == "Verify") {
+            countincrements = 13;
+            er_width = default_er_width;
+            er_spacing = default_er_spacing;
+            er_width = er_width * 100 / nozzle_diameter;
+            er_width = std::round(er_width * 100.0) / 100.0;
+        }
+        else{
+            for (int i = 0; i < sizeof(choice_extrusion_role) / sizeof(choice_extrusion_role[0]); i++) {
+
+                if (er_width_ToOptionKey.find(extrusion_role) != er_width_ToOptionKey.end()) {
+
+                    //look at maps to match speed/width ect to the selected ER role
+                    er_width = print_config->get_abs_value(er_width_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);//look at maps to match speed/width ect to the selected ER role
+                    er_speed = full_print_config.get_computed_value(er_speed_ToOptionKey[extrusion_role].c_str());
+                    er_accel = full_print_config.get_computed_value(er_accel_ToOptionKey[extrusion_role].c_str());
+                    er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);
+
+                    //potential BUG if any of the values are 0 everything else would fail, need to pull the default value too and assign that?
+                    if(er_width == 0){er_width =default_er_width; }
+                    if(er_speed == 0){er_speed =default_er_speed; }
+                    if(er_accel == 0){er_accel =default_er_accel; }
+                    if(er_spacing == 0){er_spacing = default_er_spacing; }
+
+                    er_width = er_width * 100 / nozzle_diameter;
+                    er_width = std::round(er_width * 100.0) / 100.0;
+                } else {
+                    er_width = print_config->get_abs_value("solid_infill_extrusion_width", nozzle_diameter); //used for gapfill_width/bridges selection. TODO: add the bits for this here since gapfill/bridges need special calculations
+                    er_width = er_width * 100 / nozzle_diameter;
+                    er_width = std::round(er_width * 100.0) / 100.0;
+
+                }
+            }
+        }
+
+        //-- magical scaling is done here :)
+        //the 90_bend models need to be scaled correctly so there is no 'gapfill' since gapfill will effect results.
+        double xyzScale = nozzle_diameter / 0.4;
+        double er_width_to_scale = magical_scaling(nozzle_diameter,er_width,filament_max_overlap,spacing_ratio,spacing_ratio_external,base_layer_height,er_spacing);
+        //-- magical scaling 
+
+        pressure_tower.emplace_back();
 
         double initial_model_height = 0.2;
         double initial_90_bend_x = 41.20;//fusion=41.200 mm
@@ -481,20 +357,21 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
                 if (er_width_ToOptionKey.find(role) != er_width_ToOptionKey.end()) {
 
-                    er_width = std::round((print_config->get_abs_value(er_width_ToOptionKey[role].c_str(), nozzle_diameter) * 100 / nozzle_diameter) * 100.0) / 100.0;
-                    er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[role].c_str(), nozzle_diameter);
+                    er_width = std::round((full_print_config.get_computed_value(er_width_ToOptionKey[role].c_str(), nozzle_diameter) * 100 / nozzle_diameter) * 100.0) / 100.0;
+                    er_spacing = full_print_config.get_computed_value(er_spacing_ToOptionKey[role].c_str(), nozzle_diameter);
                     er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, spacing_ratio, spacing_ratio_external, base_layer_height, er_spacing);
                     thickness_offset = nozzle_diameter * er_width_to_scale * 2;
                 
                     add_part(model.objects[objs_idx[id_item]], 
                             (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "scaled_with_nozzle_size" / bend_90_nozzle_size_3mf).string(),
                             Vec3d{ -0.8, (initial_90_bend_y/2) * nb_bends , (z_scale_factor/2) }, Vec3d{ er_width_to_scale, er_width_to_scale, z_scale_90_bend });
+                            pressure_tower.back().push_back(model.objects[objs_idx[id_item]]);
                     
                     Eigen::Vector3d modelPosition(-0.8, (initial_90_bend_y/2) * nb_bends, (z_scale_factor/2) );
                     bend_90_positions.push_back(modelPosition);
                     nb_bends++;
                 }
-                else{
+                else{//ER role not found in map; ie not currently supported.
                     er_width = std::round((default_er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
                     er_spacing = default_er_spacing;
                     er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, spacing_ratio, spacing_ratio_external, base_layer_height, er_spacing);
@@ -503,6 +380,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                     add_part(model.objects[objs_idx[id_item]], 
                         (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "scaled_with_nozzle_size" / bend_90_nozzle_size_3mf).string(),
                         Vec3d{ -0.8, (initial_90_bend_y/2) * nb_bends , (z_scale_factor/2) }, Vec3d{ er_width_to_scale, er_width_to_scale, z_scale_90_bend });
+                        pressure_tower.back().push_back(model.objects[objs_idx[id_item]]);
                     
                     Eigen::Vector3d modelPosition(-0.8, (initial_90_bend_y/2) * nb_bends, (z_scale_factor/2) );
                     bend_90_positions.push_back(modelPosition);
@@ -513,12 +391,13 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
             }
         }
         else{//not verify
-            for (int nb_bends = 0; nb_bends < countincrements; nb_bends++){
+            for (int nb_bends = 0; nb_bends < countincrements; nb_bends++){//TODO: BUG: need to fix this for the multi test plates. i should be able to have single if statement to change the "verify" role positions and only have a single 'add_part' fr the 90_bend model.
                 //const double magical_transformation_y_pos = 10.47;
 
                 add_part(model.objects[objs_idx[id_item]], 
                         (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "scaled_with_nozzle_size" / bend_90_nozzle_size_3mf).string(),
                         Vec3d{ -0.8, double(nb_bends) * (thickness_offset*2) *2 , (z_scale_factor/2) }, Vec3d{ er_width_to_scale, er_width_to_scale, z_scale_90_bend });
+                        pressure_tower.back().push_back(model.objects[objs_idx[id_item]]);
                 
                 Eigen::Vector3d modelPosition(-0.8, double(nb_bends) * (thickness_offset*2) *2 , (z_scale_factor/2) );
                 bend_90_positions.push_back(modelPosition);
@@ -583,10 +462,8 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
                 //  position in printer coords are half of scaled size!
                 //  scale model in percentage from original models xy values!
-                //----------
-            }
-        //}
 
+            }
             if (extrusion_role != "Verify") {// possible to load the words for each ER role?
 
                 if (nb_bends % 2 == 1) { // Skip generating every second number
@@ -636,33 +513,17 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
                 }
             }
         }
-    }
-
-
-    /// --- translate ---
-    //bool autocenter = gui_app->app_config->get("autocenter") == "1";
-    bool has_to_arrange = plat->config()->opt_float("init_z_rotate") != 0;
-    if (nb_runs == 1) {
-        //model.objects[objs_idx[0]]->translate({ bed_min.x() + bed_size.x() / 2, bed_min.y() + bed_size.y() / 2, zscale_number });
-        has_to_arrange = true;
-    } else {
-        has_to_arrange = true;
-    }
     
-    /*if (!autocenter) {
-        const ConfigOptionPoints* bed_shape = printer_config->option<ConfigOptionPoints>("bed_shape");
-        Vec2d bed_size = BoundingBoxf(bed_shape->values).size();
-        Vec2d bed_min = BoundingBoxf(bed_shape->values).min;
-        model.objects[objs_idx[0]]->translate({ bed_min.x() + bed_size.x() / 2, bed_min.y() + bed_size.y() / 2, 5 * xyzScale - 5 });
-    }*/
-
+    }
     /// --- main config, modify object config when possible ---
     DynamicPrintConfig new_print_config = *print_config;
     DynamicPrintConfig new_printer_config = *printer_config;
     new_print_config.set_key_value("brim_width", new ConfigOptionFloat(0));
     new_print_config.set_key_value("complete_objects", new ConfigOptionBool(false)); //true is required for multi tests on single plate.
     new_print_config.set_key_value("gap_fill_enabled", new ConfigOptionBool(true)); //should be false?, enabled for testing
-    new_print_config.set_key_value("top_solid_layers", new ConfigOptionInt(0));  //BUG: top layers set to 0 the top layer has a "void" where the top layer would normally be, this might be a config thing that needs to get changed or a slicing bug
+    new_print_config.set_key_value("top_solid_layers", new ConfigOptionInt(0));
+    new_print_config.set_key_value("only_one_perimeter_top", new ConfigOptionBool(false));
+    new_print_config.set_key_value("only_one_perimeter_first_layer", new ConfigOptionBool(true));
     new_print_config.set_key_value("bottom_solid_layers", new ConfigOptionInt(1));
     new_print_config.set_key_value("fill_density", new ConfigOptionPercent(0));
     new_print_config.set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0.0,false));
@@ -671,14 +532,50 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     new_print_config.set_key_value("avoid_crossing_perimeters", new ConfigOptionBool(false));
     new_print_config.set_key_value("perimeter_overlap", new ConfigOptionPercent(100));
     new_print_config.set_key_value("external_perimeter_overlap", new ConfigOptionPercent(100));
-    new_print_config.set_key_value("per_objects_gcode", new ConfigOptionString(bend_90_nozzle_size_3mf+",")); // this is the model other parts in code will search for and insert the PA/ect numbers
+    
+    //fix this later need to fix the loops
+    //new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 0} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));
 
-    new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString("{if layer_num == 0} SET_PRESSURE_ADVANCE ADVANCE=" + std::to_string(first_pa) + " {endif}")); //maybe i can save the existing value into a variable then add to it ?
 
-    assert(filament_temp_item_name.size() == nb_runs);
-    assert(model.objects.size() == nb_runs);
+    //assert(filament_temp_item_name.size() == nb_runs);
+    //assert(model.objects.size() == nb_runs);
 
-    for (size_t i = 0; i < nb_runs; i++) {
+    for (int id_item = 0; id_item < currentTestCount; id_item++) {
+
+        wxString firstPaValue = dynamicFirstPa[id_item]->GetValue();
+        wxString startPaValue = dynamicStartPa[id_item]->GetValue();
+        wxString endPaValue = dynamicEndPa[id_item]->GetValue();
+        wxString paIncrementValue = dynamicPaIncrement[id_item]->GetValue();
+        wxString erPaValue = dynamicExtrusionRole[id_item]->GetValue();
+        smooth_time = dynamicEnableST[id_item]->GetValue();
+
+        double first_pa = wxAtof(firstPaValue);
+        double start_pa = wxAtof(startPaValue);
+        double end_pa = wxAtof(endPaValue);
+        double pa_increment = wxAtof(paIncrementValue);
+        extrusion_role = dynamicExtrusionRole[id_item]->GetValue().ToStdString();
+
+        int countincrements = 0;
+        int sizeofarray = static_cast<int>((end_pa - start_pa) / pa_increment) + 2;//'+2' needed for odd/even numbers 
+        std::vector<double> pa_values(sizeofarray);
+        std::vector<std::string> c_pa_values_c(sizeofarray);
+
+        double incremented_pa_value = start_pa;
+        while (incremented_pa_value <= end_pa + pa_increment / 2) {//this makes a number to be used to load x number of 90 bend models for the PA test.
+            if (incremented_pa_value <= end_pa) {
+                double rounded_Pa = std::round(incremented_pa_value * 1000000.0) / 1000000.0;
+                pa_values[countincrements] = rounded_Pa;//store PA numbers in array to be used later.
+                c_pa_values_c[countincrements] = rounded_Pa;
+                countincrements++;
+                incremented_pa_value += pa_increment;
+            }
+            else { 
+                pa_values[countincrements] = end_pa;
+                countincrements++;//failsafe if werid input numbers are provided that can't add the "ending pa" number to the array.
+            break; }
+
+        }// is there a limit of how many models SS can load ? might be good to set a failsafe just so it won't load 10k+ models...
+
         /*
         gcfRepRap,
         gcfSprinter,
@@ -695,28 +592,28 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
         gcfSmoothie,
         gcfNoExtrusion*/
 
-        //size_t num_part = 0;
-        //const int extra_vol = 1;
-        //for (ModelObject* part : pressure_tower[i]) {//loop though each part/volume and assign the modifers
-
-        ModelObject *current_obj = model.objects[objs_idx[i]];
-        for (int num_part = 1; num_part < countincrements+1; num_part++){
+        size_t num_part = 0;
+        const int extra_vol = 1;
+        for (ModelObject* part : pressure_tower[id_item]) {//loop though each part/volume and assign the modifers
 
             std::string er_role ="";
             if (extrusion_role == "Verify") {
                 er_role = choice_extrusion_role[num_part];
-                if (er_width_ToOptionKey.find(er_role) != er_width_ToOptionKey.end()) {
-
-                    er_width = std::round((print_config->get_abs_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter) * 100 / nozzle_diameter) * 100.0) / 100.0;
-                    er_speed = print_config->get_abs_value(er_speed_ToOptionKey[er_role].c_str(), nozzle_diameter);
-                    er_accel = print_config->get_abs_value(er_accel_ToOptionKey[er_role].c_str(), nozzle_diameter);
-                }
-                else{
-                    er_width = std::round((default_er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
-                    er_speed = default_er_speed;
-                    er_accel = default_er_accel;
-                }
             }
+            else{
+                er_role = extrusion_role;
+            }
+            if (er_width_ToOptionKey.find(er_role) != er_width_ToOptionKey.end()) {
+                er_width = std::round((full_print_config.get_computed_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter) * 100 / nozzle_diameter) * 100.0) / 100.0;
+                er_speed = full_print_config.get_computed_value(er_speed_ToOptionKey[er_role].c_str(), nozzle_diameter);
+                er_accel = full_print_config.get_computed_value(er_accel_ToOptionKey[er_role].c_str(), nozzle_diameter);
+            }
+            else{
+                er_width = std::round((default_er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
+                er_speed = default_er_speed;
+                er_accel = default_er_accel;
+            }
+
 
             std::string set_advance_prefix ="";
             if (gcfKlipper == flavor) {
@@ -739,51 +636,40 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
             er_accel = (er_accel == 0) ? default_er_accel : er_accel;
 
             /// --- custom config --- // this is for forcing each model to have x print modifiers
-            //current_obj->volumes[num_part]->config.set_key_value("print_retract_length", new ConfigOptionFloat(retraction_start + num_part * retraction_steps));
-            current_obj->volumes[num_part]->config.set_key_value("perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));
-
-            /*model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));//TODO: check widths and ect breaks if any values are in mm/percentage
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("gap_fill_speed", new ConfigOptionFloatOrPercent(er_speed, false));
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
-            model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("gap_fill_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));*/
-
-           current_obj->volumes[num_part]->config.set_key_value("perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));
-           current_obj->volumes[num_part]->config.set_key_value("external_perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));//TODO: check widths and ect breaks if any values are in mm/percentage
-           current_obj->volumes[num_part]->config.set_key_value("perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
-           current_obj->volumes[num_part]->config.set_key_value("external_perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
-           current_obj->volumes[num_part]->config.set_key_value("gap_fill_speed", new ConfigOptionFloatOrPercent(er_speed, false));
-           current_obj->volumes[num_part]->config.set_key_value("perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
-           current_obj->volumes[num_part]->config.set_key_value("external_perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
-           current_obj->volumes[num_part]->config.set_key_value("gap_fill_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));//TODO: check widths and ect breaks if any values are in mm/percentage
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("gap_fill_speed", new ConfigOptionFloatOrPercent(er_speed, false));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
+            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("gap_fill_acceleration", new ConfigOptionFloatOrPercent(er_accel, false));
 
             if (extrusion_role == "Verify") {
-                //model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + " ; " + er_role ));//user manual type in values
-                current_obj->volumes[num_part]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + " ; " + er_role ));//user manual type in values
+                model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(set_advance_prefix + " ; " + er_role ));//user manual type in values
+                new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 0} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));
             }
             else{//add '\n' in?
-                //model.objects[objs_idx[i]]->volumes[num_part + extra_vol]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + " ; " + extrusion_role ));
-                current_obj->volumes[num_part]->config.set_key_value("per_objects_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + " ; " + extrusion_role ));
+                model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + " ; " + er_role ));
+                new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 0} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));
             }
+            num_part++;
         }
+    
+
+        //update plater
+        this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->load_config(new_print_config);
+        plat->on_config_change(new_print_config);
+        this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
+        plat->on_config_change(new_printer_config);
+        plat->changed_objects(objs_idx);
+        this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
+        this->gui_app->get_tab(Preset::TYPE_PRINTER)->update_dirty();
+        plat->is_preview_shown();
+        //update everything, easier to code.
+        ObjectList* obj = this->gui_app->obj_list();
+        obj->update_after_undo_redo();
     }
-
-    //update plater
-    this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->load_config(new_print_config);
-    plat->on_config_change(new_print_config);
-    this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
-    plat->on_config_change(new_printer_config);
-    plat->changed_objects(objs_idx);
-    this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
-    this->gui_app->get_tab(Preset::TYPE_PRINTER)->update_dirty();
-    plat->is_preview_shown();
-    //update everything, easier to code.
-    ObjectList* obj = this->gui_app->obj_list();
-    obj->update_after_undo_redo();
-
 
     // arrange if needed, after new settings, to take them into account
     // BUG:(borders don't slice. with 2+ generated models.) after updating to 2.5.59.11 the generating 2+ models they have "sinking label" have to click "drop to bed" to resolve, clicking "arrange" doesn't fix issue.
@@ -801,7 +687,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
 
 
     if (extrusion_role != "Verify") {//don't auto slice so user can manual add PA values
-        //plat->reslice(); //forces a slice of plater.
+        plat->reslice(); //forces a slice of plater.
     }
 
     if (autocenter) {
@@ -834,6 +720,153 @@ double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, dou
 
     return er_width_to_scale;
 }
+
+void CalibrationPressureAdvDialog::create_buttons(wxStdDialogButtonSizer* buttons){
+    const DynamicPrintConfig* printer_config = this->gui_app->get_tab(Preset::TYPE_PRINTER)->get_config();
+    GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+
+    std::string prefix = (gcfMarlinFirmware == flavor) ? " LA " : ((gcfKlipper == flavor || gcfRepRap == flavor) ? " PA " : "unsupported firmware type");
+
+
+    if (prefix != "unsupported firmware type") {
+
+        wxString number_of_runs[] = { "1", "2", "3", "4", "5" };
+        nbRuns = new wxComboBox(this, wxID_ANY, wxString{ "1" }, wxDefaultPosition, wxDefaultSize, 5, number_of_runs);
+        nbRuns->SetToolTip(_L("Select the number of tests to generate, max 2 is recommended due to bed size limits"));
+        nbRuns->SetSelection(0);
+        nbRuns->Bind(wxEVT_COMBOBOX, &CalibrationPressureAdvDialog::on_row_change, this);
+
+        dynamicSizer = new wxBoxSizer(wxVERTICAL);
+        buttons->Add(dynamicSizer, 1, wxEXPAND | wxALL, 5);
+   
+        wxBoxSizer* commonSizer = new wxBoxSizer(wxHORIZONTAL);
+        commonSizer->Add(new wxStaticText(this, wxID_ANY, _L("Number of tests: ")));
+        commonSizer->Add(nbRuns);
+        dynamicSizer->Add(commonSizer, 0, wxALL, 5);
+        currentTestCount = wxAtoi(nbRuns->GetValue());
+
+
+        wxButton* bt = new wxButton(this, wxID_FILE1, _L("Generate"));
+        bt->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::create_geometry, this);
+        dynamicSizer->Add(bt, 0, wxALL, 5);
+
+        create_row_controls(dynamicSizer, currentTestCount);
+    } else {
+        buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix)));
+    }
+
+    //this->SetSizerAndFit(dynamicSizer);
+}
+
+void CalibrationPressureAdvDialog::create_row_controls(wxBoxSizer* parent_sizer, int row_count) {
+    wxString choices_first_layerPA[] = { "0.025", "0.030", "0.035", "0.040", "0.045", "0.050" };
+    wxString choices_start_PA[] = { "0.0", "0.010", "0.020", "0.030", "0.040", "0.050" };
+    wxString choices_end_PA[] = { "0.10", "0.20", "0.30", "0.40", "0.50", "0.60", "0.70", "0.80", "0.90", "1.00" };
+    wxString choices_increment_PA[] = { "0.0010", "0.0025", "0.0035", "0.005", "0.006", "0.007", "0.01", "0.1" };
+    wxString choices_extrusion_role[] = {
+        "InternalInfill", "BridgeInfill", "ExternalPerimeter", "GapFill", "InternalBridgeInfill",
+        "Ironing", "OverhangPerimeter", "Perimeter", "SolidInfill", "SupportMaterial",
+        "SupportMaterialInterface", "ThinWall", "TopSolidInfill", "FirstLayer", "Verify"
+    };
+    const DynamicPrintConfig* printer_config = this->gui_app->get_tab(Preset::TYPE_PRINTER)->get_config();
+    GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+    std::string prefix = (gcfMarlinFirmware == flavor) ? " LA " : ((gcfKlipper == flavor || gcfRepRap == flavor) ? " PA " : "unsupported firmware type");
+
+    for (int i = 0; i < row_count; i++) {
+        wxBoxSizer* rowSizer = new wxBoxSizer(wxHORIZONTAL);
+
+        wxComboBox* firstPaCombo = new wxComboBox(this, wxID_ANY, wxString{ "0.040" }, wxDefaultPosition, wxDefaultSize, 6, choices_first_layerPA);
+        //rowSizer->Add(new wxStaticText(this, wxID_ANY, _L( prefix + " Test " + std::to_string(i) + ": " ))); rowSizer->AddSpacer(5);
+        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("First Layers" + prefix + "value: ")));
+        firstPaCombo->SetToolTip(_L("Select the first layer" + prefix +" value to be used for the first layer only."));
+        firstPaCombo->SetSelection(3);
+        rowSizer->Add(firstPaCombo);
+        dynamicFirstPa.push_back(firstPaCombo);
+
+        rowSizer->AddSpacer(15);
+
+        wxComboBox* startPaCombo = new wxComboBox(this, wxID_ANY, wxString{ "0.0" }, wxDefaultPosition, wxDefaultSize, 6, choices_start_PA);
+        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Starting" + prefix + "value: ")));
+        startPaCombo->SetToolTip(_L("Select the starting " + prefix + " value to be used."));
+        startPaCombo->SetSelection(0);
+        rowSizer->Add(startPaCombo);
+        dynamicStartPa.push_back(startPaCombo);
+
+        rowSizer->AddSpacer(15);
+
+        wxComboBox* endPaCombo = new wxComboBox(this, wxID_ANY, wxString{ "0.10" }, wxDefaultPosition, wxDefaultSize, 10, choices_end_PA);
+        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Ending" + prefix + "value: ")));
+        endPaCombo->SetToolTip(_L("Select the ending " + prefix + " value to be used."));
+        endPaCombo->SetSelection(0);
+        rowSizer->Add(endPaCombo);
+        dynamicEndPa.push_back(endPaCombo);
+
+        rowSizer->AddSpacer(15);
+
+        wxComboBox* paIncrementCombo = new wxComboBox(this, wxID_ANY, wxString{ "0.005" }, wxDefaultPosition, wxDefaultSize, 8, choices_increment_PA);
+        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L(prefix + "increments: ")));
+        paIncrementCombo->SetToolTip(_L("Select the " + prefix + " increment amount."));
+        paIncrementCombo->SetSelection(3);
+        rowSizer->Add(paIncrementCombo);
+        dynamicPaIncrement.push_back(paIncrementCombo);
+
+        rowSizer->AddSpacer(15);
+
+        wxComboBox* erPaCombo = new wxComboBox(this, wxID_ANY, wxString{ "InternalInfill" }, wxDefaultPosition, wxDefaultSize, 15, choices_extrusion_role);
+        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Extrusion role: ")));
+        erPaCombo->SetToolTip(_L("Select the extrusion role you want to generate a calibration for"));
+        erPaCombo->SetSelection(0);
+        rowSizer->Add(erPaCombo);
+        dynamicExtrusionRole.push_back(erPaCombo);
+
+        if (prefix == " PA ") {//klipper only feature ?
+            rowSizer->AddSpacer(15);
+            wxCheckBox* enableST = new wxCheckBox(this, wxID_ANY, _L(""), wxDefaultPosition, wxDefaultSize);
+            enableST->SetToolTip(_L("Generate smooth time values"));
+            enableST->SetValue(false);
+            rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Smooth time: ")));
+            rowSizer->Add(enableST);
+            dynamicEnableST.push_back(enableST);
+        }
+
+        parent_sizer->Add(rowSizer, 0, wxALL, 5);
+        dynamicRowcount.push_back(rowSizer);
+    }
+}
+
+void CalibrationPressureAdvDialog::on_row_change(wxCommandEvent& event) {
+    int new_test_count = wxAtoi(nbRuns->GetValue());
+
+    wxSize auto_size = GetSize();
+    //wxSize auto_size = DoGetBestSize();
+
+    if (new_test_count > currentTestCount) {
+        create_row_controls(dynamicSizer, new_test_count - currentTestCount);
+    } else if (new_test_count < currentTestCount) {
+        for (int i = currentTestCount - 1; i >= new_test_count; --i) {
+            wxBoxSizer* row = dynamicRowcount.back();
+            dynamicSizer->Detach(row);
+            row->Clear(true);
+            delete row;
+            dynamicRowcount.pop_back();
+            dynamicFirstPa.pop_back();
+            dynamicStartPa.pop_back();
+            dynamicEndPa.pop_back();
+            dynamicPaIncrement.pop_back();
+            dynamicExtrusionRole.pop_back();
+            dynamicEnableST.pop_back();
+        }
+    }
+
+    currentTestCount = new_test_count;
+    dynamicSizer->Layout();
+    this->Fit();
+    
+    //this->SetSize(1600,600);
+    this->SetSize(auto_size); //makes GUI flash on updating
+
+}
+
 
 } // namespace GUI
 } // namespace Slic3r
