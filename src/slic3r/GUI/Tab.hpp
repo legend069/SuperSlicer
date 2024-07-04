@@ -494,7 +494,7 @@ protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps, int setting_idx);
 	void 			compatible_widget_reload(PresetDependencies &deps);
-	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false);
+	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false, int16_t extruder_id = -1);
 
 	// return true if cancelled
 	bool			tree_sel_change_delayed();
@@ -528,7 +528,11 @@ public:
 	PrinterTechnology get_printer_technology() const override { return (m_type & Preset::Type::TYPE_TECHNOLOGY) == Preset::Type::TYPE_FFF ? PrinterTechnology::ptFFF : 
 																	   (m_type & Preset::Type::TYPE_TECHNOLOGY) == Preset::Type::TYPE_SLA ? PrinterTechnology::ptSLA :
 																	   PrinterTechnology::ptAny; }
+<<<<<<< HEAD
     virtual void    activate_option(const std::string& opt_key, const wxString& category) override;
+=======
+	virtual void	activate_option(const std::string& opt_key, const wxString& category) override;
+>>>>>>> tags/2.5.60.0
     void set_freq_parent(wxWindow * freq_parent) { m_freq_parent = freq_parent;}
 	virtual PageShp create_options_page(const wxString &title, const std::string &icon) override;
 };

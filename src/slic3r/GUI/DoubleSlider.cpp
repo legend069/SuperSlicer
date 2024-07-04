@@ -435,7 +435,7 @@ void Control::SetLayersTimes(const std::vector<float>& layers_times, float total
             for (size_t i = m_layers_times.size(); i < m_layers_values.size(); i++)
                 m_layers_times.push_back(total_time);
         m_need_refresh_and_update = true;
-}
+    }
 }
 
 void Control::SetLayersTimes(const std::vector<double>& layers_times)
@@ -446,6 +446,13 @@ void Control::SetLayersTimes(const std::vector<double>& layers_times)
         m_layers_times[i] += m_layers_times[i - 1];
 }
 
+void Control::SetLayersAreas(const std::vector<float>& layers_areas)
+{
+    m_layers_areas.clear();
+    m_layers_areas.reserve(layers_areas.size());
+    for(float area : layers_areas)
+        m_layers_areas.push_back(area);
+}
 bool Control::ensure_correctly_filled() const
 {
     bool ok = true;
@@ -453,6 +460,11 @@ bool Control::ensure_correctly_filled() const
         ok = false;
         assert(false);
         //m_layers_times.clear();
+    }
+    if (!m_layers_areas.empty() && m_layers_areas.size() != m_values.size() && m_layers_areas.size() != m_values.size() - 1) {
+        ok = false;
+        assert(false);
+        //m_layers_areas.clear();
     }
     if (!m_layers_values.empty()) {
         ok = m_is_wipe_tower;
@@ -811,6 +823,7 @@ wxString Control::get_label(int tick, LabelType label_type/* = ltHeightWithLayer
         if (label_type == ltHeightWithLayer) {
             bool show_lheight = GUI::wxGetApp().app_config->get("show_layer_height_doubleslider") == "1";
             bool show_ltime = GUI::wxGetApp().app_config->get("show_layer_time_doubleslider") == "1";
+            bool show_larea = GUI::wxGetApp().app_config->get("show_layer_area_doubleslider") == "1";
             int nb_lines = 2; // to move things down if the slider is on top
             wxString comma = "\n";
             if (show_lheight) {
@@ -836,6 +849,17 @@ wxString Control::get_label(int tick, LabelType label_type/* = ltHeightWithLayer
                         double previous_time = (time_idx > 0 ? m_layers_times[time_idx - 1] : 0);
                         wxString layer_time_wstr = short_and_splitted_time(get_time_dhms(m_layers_times[time_idx] - previous_time));
                         str = str + comma + layer_time_wstr;
+                        comma = "\n";
+                    }
+                }
+            }
+            if (show_larea && !m_layers_areas.empty()) {
+                if (m_layers_areas.size() + 1 >= m_values.size()) {
+                    //assert(time_idx < m_layers_areas.size());
+                    assert(m_layers_areas.size() == m_layers_times.size() || m_layers_areas.size() == m_layers_times.size() - 1);
+                    if (time_idx < m_layers_areas.size()) {
+                        nb_lines++;
+                        str = str + comma + wxString::Format("%.*f", m_layers_areas[time_idx] < 1 ? 3 : m_layers_areas[time_idx] < 10 ? 2 : m_layers_areas[time_idx] < 100 ? 1 : 0, m_layers_areas[time_idx]);
                         comma = "\n";
                     }
                 }

@@ -337,9 +337,9 @@ void _set_float(DynamicPrintConfig &conf, const ConfigOption *opt, std::string &
             new_val = old_value; // don't return int these check, as it can escpae a refresh of the scripted widget
         conf.set_key_value(key, new ConfigOptionFloat(new_val));
     } else if (opt->type() == ConfigOptionType::coFloats) {
-        ConfigOptionFloats *new_opt = static_cast<ConfigOptionFloats *>(opt->clone());
-        double              new_val = round(f_val);
-        if (!new_opt->values.empty()) {
+        ConfigOptionFloats* new_opt = static_cast<ConfigOptionFloats*>(opt->clone());
+        double new_val = round(f_val);
+        if (!new_opt->empty()) {
             // only update if difference is significant
             double old_value = idx < 0 ? new_opt->get_float(0) : new_opt->get_float(idx);
             if (std::abs(old_value - new_val) / std::abs(old_value) < 0.0000001)
@@ -359,9 +359,9 @@ void _set_float(DynamicPrintConfig &conf, const ConfigOption *opt, std::string &
             percent_f = old_value;
         conf.set_key_value(key, new ConfigOptionPercent(percent_f));
     } else if (opt->type() == ConfigOptionType::coPercents) {
-        ConfigOptionPercents *new_opt   = static_cast<ConfigOptionPercents *>(opt->clone());
-        double                percent_f = floor(f_val * 100000. + 0.5) / 1000.;
-        if (!new_opt->values.empty()) {
+        ConfigOptionPercents* new_opt = static_cast<ConfigOptionPercents*>(opt->clone());
+        double percent_f = floor(f_val * 100000. + 0.5) / 1000.;
+        if (!new_opt->empty()) {
             // only update if difference is significant
             double old_value = idx < 0 ? new_opt->get_float(0) : new_opt->get_float(idx);
             if (std::abs(old_value - percent_f) / std::abs(old_value) < 0.0000001)
@@ -383,9 +383,9 @@ void _set_float(DynamicPrintConfig &conf, const ConfigOption *opt, std::string &
         }
         conf.set_key_value(key, new ConfigOptionFloatOrPercent(new_val, false));
     } else if (opt->type() == ConfigOptionType::coFloatsOrPercents) {
-        ConfigOptionFloatsOrPercents *new_opt = static_cast<ConfigOptionFloatsOrPercents *>(opt->clone());
-        double                        new_val = round(f_val);
-        if (!new_opt->values.empty() && !new_opt->values.front().percent) {
+        ConfigOptionFloatsOrPercents* new_opt = static_cast<ConfigOptionFloatsOrPercents*>(opt->clone());
+        double new_val = round(f_val);
+        if (!new_opt->empty() && !new_opt->get_at(0).percent) {
             // only update if difference is significant
             double old_value = idx < 0 ? new_opt->get_float(0) : new_opt->get_float(idx);
             if (std::abs(old_value - new_val) / std::abs(old_value) < 0.0000001)
@@ -439,10 +439,10 @@ void _set_percent(DynamicPrintConfig &conf, const ConfigOption *opt, std::string
             percent_f = old_value; // don't return int these check, as it can escpae a refresh of the scripted widget
         conf.set_key_value(key, new ConfigOptionFloat(percent_f / 100.));
     } else if (opt->type() == ConfigOptionType::coFloats) {
-        ConfigOptionFloats *new_opt = static_cast<ConfigOptionFloats *>(opt->clone());
-        if (!new_opt->values.empty()) {
+        ConfigOptionFloats* new_opt = static_cast<ConfigOptionFloats*>(opt->clone());
+        if (!new_opt->empty()) {
             // only update if difference is significant
-            double old_value = new_opt->values.front() * 100;
+            double old_value = new_opt->get_at(0) * 100;
             if (std::abs(old_value - percent_f) / std::abs(old_value) < 0.0000001)
                 percent_f = old_value;
         }
@@ -458,10 +458,10 @@ void _set_percent(DynamicPrintConfig &conf, const ConfigOption *opt, std::string
             percent_f = old_value;
         conf.set_key_value(key, new ConfigOptionPercent(percent_f));
     } else if (opt->type() == ConfigOptionType::coPercents) {
-        ConfigOptionPercents *new_opt = static_cast<ConfigOptionPercents *>(opt->clone());
-        if (!new_opt->values.empty()) {
+        ConfigOptionPercents* new_opt = static_cast<ConfigOptionPercents*>(opt->clone());
+        if (!new_opt->empty()) {
             // only update if difference is significant
-            double old_value = new_opt->values.front();
+            double old_value = new_opt->get_at(0);
             if (std::abs(old_value - percent_f) / std::abs(old_value) < 0.0000001)
                 percent_f = old_value;
         }
@@ -479,10 +479,10 @@ void _set_percent(DynamicPrintConfig &conf, const ConfigOption *opt, std::string
         }
         conf.set_key_value(key, new ConfigOptionFloatOrPercent(percent_f, true));
     } else if (opt->type() == ConfigOptionType::coFloatsOrPercents) {
-        ConfigOptionFloatsOrPercents *new_opt = static_cast<ConfigOptionFloatsOrPercents *>(opt->clone());
-        if (!new_opt->values.empty() && new_opt->values.front().percent) {
+        ConfigOptionFloatsOrPercents* new_opt = static_cast<ConfigOptionFloatsOrPercents*>(opt->clone());
+        if (!new_opt->empty() && new_opt->get_at(0).percent) {
             // only update if difference is significant
-            double old_value = new_opt->values.front().value;
+            double old_value = new_opt->get_at(0).value;
             if (std::abs(old_value - percent_f) / std::abs(old_value) < 0.0000001)
                 percent_f = old_value;
         }

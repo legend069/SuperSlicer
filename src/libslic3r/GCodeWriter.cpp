@@ -269,7 +269,34 @@ std::string GCodeWriter::set_bed_temperature(uint32_t temperature, bool wait)
     return gcode.str();
 }
 
+std::string GCodeWriter::set_chamber_temperature(uint32_t temperature, bool wait)
+{
+    if (temperature == m_last_chamber_temperature && !wait)
+        return std::string();
 
+    if (FLAVOR_IS(gcfMarlinFirmware) || FLAVOR_IS(gcfRepRap) || FLAVOR_IS(gcfMachinekit)) {
+        // ok
+    } else {
+        return std::string();
+    }
+
+    m_last_chamber_temperature = temperature;
+
+    std::string code, comment;
+    if (wait) {
+        code = "M191";
+        comment = "set chamber temperature and wait for it to be reached";
+    } else {
+        code = "M141";
+        comment = "set chamber temperature";
+    }
+    
+    std::ostringstream gcode;
+    gcode << code << " " << "S";
+    gcode << temperature << " ; " << comment << "\n";
+    
+    return gcode.str();
+}
 
 void GCodeWriter::set_acceleration(uint32_t acceleration)
 {
@@ -421,11 +448,11 @@ std::string GCodeWriter::toolchange(uint16_t tool_id)
     if (this->multiple_extruders) {
         if (FLAVOR_IS(gcfKlipper)) {
             //check if we can use the tool_name field or not
-            if (tool_id > 0 && tool_id < this->config.tool_name.values.size() && !this->config.tool_name.values[tool_id].empty()
+            if (tool_id > 0 && tool_id < this->config.tool_name.size() && !this->config.tool_name.get_at(tool_id).empty()
                 // NOTE: this will probably break if there's more than 10 tools, as it's relying on the
                 // ASCII character table.
-                && this->config.tool_name.values[tool_id][0] != static_cast<char>(('0' + tool_id))) {
-                gcode << this->toolchange_prefix() << this->config.tool_name.values[tool_id];
+                && this->config.tool_name.get_at(tool_id)[0] != static_cast<char>(('0' + tool_id))) {
+                gcode << this->toolchange_prefix() << this->config.tool_name.get_at(tool_id);
             } else {
                 gcode << this->toolchange_prefix() << "extruder";
                 if (tool_id > 0)
@@ -926,7 +953,7 @@ std::string GCodeWriter::set_fan(const GCodeFlavor gcode_flavor, bool gcode_comm
 
     // write it
     if (fan_speed == 0) {
-        if ((gcfTeacup == gcode_flavor)) {
+        if ((gcfTeacup == gcode_flavor || gcfRepRap == gcode_flavor)) {
             gcode << "M106 S0";
         } else if ((gcfMakerWare == gcode_flavor) || (gcfSailfish == gcode_flavor)) {
             gcode << "M127";

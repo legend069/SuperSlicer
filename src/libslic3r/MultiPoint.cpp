@@ -71,9 +71,8 @@ int MultiPoint::find_point(const Point &point, coordf_t scaled_epsilon) const
     coordf_t dist2_min = std::numeric_limits<coordf_t>::max();
     coordf_t eps2      = scaled_epsilon * scaled_epsilon;
     int      idx_min   = -1;
-
     for (const Point &pt : this->points) {
-        coordf_t d2 = pt.distance_to_square(point);
+        coordf_t d2 = pt.distance_to_square(point); //(pt - point).cast<coordf_t>().squaredNorm();
         if (d2 < dist2_min) {
             idx_min = int(&pt - &this->points.front());
             dist2_min = d2;
@@ -133,7 +132,11 @@ bool MultiPoint::first_intersection(const Line& line, Point* intersection) const
 {
     bool   found = false;
     double dmin  = 0.;
-    for (const Line &l : this->lines()) {
+    Line l;
+    //for (const Line &l : this->lines()) {
+    for (size_t idx = 1; idx < points.size(); ++idx) {
+        l.a = points[idx-1];
+        l.b = points[idx];
         Point ip;
         if (l.intersection(line, &ip)) {
             if (! found) {
@@ -144,6 +147,25 @@ bool MultiPoint::first_intersection(const Line& line, Point* intersection) const
                 double d = (line.a - ip).cast<double>().norm();
                 if (d < dmin) {
                     dmin = d;
+                    *intersection = ip;
+                }
+            }
+        }
+    }
+    /*last-to-first line */{
+        assert(!points.back().coincides_with_epsilon(points.front()));
+        l.a = points.back();
+        l.b = points.front();
+        Point ip;
+        if (l.intersection(line, &ip)) {
+            if (!found) {
+                found         = true;
+                dmin          = (line.a - ip).cast<double>().norm();
+                *intersection = ip;
+            } else {
+                double d = (line.a - ip).cast<double>().norm();
+                if (d < dmin) {
+                    dmin          = d;
                     *intersection = ip;
                 }
             }

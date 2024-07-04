@@ -67,6 +67,7 @@
 #include "CalibrationTempDialog.hpp"
 #include "CalibrationRetractionDialog.hpp"
 #include "CalibrationCr3dDialog.hpp"
+#include "CalibrationPressureAdvDialog.hpp"
 #include "ConfigSnapshotDialog.hpp"
 #include "CreateMMUTiledCanvas.hpp"
 #include "FreeCADDialog.hpp"
@@ -1992,6 +1993,10 @@ void GUI_App::calibration_retraction_dialog()
 {
     change_calibration_dialog(nullptr, new CalibrationRetractionDialog(this, mainframe));
 }
+void GUI_App::calibration_pressureadv_dialog()
+{
+    change_calibration_dialog(nullptr, new CalibrationPressureAdvDialog(this, mainframe));
+}
 void GUI_App::freecad_script_dialog()
 {
    // change_calibration_dialog(nullptr, new FreeCADDialog(this, mainframe));
@@ -3173,7 +3178,7 @@ int GUI_App::extruders_cnt() const
 {
     const Preset& preset = preset_bundle->printers.get_selected_preset();
     return preset.printer_technology() == ptSLA ? 1 :
-           preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+           preset.config.option<ConfigOptionFloats>("nozzle_diameter")->size();
 }
 
 // extruders count from edited printer preset
@@ -3181,7 +3186,7 @@ int GUI_App::extruders_edited_cnt() const
 {
     const Preset& preset = preset_bundle->printers.get_edited_preset();
     return preset.printer_technology() == ptSLA ? 1 :
-           preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+           preset.config.option<ConfigOptionFloats>("nozzle_diameter")->size();
 }
 
 wxString GUI_App::current_language_code_safe() const

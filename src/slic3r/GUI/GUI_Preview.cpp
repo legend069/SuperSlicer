@@ -715,7 +715,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool sho
 
     // Detect and set manipulation mode for double slider
     update_layers_slider_mode();
-
+    
     Plater* plater = wxGetApp().plater();
     CustomGCode::Info ticks_info_from_model = plater->model().custom_gcode_per_print_z;
     if (wxGetApp().is_editor())
@@ -749,7 +749,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool sho
     }
     m_layers_slider->SetSelectionSpan(idx_low, idx_high);
     m_layers_slider->SetTicksValues(ticks_info_from_model);
-
+    
     bool sequential_print = wxGetApp().preset_bundle->fff_prints.get_edited_preset().config.opt_bool("complete_objects");
     bool sla_print_technology = plater->printer_technology() == ptSLA;
     m_layers_slider->SetDrawMode(sla_print_technology, sequential_print);
@@ -765,9 +765,24 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool sho
                 m_layers_slider->SetLayersTimes(print_mode_stat.layers_times, print_mode_stat.time);
             }
         }
-
+        // create area array
+        // area not computed for sla_print_technology //TODO
+        if (!sla_print_technology) {
+            if (plater->fff_print().print_statistics().is_computing_gcode || !plater->fff_print().finished()) {
+                // do not fetch uncomplete data
+                m_layers_slider->SetLayersAreas({});
+            } else {
+                const std::vector<std::pair<coordf_t, float>> &layerz_to_area =
+                    plater->fff_print().print_statistics().layer_area_stats;
+                std::vector<float> areas;
+                for (auto [z, area] : layerz_to_area) areas.push_back(area);
+                m_layers_slider->SetLayersAreas(areas);
+                assert(areas.size() == m_gcode_result->print_statistics.modes.front().layers_times.size());
+            }
+        }
     } else {
         m_layers_slider->SetLayersTimes({}, 0);
+        m_layers_slider->SetLayersAreas({});
     }
 
     // Suggest the auto color change, if model looks like sign
@@ -1019,7 +1034,7 @@ void Preview::load_print_as_fff(bool keep_z_range)
     {
         const ConfigOptionStrings* extruders_opt = dynamic_cast<const ConfigOptionStrings*>(m_config->option("extruder_colour"));
         const ConfigOptionStrings* filamemts_opt = dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"));
-        unsigned int colors_count = std::max((unsigned int)extruders_opt->values.size(), (unsigned int)filamemts_opt->values.size());
+        unsigned int colors_count = std::max((unsigned int)extruders_opt->size(), (unsigned int)filamemts_opt->size());
 
         unsigned char rgb[3];
         for (unsigned int i = 0; i < colors_count; ++i)

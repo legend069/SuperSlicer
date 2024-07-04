@@ -108,6 +108,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CalibrationTempDialog.hpp
     GUI/CalibrationRetractionDialog.cpp
     GUI/CalibrationRetractionDialog.hpp
+    GUI/CalibrationPressureAdvDialog.cpp
+    GUI/CalibrationPressureAdvDialog.hpp
     GUI/ConfigSnapshotDialog.cpp
     GUI/ConfigSnapshotDialog.hpp
     GUI/CreateMMUTiledCanvas.cpp
@@ -165,6 +167,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/GLTexture.cpp
     GUI/GLToolbar.hpp
     GUI/GLToolbar.cpp
+    GUI/GraphDialog.hpp
+    GUI/GraphDialog.cpp
     GUI/GCodeViewer.hpp
     GUI/GCodeViewer.cpp    
     GUI/Preferences.cpp
