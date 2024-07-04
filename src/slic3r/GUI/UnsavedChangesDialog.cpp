@@ -1364,16 +1364,6 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
                 if ((std::set<std::string>{"default_print_profile", "printer_model", "printer_settings_id",
                                            "filament_settings_id", "print_settings_id", "inherits"})
                         .count(opt_key) > 0)
-<<<<<<< HEAD
-                    continue;
-
-                // may be a setting that isn't in the gui, but is still in the system (like seam_position when we use s_seam_position instead of it)
-                // TODO find a way to show the script widget. maybe the script widget must register itself for all dependencies (for the mode).
-                m_tree->Append(opt_key, type, "hidden", "hidden", opt_key,
-                    get_string_value(opt_key, old_config), get_string_value(opt_key, new_config), "wrench");
-                continue;
-
-=======
                 continue;
 
                 // may be a setting that isn't in the gui, but is still in the system (like seam_position when we use s_seam_position instead of it)
@@ -1382,7 +1372,6 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
                     get_string_value(opt_key, old_config), get_string_value(opt_key, new_config), "wrench");
                 continue;
 
->>>>>>> tags/2.5.60.0
             }
 
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,

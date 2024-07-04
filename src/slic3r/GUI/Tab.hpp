@@ -528,11 +528,7 @@ public:
 	PrinterTechnology get_printer_technology() const override { return (m_type & Preset::Type::TYPE_TECHNOLOGY) == Preset::Type::TYPE_FFF ? PrinterTechnology::ptFFF : 
 																	   (m_type & Preset::Type::TYPE_TECHNOLOGY) == Preset::Type::TYPE_SLA ? PrinterTechnology::ptSLA :
 																	   PrinterTechnology::ptAny; }
-<<<<<<< HEAD
-    virtual void    activate_option(const std::string& opt_key, const wxString& category) override;
-=======
 	virtual void	activate_option(const std::string& opt_key, const wxString& category) override;
->>>>>>> tags/2.5.60.0
     void set_freq_parent(wxWindow * freq_parent) { m_freq_parent = freq_parent;}
 	virtual PageShp create_options_page(const wxString &title, const std::string &icon) override;
 };

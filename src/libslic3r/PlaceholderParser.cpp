@@ -773,8 +773,8 @@ struct MyContext : public ConfigOptionResolver {
                     return vector_opt->get_float(int(current_extruder_id));
                 if (raw_opt->type() == coFloatsOrPercents) {
                     const ConfigOptionFloatsOrPercents* opt_fl_per = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
-                    if (!opt_fl_per->values[current_extruder_id].percent)
-                        return opt_fl_per->values[current_extruder_id].value;
+                    if (!opt_fl_per->get_values()[current_extruder_id].percent)
+                        return opt_fl_per->get_values()[current_extruder_id].value;
                     
                     const ConfigOptionDef* opt_def = print_config_def.get(opt_key);
                     if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")

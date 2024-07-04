@@ -260,8 +260,7 @@ int as_get_int_idx(std::string &key)
     DynamicPrintConfig conf = current_script->tab()->m_preset_bundle->full_config();
 
     if (conf.has(key)) {
-        size_t nozzle_diameters = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))
-                                      ->values.size();
+        size_t nozzle_diameters = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))->get_values().size();
         return nozzle_diameters;
     }
     // Default
@@ -276,8 +275,7 @@ void as_set_int_idx(std::string &key, int val)
     DynamicPrintConfig &configScript = current_script->to_update()[result.first->type()];
 
     if (configScript.has(key)) {
-        size_t nozzle_diameters = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))
-                                      ->values.size();
+        size_t nozzle_diameters = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))->get_values().size();
         conf.set_key_value(key, new ConfigOptionInt(val));
     }
 }
@@ -291,8 +289,7 @@ float as_get_nozzle(std::string &key, int idx)
     Tab *              tab_printer     = wxGetApp().get_tab(Preset::TYPE_PRINTER);
     float              nozzle_diameter = (float) conf.opt_float("nozzle_diameter", idx);
 
-    size_t nozzle_diameters_count = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))
-                                        ->values.size();
+    size_t nozzle_diameters_count = dynamic_cast<const ConfigOptionFloats *>(conf.option("nozzle_diameter"))->get_values().size();
 
     for (int i = 0; i < nozzle_diameters_count; i++) { nozzle_diameters_values.push_back(nozzle_diameter); }
 
@@ -313,7 +310,7 @@ void as_set_nozzle(std::string &key, float val, int idx)
     DynamicPrintConfig  config = current_script->tab()->m_preset_bundle->full_config();
     DynamicPrintConfig &conf   = current_script->to_update()[Preset::TYPE_PRINTER];
 
-    const std::vector<double> &nozzle_diameters = config.option<ConfigOptionFloats>("nozzle_diameter")->values;
+    const std::vector<double> &nozzle_diameters = config.option<ConfigOptionFloats>("nozzle_diameter")->get_values();
     std::vector<double>        modified_nozzle_diameters = nozzle_diameters;
 
     if (idx >= 0 && idx < modified_nozzle_diameters.size()) {

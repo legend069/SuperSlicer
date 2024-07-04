@@ -1132,29 +1132,12 @@ void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
- 
-    PrinterTechnology   pt                  = get_printer_technology();
-    ConfigOptionsGroup *og_freq_chng_params = wxGetApp().sidebar().og_freq_chng_params(pt);
-
     //also reload scripted that aren't on the active page.
     for (PageShp page : m_pages) {
         if (page.get() != m_active_page) {
-            DynamicPrintConfig config = static_cast<TabPrinter *>(this)->m_preset_bundle->full_config();
-            
-            if (config.has("nozzle_diameter")) {
-                size_t nozzle_diameters_count = static_cast<ConfigOptionFloats *>(config.option("nozzle_diameter"))->values.size();
-
-                Field *field = og_freq_chng_params->get_field("s_nozzle_diameter_2");
-                if (field) {
-                    field->toggle(nozzle_diameters_count == 2);
-                }
-
             for (auto group : page->m_optgroups) {
                 // ask for activated the preset even if the gui isn't created, as the script may want to modify the conf.
                 group->update_script_presets(true);
-                }
-            } else if (config.has("is_extruder_used")) {
-                std::cout << "Found;";
             }
         }
     }
@@ -1540,14 +1523,10 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 
 void TabFrequent::activate_option(const std::string &opt_key, const wxString &category){
     wxGetApp().plater()->collapse_sidebar(false);
-<<<<<<< HEAD
     wxGetApp().mainframe->select_tab(MainFrame::TabPosition::tpPlater);
-=======
-    wxGetApp().mainframe->select_tab(MainFrame::ETabType::Plater3D);
     // no act btns -> no blink arrow
     //std::pair<OG_CustomCtrl*, bool*> ctrl = get_custom_ctrl_with_blinking_ptr(opt_key);
     //m_highlighter.init(ctrl);
->>>>>>> tags/2.5.60.0
 }
 
 void Tab::cache_config_diff(const std::vector<std::string>& selected_options)
