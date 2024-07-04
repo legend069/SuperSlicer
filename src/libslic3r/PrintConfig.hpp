@@ -22,7 +22,7 @@
 //    class DynamicConfig : public virtual ConfigBase
 //        class DynamicPrintConfig : public DynamicConfig
 //            class DynamicPrintAndCLIConfig : public DynamicPrintConfig
-//
+//  my repo
 //
 
 #ifndef slic3r_PrintConfig_hpp_
@@ -965,6 +965,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       solid_infill_speed))
     ((ConfigOptionPercent,              solid_infill_overlap))
     ((ConfigOptionInt,                  solid_over_perimeters))
+    ((ConfigOptionInt,                  print_first_layer_temperature))
     ((ConfigOptionInt,                  print_temperature))
     ((ConfigOptionPercent,              thin_perimeters))
     ((ConfigOptionPercent,              thin_perimeters_all))
@@ -1261,9 +1262,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,                 spiral_vase))
     ((ConfigOptionInts,                 solid_infill_fan_speed))
     ((ConfigOptionInt,                  standby_temperature_delta))
-    //((ConfigOptionFloatOrPercent,       support_material_acceleration))
+    ((ConfigOptionFloatOrPercent,       support_material_acceleration))
     ((ConfigOptionInts,                 support_material_fan_speed))
-    //((ConfigOptionFloatOrPercent,       support_material_interface_acceleration))
+    ((ConfigOptionFloatOrPercent,       support_material_interface_acceleration))
     ((ConfigOptionInts,                 support_material_interface_fan_speed))
     ((ConfigOptionInts,                 temperature))
     ((ConfigOptionInt,                  threads))

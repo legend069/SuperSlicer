@@ -229,7 +229,7 @@ void Layer::make_perimeters()
                 && config.fuzzy_skin_thickness      == other_config.fuzzy_skin_thickness
                 && config.fuzzy_skin_point_dist     == other_config.fuzzy_skin_point_dist
 
-                && config.bridge_acceleration                      == other_config.bridge_acceleration
+                /*&& config.bridge_acceleration                      == other_config.bridge_acceleration
                 && config.bridge_internal_acceleration             == other_config.bridge_internal_acceleration
                 && config.brim_acceleration                        == other_config.brim_acceleration
                 && config.default_acceleration                     == other_config.default_acceleration
@@ -245,7 +245,7 @@ void Layer::make_perimeters()
                 && config.support_material_interface_acceleration  == other_config.support_material_interface_acceleration
                 && config.thin_walls_acceleration                  == other_config.thin_walls_acceleration
                 && config.top_solid_infill_acceleration            == other_config.top_solid_infill_acceleration//compiles fine with moving them here, how to properly test this ?
-                && config.per_objects_gcode                        == other_config.per_objects_gcode
+                && config.per_objects_gcode                        == other_config.per_objects_gcode */
                 && config.external_perimeter_extrusion_spacing     == other_config.external_perimeter_extrusion_spacing
                 && config.perimeter_extrusion_spacing              == other_config.perimeter_extrusion_spacing
                 

@@ -1554,7 +1554,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
         file.write_format("\n");
     }
 
-    size_t nb_parts_per_object = 0;
+    /*size_t nb_parts_per_object = 0;
     size_t nb_parts_per_target_volume = 0;
     std::string volume_config_per_object_gcode = "";
 
@@ -1600,7 +1600,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
     }
 
     file.write("; Total parts per object: " + std::to_string(nb_parts_per_object) + "\n");
-    file.write("; Total parts per target volume: " + std::to_string(nb_parts_per_target_volume) + "\n");
+    file.write("; Total parts per target volume: " + std::to_string(nb_parts_per_target_volume) + "\n");*/
 
     BoundingBoxf3 global_bounding_box;
     size_t nb_items = 0;
@@ -5231,7 +5231,7 @@ std::string GCode::extrude_path(const ExtrusionPath &path, const std::string &de
     const double max_gcode_per_second = this->config().max_gcode_per_second.value;
     double current_scaled_min_length = scaled_min_length;
     if (max_gcode_per_second > 0) {
-        current_scaled_min_length = std::max(current_scaled_min_length, scale_(_compute_speed_mm_per_sec(path, speed_mm_per_sec)) / max_gcode_per_second);
+        current_scaled_min_length = std::max(current_scaled_min_length, scale_(_compute_speed_mm_per_sec(path, speed_mm_per_sec,nullptr)) / max_gcode_per_second);
     }
     simplifed_path.polyline.ensure_fitting_result_valid();
     if (current_scaled_min_length > 0 && !m_last_too_small.empty()) {
@@ -5713,7 +5713,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &descri
     return gcode;
 }
 
-double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double speed) {
+double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double speed, std::string *comment) {
 
     float factor = 1;
     // set speed
@@ -5725,25 +5725,34 @@ double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath& path, double spee
         //it's a bit hacky, so if you want to rework it, help yourself.
         if (path.role() == erPerimeter) {
             speed = m_config.get_computed_value("perimeter_speed");
+            if(comment) *comment = "perimeter_speed";
         } else if (path.role() == erExternalPerimeter) {
             speed = m_config.get_computed_value("external_perimeter_speed");
+            if(comment) *comment = "external_perimeter_speed";
         } else if (path.role() == erBridgeInfill) {
             speed = m_config.get_computed_value("bridge_speed");
+            if(comment) *comment = "bridge_speed";
         } else if (path.role() == erInternalBridgeInfill) {
             speed = m_config.get_computed_value("internal_bridge_speed");
             if(comment) *comment = "internal_bridge_speed";
         } else if (path.role() == erOverhangPerimeter) {
             speed = m_config.get_computed_value("overhangs_speed");
+            if(comment) *comment = "overhangs_speed";
         } else if (path.role() == erInternalInfill) {
             speed = m_config.get_computed_value("infill_speed");
+            if(comment) *comment = "infill_speed";
         } else if (path.role() == erSolidInfill) {
             speed = m_config.get_computed_value("solid_infill_speed");
+            if(comment) *comment = "solid_infill_speed";
         } else if (path.role() == erTopSolidInfill) {
             speed = m_config.get_computed_value("top_solid_infill_speed");
+            if(comment) *comment = "top_solid_infill_speed";
         } else if (path.role() == erThinWall) {
             speed = m_config.get_computed_value("thin_walls_speed");
+            if(comment) *comment = "thin_walls_speed";
         } else if (path.role() == erGapFill) {
             speed = m_config.get_computed_value("gap_fill_speed");
+            if(comment) *comment = "gap_fill_speed";
             double max_ratio = m_config.gap_fill_flow_match_perimeter.get_abs_value(1.);
             if (max_ratio > 0 && m_region) {
                 //compute intended perimeter flow
@@ -6055,7 +6064,8 @@ std::string GCode::_before_extrude(const ExtrusionPath &path, const std::string 
     }
 
     // compute speed here to be able to know it for travel_deceleration_use_target
-    speed = _compute_speed_mm_per_sec(path, speed);
+    std::string speed_comment = "";
+    speed = _compute_speed_mm_per_sec(path, speed, m_config.gcode_comments ? &speed_comment : nullptr);
         
     if (m_config.travel_deceleration_use_target){
         if (travel_acceleration <= acceleration || travel_acceleration == 0 || acceleration == 0) {
