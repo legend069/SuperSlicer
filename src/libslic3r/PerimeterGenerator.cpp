@@ -3260,9 +3260,12 @@ void PerimeterGenerator::_merge_thin_walls(ExtrusionEntityCollection &extrusions
         if (searcher.search_result.path != nullptr) {
 #if _DEBUG
             searcher.search_result.loop->visit(LoopAssertVisitor{});
+            ExtrusionLoop orig_loop = *searcher.search_result.loop;
 #endif
             if (!searcher.search_result.from_start)
                 tw.reverse();
+            //save old path, as it may be destroyed before being re-created and we want to keep its parameters.
+            ExtrusionPath path_to_split = *searcher.search_result.path; // TODO: 2.7: just save hte pathsettigns
             //get the point
             Point point = tw.front().projection_onto(searcher.search_result.line);
             //we have to create 3 paths: 1: thinwall extusion, 2: thinwall return, 3: end of the path
@@ -3322,7 +3325,7 @@ void PerimeterGenerator::_merge_thin_walls(ExtrusionEntityCollection &extrusions
             } else {
                 assert(poly_after.length() > SCALED_EPSILON);
                 searcher.search_result.loop->paths.insert(searcher.search_result.loop->paths.begin() + idx_path_to_add, 
-                    ExtrusionPath(poly_after, *searcher.search_result.path));
+                    ExtrusionPath(poly_after, path_to_split));
             }
             assert(idx_path_before > searcher.search_result.loop->paths.size() || searcher.search_result.loop->paths[idx_path_before].polyline.size() > 1);
             assert(poly_after.size() > 0);
@@ -3462,7 +3465,7 @@ PerimeterGenerator::_get_nearest_point(const PerimeterGeneratorLoops &children, 
             //don't check the last point, as it's used to go outter, can't use it to go inner.
             for (size_t idx_point = 1; idx_point < myPolylines.paths[idx_poly].polyline.size()-1; idx_point++) {
                 const Point &p = myPolylines.paths[idx_poly].polyline.get_points()[idx_point];
-                Point nearest_p = child.polygon.point_projection(p);
+                Point nearest_p = child.polygon.point_projection(p).first;
                 coord_t dist = (coord_t)nearest_p.distance_to(p);
                 //if no projection, go to next
                 if (dist == 0) continue;
@@ -3490,7 +3493,7 @@ PerimeterGenerator::_get_nearest_point(const PerimeterGeneratorLoops &children, 
             //lastly, try to check from one of his points
             for (size_t idx_point = 0; idx_point < child.polygon.size(); idx_point++) {
                 const Point &p = child.polygon.points[idx_point];
-                Point nearest_p = myPolylines.paths[idx_poly].polyline.point_projection(p);
+                Point nearest_p = myPolylines.paths[idx_poly].polyline.point_projection(p).first;
                 coord_t dist = (coord_t)nearest_p.distance_to(p);
                 //if no projection, go to next
                 if (dist == 0) continue;
