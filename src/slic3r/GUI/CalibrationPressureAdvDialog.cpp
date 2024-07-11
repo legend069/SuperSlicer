@@ -81,7 +81,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     {"BridgeInfill", "bridge_acceleration"},
     {"ExternalPerimeter", "external_perimeter_acceleration"},
     {"GapFill", "gap_fill_acceleration"},
-    {"InternalBridgeInfill", "bridge_internal_acceleration"},
+    {"InternalBridgeInfill", "internal_bridge_acceleration"},
     {"Ironing", "ironing_acceleration"},
     {"OverhangPerimeter", "overhangs_acceleration"},
     {"Perimeter", "perimeter_acceleration"},
@@ -730,8 +730,8 @@ void CalibrationPressureAdvDialog::create_buttons(wxStdDialogButtonSizer* button
 
     if (prefix != "unsupported firmware type") {
 
-        wxString number_of_runs[] = { "1", "2", "3", "4", "5" };
-        nbRuns = new wxComboBox(this, wxID_ANY, wxString{ "1" }, wxDefaultPosition, wxDefaultSize, 5, number_of_runs);
+        wxString number_of_runs[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" };
+        nbRuns = new wxComboBox(this, wxID_ANY, wxString{ "1" }, wxDefaultPosition, wxDefaultSize, 10, number_of_runs);
         nbRuns->SetToolTip(_L("Select the number of tests to generate, max 2 is recommended due to bed size limits"));
         nbRuns->SetSelection(0);
         nbRuns->Bind(wxEVT_COMBOBOX, &CalibrationPressureAdvDialog::on_row_change, this);
@@ -742,13 +742,13 @@ void CalibrationPressureAdvDialog::create_buttons(wxStdDialogButtonSizer* button
         wxBoxSizer* commonSizer = new wxBoxSizer(wxHORIZONTAL);
         commonSizer->Add(new wxStaticText(this, wxID_ANY, _L("Number of tests: ")));
         commonSizer->Add(nbRuns);
-        dynamicSizer->Add(commonSizer, 0, wxALL, 5);
+        dynamicSizer->Add(commonSizer, 0, wxALL, 10);
         currentTestCount = wxAtoi(nbRuns->GetValue());
 
 
         wxButton* bt = new wxButton(this, wxID_FILE1, _L("Generate"));
         bt->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::create_geometry, this);
-        dynamicSizer->Add(bt, 0, wxALL, 5);
+        dynamicSizer->Add(bt, 0, wxALL, 10);
 
         create_row_controls(dynamicSizer, currentTestCount);
     } else {

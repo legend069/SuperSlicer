@@ -230,7 +230,7 @@ void Layer::make_perimeters()
                 && config.fuzzy_skin_point_dist     == other_config.fuzzy_skin_point_dist
 
                 /*&& config.bridge_acceleration                      == other_config.bridge_acceleration
-                && config.bridge_internal_acceleration             == other_config.bridge_internal_acceleration
+                && config.internal_bridge_acceleration             == other_config.internal_bridge_acceleration
                 && config.brim_acceleration                        == other_config.brim_acceleration
                 && config.default_acceleration                     == other_config.default_acceleration
                 && config.external_perimeter_acceleration          == other_config.external_perimeter_acceleration

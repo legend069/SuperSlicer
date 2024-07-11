@@ -1217,6 +1217,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercents,             filament_shrink))
     ((ConfigOptionInts,                 first_layer_bed_temperature))
     ((ConfigOptionInts,                 first_layer_temperature))
+    //((ConfigOptionFloatOrPercent,       first_layer_speed))
     ((ConfigOptionInts,                 full_fan_speed_layer))
     ((ConfigOptionInts,                 gap_fill_fan_speed))
     ((ConfigOptionInts,                 infill_fan_speed))
