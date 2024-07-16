@@ -176,7 +176,7 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void refresh_print();
-
+    
     //std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, bool load_model = true, bool load_config = true, bool update_dirs = true, bool imperial_units = false);
     // To be called when providing a list of files to the GUI slic3r on command line.
     //std::vector<size_t> load_files(const std::vector<std::string>& input_files, bool load_model = true, bool load_config = true, bool update_dirs = true, bool imperial_units = false);
@@ -275,6 +275,8 @@ public:
     void enter_gizmos_stack();
     void leave_gizmos_stack();
 
+    void filament_notification_plater();
+    
     void on_extruders_change(size_t extruders_count);
     bool update_filament_colors_in_full_config();
     void on_config_change(const DynamicConfig &config);

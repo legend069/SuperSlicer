@@ -262,7 +262,7 @@ public:
     void            calibration_pressureadv_dialog();
     void            freecad_script_dialog();
     void            tiled_canvas_dialog();
-
+    void            show_printer_webview_tab();
 
     // Webview
     bool m_adding_script_handler{false};

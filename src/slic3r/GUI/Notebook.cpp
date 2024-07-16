@@ -21,7 +21,7 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, bool add_mode_buttons/* = fal
 #endif //__WINDOWS__
 
     int em = em_unit(this);// Slic3r::GUI::wxGetApp().em_unit();
-#if __WINDOWS__
+#ifdef __WINDOWS__
     m_btn_margin  = std::lround(0.4 * em);
 #else
     m_btn_margin = std::lround(0.4 * em);
@@ -255,4 +255,3 @@ void Notebook::EmitEventSelChanged(int16_t new_sel) {
     }
 }
  
-

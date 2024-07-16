@@ -1930,9 +1930,7 @@ void GCode::_do_export(Print& print_mod, GCodeOutputStream &file, ThumbnailsGene
      this->m_throw_if_canceled();
 
     // Collect custom seam data from all objects.
-     print.set_status(0, L("Computing seam visibility areas: object %s / %s"),
-                      {"1", std::to_string(print.objects().size())},
-                      PrintBase::SlicingStatus::FORCE_SHOW | PrintBase::SlicingStatus::SECONDARY_STATE);
+    print.set_status(0, L("Computing seam visibility areas: object %s / %s"), {"1", std::to_string(print.objects().size())}, PrintBase::SlicingStatus::SECONDARY_STATE);
     m_seam_placer.init(print, this->m_throw_if_canceled);
 
     //activate first extruder is multi-extruder and not in start-gcode
@@ -5433,7 +5431,20 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
         if (! region.perimeters.empty()) {
             m_region = &print.get_print_region(&region - &by_region.front());
             // Apply region-specific settings
-            apply_region_config(gcode);
+            m_config.apply(m_region->config());
+            m_writer.apply_print_region_config(m_region->config());
+            m_seam_placer.external_perimeters_first = m_region->config().external_perimeters_first.value;
+            if (m_config.print_temperature > 0)
+                if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.print_first_layer_temperature.value > 0)
+                    gcode += m_writer.set_temperature(m_config.print_first_layer_temperature.value, false, m_writer.tool()->id());
+                else
+                    gcode += m_writer.set_temperature(m_config.print_temperature.value, false, m_writer.tool()->id());
+            else if (m_layer != nullptr && m_layer->bottom_z() < EPSILON && m_config.first_layer_temperature.get_at(m_writer.tool()->id()) > 0)
+                gcode += m_writer.set_temperature(m_config.first_layer_temperature.get_at(m_writer.tool()->id()), false, m_writer.tool()->id());
+            else if (m_config.temperature.get_at(m_writer.tool()->id()) > 0) { // don't set it if disabled
+                gcode += m_writer.set_temperature(m_config.temperature.get_at(m_writer.tool()->id()), false,
+                                                  m_writer.tool()->id());
+            }
             ExtrusionEntitiesPtr extrusions{region.perimeters};
             chain_and_reorder_extrusion_entities(extrusions, &m_last_pos);
             for (const ExtrusionEntity *ee : extrusions) {
@@ -6040,7 +6051,6 @@ double_t GCode::_compute_speed_mm_per_sec(const ExtrusionPath &path, double spee
 
     return speed;
 }
-
 
 void GCode::cooldown_marker_init() {
     if (_cooldown_marker_speed[ExtrusionRole::erExternalPerimeter].empty()) {

@@ -89,6 +89,7 @@ enum PrintHostType {
     htMPMDv2,
     htMKS,
     htMiniDeltaLCD,
+    htPrusaConnect
 };
 
 enum AuthorizationType {
@@ -1197,6 +1198,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,                 bed_temperature))
     ((ConfigOptionInts,                 bridge_fan_speed))
     ((ConfigOptionFloatOrPercent,       bridge_precision))
+    ((ConfigOptionInts,                 bridge_internal_fan_speed))
     ((ConfigOptionInts,                 chamber_temperature))
     ((ConfigOptionBool,                 complete_objects))
     ((ConfigOptionFloat,                parallel_objects_step))

@@ -260,6 +260,9 @@ public:
     void push_version_notification(NotificationType type, NotificationLevel level, const std::string& text, const std::string& hypertext,
         std::function<bool(wxEvtHandler*)> callback);
     
+    // Recommendation
+    void push_recommendation_notification(const std::string& text);
+    
     // Download App progress
     void push_download_progress_notification(const std::string& text, std::function<bool()>    cancel_callback);
     void set_download_progress_percentage(float percentage);

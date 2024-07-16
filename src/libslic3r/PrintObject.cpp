@@ -773,7 +773,12 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
                 steps.emplace_back(posPerimeters);
             } else if (
                 // || opt_key == "exact_last_layer_height"
-                opt_key == "bridge_type"
+                opt_key == "raft_contact_distance"
+                || opt_key == "raft_interface_layer_height"
+                || opt_key == "raft_layers"
+                || opt_key == "raft_layer_height"
+                || opt_key == "slice_closing_radius" 
+                || opt_key == "bridge_type"
                 || opt_key == "clip_multipart_objects"
                 || opt_key == "curve_smoothing_angle_concave"
                 || opt_key == "curve_smoothing_angle_convex"
@@ -843,6 +848,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
                 || opt_key == "support_material_interface_angle_increment"
                 || opt_key == "support_material_interface_contact_loops"
                 || opt_key == "support_material_interface_extruder"
+                || opt_key == "support_material_interface_pattern"
                 || opt_key == "support_material_interface_spacing"
                 || opt_key == "support_material_pattern"
                 || opt_key == "support_material_style"

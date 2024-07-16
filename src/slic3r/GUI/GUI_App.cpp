@@ -66,6 +66,7 @@
 #include "CalibrationOverBridgeDialog.hpp"
 #include "CalibrationTempDialog.hpp"
 #include "CalibrationRetractionDialog.hpp"
+#include "CalibrationPressureAdvDialog.hpp"
 #include "CalibrationCr3dDialog.hpp"
 #include "CalibrationPressureAdvDialog.hpp"
 #include "ConfigSnapshotDialog.hpp"
@@ -1401,6 +1402,8 @@ bool GUI_App::on_init_inner()
 
     obj_list()->set_min_height();
 
+    show_printer_webview_tab();
+
     update_mode(); // update view mode after fix of the object_list size
 
 #ifdef __APPLE__
@@ -1888,9 +1891,9 @@ void GUI_App::recreate_GUI(const wxString& msg_name)
     mainframe = new MainFrame();
     if (is_editor())
         // hide settings tabs after first Layout
-        mainframe->select_tab(MainFrame::TabPosition::tpLastPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
     else
-        mainframe->select_tab(MainFrame::TabPosition::tpPlaterGCode);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
     // Propagate model objects to object list.
     sidebar().obj_list()->init_objects();
     SetTopWindow(mainframe);
@@ -3768,5 +3771,10 @@ void GUI_App::start_download(std::string url) {
     }
 #endif // __WXMSW__
          
+    void GUI_App::show_printer_webview_tab()
+    {
+        mainframe->show_printer_webview_tab(preset_bundle->physical_printers.get_selected_printer_config());
+    }
+
          } // GUI
          } //Slic3r
