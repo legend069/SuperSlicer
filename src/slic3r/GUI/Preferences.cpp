@@ -224,7 +224,7 @@ void PreferencesDialog::build(size_t selected_tab)
 		else
 			def_combobox_auto_switch_preview.set_default_value(new ConfigOptionStrings{ def_combobox_auto_switch_preview.enum_values[2] });
 
-        def_combobox_auto_switch_preview.set_default_value(new ConfigOptionStrings{ def_combobox_auto_switch_preview.enum_values[3] });
+        //def_combobox_auto_switch_preview.set_default_value(new ConfigOptionStrings{ def_combobox_auto_switch_preview.enum_values[3] });
 		option = Option(def_combobox_auto_switch_preview, "auto_switch_preview");
 		m_optgroups_general.back()->append_single_option_line(option);
 

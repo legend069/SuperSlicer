@@ -1094,9 +1094,10 @@ void MainFrame::init_tabpanel()
 
             if (bt_idx_sel == 0) {
                 this->m_plater->select_view_3D("3D");
+                
             } else if (bt_idx_sel == 1) {
-                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
-                    this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
+                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
+                    this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                     this->m_plater->select_view_3D("Preview");
                     this->m_plater->refresh_print();
                     this->m_plater->Refresh();
@@ -2727,15 +2728,8 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 if (tab == TabPosition::tpPlater || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
                     this->m_plater->select_view_3D("3D");
                 } else if (tab == TabPosition::tpPlaterGCode || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 1)) {
-                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
-                        this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
-                        this->m_plater->select_view_3D("Preview");
-                        this->m_plater->refresh_print();
-                    } else
-                        this->m_plater->select_view_3D("Preview");
-                } else if (tab == TabPosition::tpPlaterGCode || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 2)) {
-                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
-                        this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
+                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGCode) {
+                        this->m_plater->set_force_preview(Preview::ForceState::ForceGCode);
                         this->m_plater->select_view_3D("Preview");
                         this->m_plater->refresh_print();
                     } else
