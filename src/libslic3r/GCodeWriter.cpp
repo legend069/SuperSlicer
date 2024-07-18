@@ -194,7 +194,7 @@ std::string GCodeWriter::set_temperature(const int16_t temperature, bool wait, i
         return "";
     
     std::string code, comment;
-    if (wait && FLAVOR_IS_NOT(gcfTeacup) && FLAVOR_IS_NOT(gcfRepRap)) {
+    if (!wait && FLAVOR_IS_NOT(gcfTeacup) && FLAVOR_IS_NOT(gcfRepRap)) {
         code = "M109";
         comment = "set temperature and wait for it to be reached";
     } else {
@@ -413,9 +413,7 @@ std::string GCodeWriter::update_progress(uint32_t num, uint32_t tot, bool allow_
 std::string GCodeWriter::toolchange_prefix() const
 {
     return FLAVOR_IS(gcfMakerWare) ? "M135 T" :
-           FLAVOR_IS(gcfSailfish) ? "M108 T" :
-           FLAVOR_IS(gcfKlipper) ? "ACTIVATE_EXTRUDER EXTRUDER=" :
-           "T";
+           FLAVOR_IS(gcfSailfish) ? "M108 T" : "T";
 }
 
 std::string GCodeWriter::toolchange(uint16_t tool_id)
@@ -446,25 +444,13 @@ std::string GCodeWriter::toolchange(uint16_t tool_id)
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;
     if (this->multiple_extruders) {
-        if (FLAVOR_IS(gcfKlipper)) {
-            //check if we can use the tool_name field or not
-            if (tool_id > 0 && tool_id < this->config.tool_name.size() && !this->config.tool_name.get_at(tool_id).empty()
-                // NOTE: this will probably break if there's more than 10 tools, as it's relying on the
-                // ASCII character table.
-                && this->config.tool_name.get_at(tool_id)[0] != static_cast<char>(('0' + tool_id))) {
-                gcode << this->toolchange_prefix() << this->config.tool_name.get_at(tool_id);
-            } else {
-                gcode << this->toolchange_prefix() << "extruder";
-                if (tool_id > 0)
-                    gcode << tool_id;
-            }
-        } else {
-            gcode << this->toolchange_prefix() << tool_id;
-        }
-        if (this->config.gcode_comments)
+        gcode << this->toolchange_prefix() << tool_id;
+        
+        if (this->config.gcode_comments) {
             gcode << " ; change extruder";
-        gcode << "\n";
-        gcode << this->reset_e(true);
+            gcode << "\n";
+            gcode << this->reset_e(true);
+        }
     }
     return gcode.str();
 }

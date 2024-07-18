@@ -6830,7 +6830,13 @@ void Plater::on_config_change(const DynamicConfig &config)
         if (opt_key == "filament_colour")
         {
             update_scheduled = true; // update should be scheduled (for update 3DScene) #2738
-            filament_notification_plater();
+            
+            static bool should_show = false;
+            if (should_show) {
+                filament_notification_plater();
+            } else {
+                should_show = true;
+            }
 
             if (update_filament_colors_in_full_config()) {
                 p->sidebar->obj_list()->update_extruder_colors();

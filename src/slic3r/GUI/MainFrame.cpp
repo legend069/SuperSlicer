@@ -2728,8 +2728,8 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
                 if (tab == TabPosition::tpPlater || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
                     this->m_plater->select_view_3D("3D");
                 } else if (tab == TabPosition::tpPlaterGCode || (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 1)) {
-                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGCode) {
-                        this->m_plater->set_force_preview(Preview::ForceState::ForceGCode);
+                    if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
+                        this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                         this->m_plater->select_view_3D("Preview");
                         this->m_plater->refresh_print();
                     } else
