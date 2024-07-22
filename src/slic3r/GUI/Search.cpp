@@ -42,8 +42,7 @@ static char marker_by_type(Preset::Type type, PrinterTechnology pt)
         return ImGui::MaterialIconMarker;
     } else if ((Preset::TYPE_PRINTER & type) == Preset::TYPE_PRINTER) {
         return pt == ptSLA ? ImGui::PrinterSlaIconMarker : ImGui::PrinterIconMarker;
-    } else if ((Preset::TYPE_PRINT1 & type) == Preset::TYPE_PRINT1 ||
-               (Preset::TYPE_FREQUENT & type) == Preset::TYPE_FREQUENT) {
+    } else if ((Preset::TYPE_PRINT1 & type) == Preset::TYPE_PRINT1) {
         return ImGui::PrintIconMarker;
     }
     assert(false);

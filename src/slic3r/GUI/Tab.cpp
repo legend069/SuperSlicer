@@ -493,7 +493,6 @@ int Tab::get_icon_id(const wxString& title, const std::string& icon)
 
 Slic3r::GUI::PageShp Tab::create_options_page(const wxString& title, const std::string& icon)
 {
-    assert((this->type() & Preset::Type::TYPE_FREQUENT) == 0);
     assert(Tab::fake_build || m_page_view);
     // Initialize the page.
     PageShp page(new Page(this, m_page_view, title, get_icon_id(title, icon)));
@@ -1132,12 +1131,26 @@ void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
-    //also reload scripted that aren't on the active page.
+
+    PrinterTechnology   pt                  = get_printer_technology();
+    ConfigOptionsGroup *og_freq_chng_params = wxGetApp().sidebar().og_freq_chng_params(pt);
+
+    // also reload scripted that aren't on the active page.
     for (PageShp page : m_pages) {
         if (page.get() != m_active_page) {
-            for (auto group : page->m_optgroups) {
-                // ask for activated the preset even if the gui isn't created, as the script may want to modify the conf.
-                group->update_script_presets(true);
+            DynamicPrintConfig config = static_cast<TabPrinter *>(this)->m_preset_bundle->full_config();
+            if (config.has("nozzle_diameter")) {
+                size_t nozzle_diameters_count = static_cast<ConfigOptionFloats *>(config.option("nozzle_diameter"))->get_values().size();
+
+                Field *field = og_freq_chng_params->get_field("s_nozzle_diameter_2");
+                if (field) {
+                    field->toggle(nozzle_diameters_count == 2);
+                }
+
+                for (auto group : page->m_optgroups) {
+                    // ask for activated the preset even if the gui isn't created, as the script may want to modify the conf.
+                    group->update_script_presets(true);
+                }
             }
         }
     }
@@ -1368,14 +1381,6 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             if (script_tab && script_tab->m_script_exec.is_intialized()) {
                 for (PageShp &page : script_tab->m_pages) {
                     Field *field = page->get_field(tabtype_presetid.second, -1);
-                    if (field) {
-                        boost::any script_val = script_tab->m_script_exec.call_script_function_get_value(field->m_opt);
-                        if (!script_val.empty())
-                            field->set_any_value(script_val, false);
-                    }
-                }
-                if((script_tab->type() & Preset::Type::TYPE_FREQUENT) != 0) { // also check freq changed params
-                    Field *field = og_freq_chng_params->get_field(tabtype_presetid.second);
                     if (field) {
                         boost::any script_val = script_tab->m_script_exec.call_script_function_get_value(field->m_opt);
                         if (!script_val.empty())
