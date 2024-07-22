@@ -34,7 +34,8 @@ std::string GCodeWriter::get_default_pause_gcode(const GCodeConfig &config)
     if (config.pause_print_gcode.value.empty()) {
         if (config.gcode_flavor.value == GCodeFlavor::gcfKlipper) {
             return "PAUSE";
-        } else if (config.gcode_flavor.value == GCodeFlavor::gcfRepRap || config.gcode_flavor.value == GCodeFlavor::gcfMarlinLegacy /*prusa only*/) {
+        } else if (config.gcode_flavor.value == GCodeFlavor::gcfRepRap ||
+                   config.gcode_flavor.value == GCodeFlavor::gcfMarlinLegacy /*prusa only*/) {
             return "M601";
         } else {
             // no pause command for other firmware, for what i am aware. Please submit a pullrequest or issue if they change.
@@ -48,8 +49,10 @@ std::string GCodeWriter::get_default_pause_gcode(const GCodeConfig &config)
 std::string GCodeWriter::get_default_color_change_gcode(const GCodeConfig &config)
 {
     if (config.color_change_gcode.value.empty()) {
-        if (config.gcode_flavor.value == GCodeFlavor::gcfRepRap || config.gcode_flavor.value == GCodeFlavor::gcfMarlinLegacy ||
-            config.gcode_flavor.value == GCodeFlavor::gcfMarlinFirmware || config.gcode_flavor.value == GCodeFlavor::gcfSmoothie) {
+        if (config.gcode_flavor.value == GCodeFlavor::gcfRepRap ||
+            config.gcode_flavor.value == GCodeFlavor::gcfMarlinLegacy ||
+            config.gcode_flavor.value == GCodeFlavor::gcfMarlinFirmware ||
+            config.gcode_flavor.value == GCodeFlavor::gcfSmoothie) {
             return "M600";
         } else {
             // no pause command for other firmware, for what i am aware. Please submit a pullrequest or issue if they change.
@@ -64,48 +67,48 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
 {
     this->multiple_extruders = false;
     this->config.apply(print_config, true);
-    m_extrusion_axis = get_extrusion_axis(this->config);
+    m_extrusion_axis                 = get_extrusion_axis(this->config);
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
 }
 
-void GCodeWriter::apply_print_region_config(const PrintRegionConfig& print_region_config)
+void GCodeWriter::apply_print_region_config(const PrintRegionConfig &print_region_config)
 {
     config_region = &print_region_config;
 }
 
-std::vector<uint16_t> GCodeWriter::extruder_ids() const {
+std::vector<uint16_t> GCodeWriter::extruder_ids() const
+{
     std::vector<uint16_t> out;
     out.reserve(m_extruders.size());
-    for (const Extruder& e : m_extruders)
-        out.push_back(e.id());
+    for (const Extruder &e : m_extruders) out.push_back(e.id());
     return out;
 }
 
-std::vector<uint16_t> GCodeWriter::mill_ids() const {
+std::vector<uint16_t> GCodeWriter::mill_ids() const
+{
     std::vector<uint16_t> out;
     out.reserve(m_millers.size());
-    for (const Tool& e : m_millers)
-        out.push_back(e.id());
+    for (const Tool &e : m_millers) out.push_back(e.id());
     return out;
 }
 
-uint16_t GCodeWriter::first_mill() const {
+uint16_t GCodeWriter::first_mill() const
+{
     if (m_millers.empty()) {
         uint16_t max = 0;
-        for (const Extruder& e : m_extruders)
-            max = std::max(max, e.id());
+        for (const Extruder &e : m_extruders) max = std::max(max, e.id());
         max++;
-        return (uint16_t)max;
-    } else return m_millers.front().id();
+        return (uint16_t) max;
+    } else
+        return m_millers.front().id();
 }
-bool GCodeWriter::tool_is_extruder() const {
-    return m_tool && m_tool->id() < first_mill();
-}
-const Tool* GCodeWriter::get_tool(uint16_t id) const{
-    for (const Extruder& e : m_extruders)
+bool        GCodeWriter::tool_is_extruder() const { return m_tool && m_tool->id() < first_mill(); }
+const Tool *GCodeWriter::get_tool(uint16_t id) const
+{
+    for (const Extruder &e : m_extruders)
         if (id == e.id())
             return &e;
-    for (const Tool& e : m_millers)
+    for (const Tool &e : m_millers)
         if (id == e.id())
             return &e;
     return nullptr;
@@ -116,13 +119,12 @@ void GCodeWriter::set_extruders(std::vector<uint16_t> extruder_ids)
     std::sort(extruder_ids.begin(), extruder_ids.end());
     m_extruders.clear();
     m_extruders.reserve(extruder_ids.size());
-    for (uint16_t extruder_id : extruder_ids)
-        m_extruders.emplace_back(Extruder(extruder_id, &this->config));
+    for (uint16_t extruder_id : extruder_ids) m_extruders.emplace_back(Extruder(extruder_id, &this->config));
 
     /*  we enable support for multiple extruder if any extruder greater than 0 is used
         (even if prints only uses that one) since we need to output Tx commands
         first extruder has index 0 */
-    if(!extruder_ids.empty() && !this->multiple_extruders)
+    if (!extruder_ids.empty() && !this->multiple_extruders)
         this->multiple_extruders = (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
 }
 
@@ -131,9 +133,7 @@ void GCodeWriter::set_mills(std::vector<uint16_t> mill_ids)
     std::sort(mill_ids.begin(), mill_ids.end());
     m_millers.clear();
     m_millers.reserve(mill_ids.size());
-    for (uint16_t mill_id : mill_ids) {
-        m_millers.emplace_back(Mill(mill_id, &this->config));
-    }
+    for (uint16_t mill_id : mill_ids) { m_millers.emplace_back(Mill(mill_id, &this->config)); }
 
     /*  we enable support for multiple extruder */
     this->multiple_extruders = this->multiple_extruders || !mill_ids.empty();
@@ -142,21 +142,14 @@ void GCodeWriter::set_mills(std::vector<uint16_t> mill_ids)
 std::string GCodeWriter::preamble()
 {
     std::ostringstream gcode;
-    
+
     if (FLAVOR_IS_NOT(gcfMakerWare)) {
         gcode << "G21 ; set units to millimeters\n";
         gcode << "G90 ; use absolute coordinates\n";
     }
-    if (FLAVOR_IS(gcfSprinter) ||
-        FLAVOR_IS(gcfRepRap) ||
-        FLAVOR_IS(gcfMarlinLegacy) ||
-        FLAVOR_IS(gcfMarlinFirmware) ||
-        FLAVOR_IS(gcfLerdge) ||
-        FLAVOR_IS(gcfTeacup) ||
-        FLAVOR_IS(gcfRepetier) ||
-        FLAVOR_IS(gcfSmoothie) ||
-        FLAVOR_IS(gcfKlipper))
-    {
+    if (FLAVOR_IS(gcfSprinter) || FLAVOR_IS(gcfRepRap) || FLAVOR_IS(gcfMarlinLegacy) ||
+        FLAVOR_IS(gcfMarlinFirmware) || FLAVOR_IS(gcfLerdge) || FLAVOR_IS(gcfTeacup) || FLAVOR_IS(gcfRepetier) ||
+        FLAVOR_IS(gcfSmoothie) || FLAVOR_IS(gcfKlipper)) {
         if (this->config.use_relative_e_distances) {
             gcode << "M83 ; use relative distances for extrusion\n";
         } else {
@@ -164,7 +157,7 @@ std::string GCodeWriter::preamble()
         }
         gcode << this->reset_e(true);
     }
-    
+
     return gcode.str();
 }
 
@@ -172,17 +165,17 @@ std::string GCodeWriter::postamble() const
 {
     std::ostringstream gcode;
     if (FLAVOR_IS(gcfMachinekit))
-          gcode << "M2 ; end of program\n";
+        gcode << "M2 ; end of program\n";
     return gcode.str();
 }
 
 std::string GCodeWriter::set_temperature(const int16_t temperature, bool wait, int tool)
 {
-    //use m_tool if tool isn't set
+    // use m_tool if tool isn't set
     if (tool < 0 && m_tool != nullptr)
         tool = m_tool->id();
 
-    //add offset
+    // add offset
     int16_t temp_w_offset = temperature;
     temp_w_offset += int16_t(get_tool(tool)->temp_offset());
     temp_w_offset = std::max(int16_t(0), std::min(int16_t(2000), temp_w_offset));
@@ -192,10 +185,10 @@ std::string GCodeWriter::set_temperature(const int16_t temperature, bool wait, i
         return "";
     if (wait && (FLAVOR_IS(gcfMakerWare) || FLAVOR_IS(gcfSailfish)))
         return "";
-    
+
     std::string code, comment;
     if (wait && FLAVOR_IS_NOT(gcfTeacup) && FLAVOR_IS_NOT(gcfRepRap)) {
-        code = "M109";
+        code    = "M109";
         comment = "set temperature and wait for it to be reached";
     } else {
         if (FLAVOR_IS(gcfRepRap)) { // M104 is deprecated on RepRapFirmware
@@ -205,29 +198,31 @@ std::string GCodeWriter::set_temperature(const int16_t temperature, bool wait, i
         }
         comment = "set temperature";
     }
-    
+
     std::ostringstream gcode;
     gcode << code << " ";
     if (FLAVOR_IS(gcfMach3) || FLAVOR_IS(gcfMachinekit)) {
         gcode << "P";
     } else if (FLAVOR_IS(gcfRepRap)) {
         gcode << "P" << tool << " S";
-    } else if (wait && (FLAVOR_IS(gcfMarlinFirmware) || FLAVOR_IS(gcfMarlinLegacy)) && temp_w_offset < m_last_temperature_with_offset) {
-        gcode << "R"; //marlin doesn't wait with S if it's a cooling change, it needs a R
+    } else if (wait && (FLAVOR_IS(gcfMarlinFirmware) || FLAVOR_IS(gcfMarlinLegacy)) &&
+               temp_w_offset < m_last_temperature_with_offset) {
+        gcode << "R"; // marlin doesn't wait with S if it's a cooling change, it needs a R
     } else {
         gcode << "S";
     }
     gcode << temp_w_offset;
-    bool multiple_tools = this->multiple_extruders && ! m_single_extruder_multi_material;
-    if (tool != -1 && (multiple_tools || FLAVOR_IS(gcfMakerWare) || FLAVOR_IS(gcfSailfish)) && FLAVOR_IS_NOT(gcfRepRap)) {
+    bool multiple_tools = this->multiple_extruders && !m_single_extruder_multi_material;
+    if (tool != -1 && (multiple_tools || FLAVOR_IS(gcfMakerWare) || FLAVOR_IS(gcfSailfish)) &&
+        FLAVOR_IS_NOT(gcfRepRap)) {
         gcode << " T" << tool;
     }
     gcode << " ; " << comment << "\n";
-    
+
     if ((FLAVOR_IS(gcfTeacup) || FLAVOR_IS(gcfRepRap)) && wait)
         gcode << "M116 ; wait for temperature to be reached\n";
-    
-    m_last_temperature = temperature;
+
+    m_last_temperature             = temperature;
     m_last_temperature_with_offset = temp_w_offset;
 
     return gcode.str();
@@ -235,10 +230,10 @@ std::string GCodeWriter::set_temperature(const int16_t temperature, bool wait, i
 
 std::string GCodeWriter::set_bed_temperature(uint32_t temperature, bool wait)
 {
-    if (temperature == m_last_bed_temperature && (! wait || m_last_bed_temperature_reached))
+    if (temperature == m_last_bed_temperature && (!wait || m_last_bed_temperature_reached))
         return std::string();
 
-    m_last_bed_temperature = temperature;
+    m_last_bed_temperature         = temperature;
     m_last_bed_temperature_reached = wait;
 
     std::string code, comment;
@@ -250,10 +245,10 @@ std::string GCodeWriter::set_bed_temperature(uint32_t temperature, bool wait)
         }
         comment = "set bed temperature and wait for it to be reached";
     } else {
-        code = "M140";
+        code    = "M140";
         comment = "set bed temperature";
     }
-    
+
     std::ostringstream gcode;
     gcode << code << " ";
     if (FLAVOR_IS(gcfMach3) || FLAVOR_IS(gcfMachinekit)) {
@@ -262,10 +257,10 @@ std::string GCodeWriter::set_bed_temperature(uint32_t temperature, bool wait)
         gcode << "S";
     }
     gcode << temperature << " ; " << comment << "\n";
-    
+
     if (FLAVOR_IS(gcfTeacup) && wait)
         gcode << "M116 ; wait for bed temperature to be reached\n";
-    
+
     return gcode.str();
 }
 
@@ -284,17 +279,18 @@ std::string GCodeWriter::set_chamber_temperature(uint32_t temperature, bool wait
 
     std::string code, comment;
     if (wait) {
-        code = "M191";
+        code    = "M191";
         comment = "set chamber temperature and wait for it to be reached";
     } else {
-        code = "M141";
+        code    = "M141";
         comment = "set chamber temperature";
     }
-    
+
     std::ostringstream gcode;
-    gcode << code << " " << "S";
+    gcode << code << " "
+          << "S";
     gcode << temperature << " ; " << comment << "\n";
-    
+
     return gcode.str();
 }
 
@@ -308,7 +304,7 @@ void GCodeWriter::set_acceleration(uint32_t acceleration)
 
 void GCodeWriter::set_travel_acceleration(uint32_t acceleration)
 {
-    //only gcfMarlinFirmware and gcfRepRap can use the travel accel
+    // only gcfMarlinFirmware and gcfRepRap can use the travel accel
     // so for the other, override the current accel
     if (FLAVOR_IS_NOT(gcfMarlinFirmware) && FLAVOR_IS_NOT(gcfRepRap))
         set_acceleration(acceleration);
@@ -319,29 +315,26 @@ void GCodeWriter::set_travel_acceleration(uint32_t acceleration)
     m_current_travel_acceleration = acceleration;
 }
 
-uint32_t GCodeWriter::get_acceleration() const
-{
-    return m_current_acceleration;
-}
+uint32_t GCodeWriter::get_acceleration() const { return m_current_acceleration; }
 
-std::string GCodeWriter::write_acceleration(){
+std::string GCodeWriter::write_acceleration()
+{
     bool need_write_travel_accel = (FLAVOR_IS(gcfMarlinFirmware) || FLAVOR_IS(gcfRepRap)) &&
                                    m_current_travel_acceleration != m_last_travel_acceleration;
-    bool need_write_main_accel = m_current_acceleration != m_last_acceleration &&
-                                 m_current_acceleration != 0;
+    bool need_write_main_accel = m_current_acceleration != m_last_acceleration && m_current_acceleration != 0;
     if (!need_write_main_accel && !need_write_travel_accel)
         return "";
 
-    m_last_acceleration = m_current_acceleration;
+    m_last_acceleration        = m_current_acceleration;
     m_last_travel_acceleration = m_current_travel_acceleration;
 
     std::ostringstream gcode;
-	//try to set only printing acceleration, travel should be untouched if possible
+    // try to set only printing acceleration, travel should be untouched if possible
     if (FLAVOR_IS(gcfRepetier)) {
         // M201: Set max printing acceleration
         if (m_current_acceleration > 0)
             gcode << "M201 X" << m_current_acceleration << " Y" << m_current_acceleration;
-    } else if(FLAVOR_IS(gcfLerdge) || FLAVOR_IS(gcfSprinter)){
+    } else if (FLAVOR_IS(gcfLerdge) || FLAVOR_IS(gcfSprinter)) {
         // M204: Set printing acceleration
         // This is new MarlinFirmware with separated print/retraction/travel acceleration.
         // Use M204 P, we don't want to override travel acc by M204 S (which is deprecated anyway).
@@ -350,15 +343,16 @@ std::string GCodeWriter::write_acceleration(){
     } else if (FLAVOR_IS(gcfMarlinFirmware) || FLAVOR_IS(gcfRepRap)) {
         // M204: Set printing & travel acceleration
         if (m_current_acceleration > 0)
-            gcode << "M204 P" << m_current_acceleration << " T" << (m_current_travel_acceleration > 0 ? m_current_travel_acceleration : m_current_acceleration);
-        else if(m_current_travel_acceleration > 0)
+            gcode << "M204 P" << m_current_acceleration << " T"
+                  << (m_current_travel_acceleration > 0 ? m_current_travel_acceleration : m_current_acceleration);
+        else if (m_current_travel_acceleration > 0)
             gcode << "M204 T" << m_current_travel_acceleration;
     } else { // gcfMarlinLegacy
         // M204: Set default acceleration
         if (m_current_acceleration > 0)
             gcode << "M204 S" << m_current_acceleration;
     }
-    //if at least something, add comment and line return
+    // if at least something, add comment and line return
     if (gcode.tellp() != std::streampos(0)) {
         if (this->config.gcode_comments)
             gcode << " ; adjust acceleration";
@@ -373,21 +367,20 @@ std::string GCodeWriter::reset_e(bool force)
 {
     this->m_de_left = 0;
 
-    if (FLAVOR_IS(gcfMach3)
-        || FLAVOR_IS(gcfMakerWare)
-        || FLAVOR_IS(gcfSailfish))
+    if (FLAVOR_IS(gcfMach3) || FLAVOR_IS(gcfMakerWare) || FLAVOR_IS(gcfSailfish))
         return "";
-    
+
     if (m_tool != nullptr) {
-        if (m_tool->E() == 0. && ! force)
+        if (m_tool->E() == 0. && !force)
             return "";
         m_tool->reset_E();
     }
 
-    if (! m_extrusion_axis.empty() && ! this->config.use_relative_e_distances) {
+    if (!m_extrusion_axis.empty() && !this->config.use_relative_e_distances) {
         std::ostringstream gcode;
         gcode << "G92 " << m_extrusion_axis << "0";
-        if (this->config.gcode_comments) gcode << " ; reset extrusion distance";
+        if (this->config.gcode_comments)
+            gcode << " ; reset extrusion distance";
         gcode << "\n";
         return gcode.str();
     } else {
@@ -399,44 +392,43 @@ std::string GCodeWriter::update_progress(uint32_t num, uint32_t tot, bool allow_
 {
     if (FLAVOR_IS_NOT(gcfMakerWare) && FLAVOR_IS_NOT(gcfSailfish))
         return "";
-    
-    uint8_t percent = (uint32_t)floor(100.0 * num / tot + 0.5);
-    if (!allow_100) percent = std::min(percent, (uint8_t)99);
-    
+
+    uint8_t percent = (uint32_t) floor(100.0 * num / tot + 0.5);
+    if (!allow_100)
+        percent = std::min(percent, (uint8_t) 99);
+
     std::ostringstream gcode;
     gcode << "M73 P" << int(percent);
-    if (this->config.gcode_comments) gcode << " ; update progress";
+    if (this->config.gcode_comments)
+        gcode << " ; update progress";
     gcode << "\n";
     return gcode.str();
 }
 
 std::string GCodeWriter::toolchange_prefix() const
 {
-    return FLAVOR_IS(gcfMakerWare) ? "M135 T" :
-           FLAVOR_IS(gcfSailfish) ? "M108 T" :
-           FLAVOR_IS(gcfKlipper) ? "ACTIVATE_EXTRUDER EXTRUDER=" :
-           "T";
+    return FLAVOR_IS(gcfMakerWare) ? "M135 T" : FLAVOR_IS(gcfSailfish) ? "M108 T" : "T";
 }
 
 std::string GCodeWriter::toolchange(uint16_t tool_id)
 {
     // set the new extruder
-	/*auto it_extruder = Slic3r::lower_bound_by_predicate(m_extruders.begin(), m_extruders.end(), [tool_id](const Extruder &e) { return e.id() < tool_id; });
-    assert(it_extruder != m_extruders.end() && it_extruder->id() == extruder_id);*/
-    //less optimized but it's easier to modify and it's not needed, as it's not called often.
+    /*auto it_extruder = Slic3r::lower_bound_by_predicate(m_extruders.begin(), m_extruders.end(), [tool_id](const Extruder
+    &e) { return e.id() < tool_id; }); assert(it_extruder != m_extruders.end() && it_extruder->id() == extruder_id);*/
+    // less optimized but it's easier to modify and it's not needed, as it's not called often.
     bool found = false;
-    for (Extruder& extruder : m_extruders) {
+    for (Extruder &extruder : m_extruders) {
         if (tool_id == extruder.id()) {
             m_tool = &extruder;
-            found = true;
+            found  = true;
             break;
         }
     }
     if (!found) {
-        for (Tool& mill : m_millers) {
+        for (Tool &mill : m_millers) {
             if (tool_id == mill.id()) {
                 m_tool = &mill;
-                found = true;
+                found  = true;
                 break;
             }
         }
@@ -446,25 +438,13 @@ std::string GCodeWriter::toolchange(uint16_t tool_id)
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;
     if (this->multiple_extruders) {
-        if (FLAVOR_IS(gcfKlipper)) {
-            //check if we can use the tool_name field or not
-            if (tool_id > 0 && tool_id < this->config.tool_name.size() && !this->config.tool_name.get_at(tool_id).empty()
-                // NOTE: this will probably break if there's more than 10 tools, as it's relying on the
-                // ASCII character table.
-                && this->config.tool_name.get_at(tool_id)[0] != static_cast<char>(('0' + tool_id))) {
-                gcode << this->toolchange_prefix() << this->config.tool_name.get_at(tool_id);
-            } else {
-                gcode << this->toolchange_prefix() << "extruder";
-                if (tool_id > 0)
-                    gcode << tool_id;
-            }
-        } else {
-            gcode << this->toolchange_prefix() << tool_id;
-        }
-        if (this->config.gcode_comments)
+        gcode << this->toolchange_prefix() << tool_id;
+
+        if (this->config.gcode_comments) {
             gcode << " ; change extruder";
-        gcode << "\n";
-        gcode << this->reset_e(true);
+            gcode << "\n";
+            gcode << this->reset_e(true);
+        }
     }
     return gcode.str();
 }
