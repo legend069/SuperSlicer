@@ -152,6 +152,32 @@ bool Repetier::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
     return res;
 }
 
+bool Repetier::preheat_extruders() const {
+    
+    const char *name = get_name();
+    
+    bool res = true;
+    
+    auto url = make_url("printer/api");
+    
+    auto http = Http::post(std::move(url));
+    set_auth(http);
+    
+    http.form_add("a", "preheat")
+        .on_complete([&](std::string body, unsigned status) {
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
+            std::cout << "Preheat was successful" << std::endl;
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error uploading file: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
+            std::cout << "Error preheating" << error << std::endl;
+            res = false;
+        })
+        .perform_sync();
+    
+    return res;
+}
+
 bool Repetier::validate_version_text(const boost::optional<std::string> &version_text) const
 {
     return version_text ? boost::starts_with(*version_text, "Repetier") : true;

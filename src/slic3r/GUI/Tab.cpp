@@ -1374,14 +1374,6 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                             field->set_any_value(script_val, false);
                     }
                 }
-                if((script_tab->type() & Preset::Type::TYPE_FREQUENT) != 0) { // also check freq changed params
-                    Field *field = og_freq_chng_params->get_field(tabtype_presetid.second);
-                    if (field) {
-                        boost::any script_val = script_tab->m_script_exec.call_script_function_get_value(field->m_opt);
-                        if (!script_val.empty())
-                            field->set_any_value(script_val, false);
-                    }
-                }
             }
         }
     }

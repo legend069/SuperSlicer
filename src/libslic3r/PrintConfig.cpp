@@ -1768,6 +1768,10 @@ void PrintConfigDef::init_fff_params()
     def->is_vector_extruder = true;
     def->set_default_value(new ConfigOptionFloats{ 0 });
 
+    def = this->add("preheat_printer", coBool);
+    def->category = OptionCategory::extruders;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("extruder_fan_offset", coPercents);
     def->label = L("Extruder fan offset");
     def->category = OptionCategory::extruders;
@@ -8410,6 +8414,7 @@ std::unordered_set<std::string> prusa_export_to_remove_keys = {
 "extruder_extrusion_multiplier_speed",
 "extruder_fan_offset",
 "extruder_temperature_offset",
+"preheat_extruder",
 "extrusion_spacing",
 "fan_kickstart",
 "fan_percentage",

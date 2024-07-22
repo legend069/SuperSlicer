@@ -1766,8 +1766,6 @@ std::string Preset::type_name(Type t) {
     case Preset::TYPE_SLA_PRINT:    return "sla_print";
     case Preset::TYPE_SLA_MATERIAL: return "sla_material";
     case Preset::TYPE_PRINTER:      return "printer";
-    case Preset::TYPE_FREQUENT_FFF: return "freq_fff";
-    case Preset::TYPE_FREQUENT_SLA: return "freq_sla";
     default:                        return "invalid";
     }
 }
@@ -1783,10 +1781,6 @@ Preset::Type Preset::type_from_name(std::string name) {
         return Preset::TYPE_SLA_MATERIAL;
     if ("printer" == name)
         return Preset::TYPE_PRINTER;
-    if ("freq_fff" == name)
-        return Preset::TYPE_FREQUENT_FFF;
-    if ("freq_sla" == name)
-        return Preset::TYPE_FREQUENT_SLA;
     return Preset::TYPE_INVALID;
 }
 

@@ -31,6 +31,7 @@ public:
     
     bool get_groups(wxArrayString &groups) const override;
     bool get_printers(wxArrayString &printers) const override;
+    bool preheat_extruders() const ;
 
 protected:
     virtual bool validate_version_text(const boost::optional<std::string> &version_text) const;
