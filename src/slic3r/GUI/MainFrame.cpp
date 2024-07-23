@@ -1114,10 +1114,6 @@ void MainFrame::init_tabpanel()
                     if (!url) {
                         m_webView->LoadURL("https://google.com");
                     }
-                } else {
-                    // Device is selected, only show and enable m_webView
-                    m_webView->Show();
-                    m_webView->Enable();
                 }
             }
 
@@ -1256,7 +1252,7 @@ void MainFrame::add_printer_webview_tab(const wxString &url)
      m_printer_webview_added = true;
      // add as the last (rightmost) panel
      dynamic_cast<Notebook *>(m_tabpanel)->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size);
-     m_webView->Show();
+        m_webView->Show();
  }
 
 void MainFrame::remove_printer_webview_tab()
@@ -1265,8 +1261,11 @@ void MainFrame::remove_printer_webview_tab()
          return;
      }
      m_printer_webview_added = false;
-     m_webView->Hide();
+        m_webView->Hide();
+     
      m_tabpanel->RemovePage(m_tabpanel->FindPage(m_webView));
+    //dynamic_cast<Notebook *>(m_tabpanel)->RemoveBtPage(size_t(TabPosition::tpDevice));
+
  }
 
 void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc)
@@ -1279,12 +1278,13 @@ void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc)
 
             load_printer_url(url);
             add_printer_webview_tab(url);
-            select_tab(TabPosition::tpDevice, false);
+            select_tab(TabPosition::tpDevice, true);
         // No physical printer is selected
     } else {
          if (m_tabpanel->GetPageText(m_tabpanel->GetSelection()) == _L("Device"))
-             select_tab(TabPosition::tpDevice, false);
-         remove_printer_webview_tab();
+             select_tab(TabPosition::tpPlater, false);
+        
+        remove_printer_webview_tab();
      }
  }
 
