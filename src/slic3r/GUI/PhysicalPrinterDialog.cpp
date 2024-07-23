@@ -287,6 +287,7 @@ void PhysicalPrinterDialog::update_printers()
 
     wxArrayString printers;
     Field* rs = m_optgroup->get_field("printhost_port");
+    
     try {
         if (!host->get_printers(printers)) {
             std::vector<std::string> slugs;

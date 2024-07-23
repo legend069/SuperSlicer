@@ -14,6 +14,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
+#include <slic3r/Utils/Repetier.hpp>
 
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -402,21 +403,21 @@ void FreqChangedParams::init()
     if (!pages.empty()) {
         m_og->set_config(config);
         m_og->hide_labels();
-
+        
         m_og->m_on_change = Tab::set_or_add(m_og->m_on_change,
                                             [tab_print, this](t_config_option_key opt_key, boost::any value) {
-                                                const Option *opt_def = this->m_og->get_option_def(opt_key);
-                                                if (opt_def && !opt_def->opt.is_script) {
-                                                    tab_print->update_dirty();
-                                                    tab_print->reload_config();
-                                                    tab_print->update();
-                                                }
-                                            });
-
+            const Option *opt_def = this->m_og->get_option_def(opt_key);
+            if (opt_def && !opt_def->opt.is_script) {
+                tab_print->update_dirty();
+                tab_print->reload_config();
+                tab_print->update();
+            }
+        });
+        
         assert(pages.size() == 1);
         assert(pages[0]->m_optgroups.size() == 1);
         m_og->copy_for_freq_settings(*(pages[0]->m_optgroups[0].get()));
-
+        
         // hacks
         Line *line_for_purge = nullptr;
         for (Line &l : pages[0]->m_optgroups[0]->set_lines()) {
@@ -431,52 +432,52 @@ void FreqChangedParams::init()
                                                           wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
                     m_wiping_dialog_button->SetFont(wxGetApp().normal_font());
                     wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
-
+                    
                     auto sizer = new wxBoxSizer(wxHORIZONTAL);
                     sizer->Add(m_wiping_dialog_button, 0, wxALIGN_CENTER_VERTICAL);
                     m_wiping_dialog_button
-                        ->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
-                                   auto &project_config = wxGetApp().preset_bundle->project_config;
-                                   const std::vector<double> &init_matrix =
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->get_values();
-                                   const std::vector<double> &init_extruders =
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->get_values();
-
-                                   const std::vector<std::string> extruder_colours =
-                                       wxGetApp().plater()->get_extruder_colors_from_plater_config();
-
-                                   WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
-                                                    extruder_colours);
-
-                                   if (dlg.ShowModal() == wxID_OK) {
-                                       std::vector<float> matrix    = dlg.get_matrix();
-                                       std::vector<float> extruders = dlg.get_extruders();
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->set(
-                                           std::vector<double>(matrix.begin(), matrix.end()));
-                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->set(
-                                          std::vector<double>(extruders.begin(), extruders.end()));
-                                       wxGetApp().plater()->update_project_dirty_from_presets();
-                                       wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
-                                   }
-                               }));
-
+                    ->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
+                        auto &project_config = wxGetApp().preset_bundle->project_config;
+                        const std::vector<double> &init_matrix =
+                        (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->get_values();
+                        const std::vector<double> &init_extruders =
+                        (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->get_values();
+                        
+                        const std::vector<std::string> extruder_colours =
+                        wxGetApp().plater()->get_extruder_colors_from_plater_config();
+                        
+                        WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
+                                         extruder_colours);
+                        
+                        if (dlg.ShowModal() == wxID_OK) {
+                            std::vector<float> matrix    = dlg.get_matrix();
+                            std::vector<float> extruders = dlg.get_extruders();
+                            (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->set(
+                                                                                                      std::vector<double>(matrix.begin(), matrix.end()));
+                            (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->set(
+                                                                                                         std::vector<double>(extruders.begin(), extruders.end()));
+                            wxGetApp().plater()->update_project_dirty_from_presets();
+                            wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+                        }
+                    }));
+                    
                     auto btn = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString,
                                                   wxDefaultSize, wxDefaultPosition,
                                                   wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
                     sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, int(0.3 * wxGetApp().em_unit()));
                     m_empty_buttons.push_back(btn);
-
+                    
                     return sizer;
                 };
                 line_for_purge->append_widget(wiping_dialog_btn);
             }
-
+            
             // current_group->m_on_change = on_change;
             m_og->activate();
             assert(m_og->sizer);
             m_sizer->Add(m_og->sizer, 0, wxEXPAND);
         }
-
+        
         // Purging volumesbutton
         if (line_for_purge) {
             auto wiping_dialog_btn = [this](wxWindow *parent) {
@@ -484,46 +485,46 @@ void FreqChangedParams::init()
                                                       wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
                 m_wiping_dialog_button->SetFont(wxGetApp().normal_font());
                 wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
-
+                
                 auto sizer = new wxBoxSizer(wxHORIZONTAL);
                 sizer->Add(m_wiping_dialog_button, 0, wxALIGN_CENTER_VERTICAL);
                 m_wiping_dialog_button
-                    ->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
-                               auto &                     project_config = wxGetApp().preset_bundle->project_config;
-                               const std::vector<double> &init_matrix =
-                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->get_values();
-                               const std::vector<double> &init_extruders =
-                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->get_values();
-
-                               const std::vector<std::string> extruder_colours =
-                                   wxGetApp().plater()->get_extruder_colors_from_plater_config();
-
-                               WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
-                                                extruder_colours);
-
-                               if (dlg.ShowModal() == wxID_OK) {
-                                   std::vector<float> matrix    = dlg.get_matrix();
-                                   std::vector<float> extruders = dlg.get_extruders();
-                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->set(
-                                       std::vector<double>(matrix.begin(), matrix.end()));
-                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->set(
-                                      std::vector<double>(extruders.begin(), extruders.end()));
-                                   wxGetApp().plater()->update_project_dirty_from_presets();
-                                   wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
-                               }
-                           }));
-
+                ->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
+                    auto &                     project_config = wxGetApp().preset_bundle->project_config;
+                    const std::vector<double> &init_matrix =
+                    (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->get_values();
+                    const std::vector<double> &init_extruders =
+                    (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->get_values();
+                    
+                    const std::vector<std::string> extruder_colours =
+                    wxGetApp().plater()->get_extruder_colors_from_plater_config();
+                    
+                    WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
+                                     extruder_colours);
+                    
+                    if (dlg.ShowModal() == wxID_OK) {
+                        std::vector<float> matrix    = dlg.get_matrix();
+                        std::vector<float> extruders = dlg.get_extruders();
+                        (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->set(
+                                                                                                  std::vector<double>(matrix.begin(), matrix.end()));
+                        (project_config.option<ConfigOptionFloats>("wiping_volumes_extruders"))->set(
+                                                                                                     std::vector<double>(extruders.begin(), extruders.end()));
+                        wxGetApp().plater()->update_project_dirty_from_presets();
+                        wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+                    }
+                }));
+                
                 auto btn = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString,
                                               wxDefaultSize, wxDefaultPosition,
                                               wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
                 sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, int(0.3 * wxGetApp().em_unit()));
                 m_empty_buttons.push_back(btn);
-
+                
                 return sizer;
             };
             line_for_purge->append_widget(wiping_dialog_btn);
         }
-
+        
         // Preheat Button
         Line *line_for_preheat_printer = nullptr;
         for (Line &l : pages[0]->m_optgroups[0]->set_lines()) {
@@ -531,54 +532,28 @@ void FreqChangedParams::init()
                 l.label_tooltip = "";
                 line_for_preheat_printer  = &l;
             }
-        if (line_for_preheat_printer) {
-            auto preheat_printer_btn = [this](wxWindow *parent) {
-                m_preheat_printer_button = new wxButton(parent, wxID_ANY, _L("Purging volumes") + dots,
-                                                      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-                preheat_printer_btn->SetFont(wxGetApp().normal_font());
-                wxGetApp().UpdateDarkUI(m_preheat_printer_button, true);
+            if (line_for_preheat_printer) {
+                auto preheat_printer_btn = [this](wxWindow *parent) {
+                    m_preheat_printer_button = new wxButton(parent, wxID_ANY, _L("Purging volumes") + dots,
+                                                            wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+                    //preheat_printer_btn->SetFont(wxGetApp().normal_font());
+                    wxGetApp().UpdateDarkUI(m_preheat_printer_button, true);
+                    
+                    auto sizer = new wxBoxSizer(wxHORIZONTAL);
 
-                auto sizer = new wxBoxSizer(wxHORIZONTAL);
-                sizer->Add(m_preheat_printer_button, 0, wxALIGN_CENTER_VERTICAL);
-                m_preheat_printer_button->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e) {
-                               auto &                     project_config = wxGetApp().preset_bundle->project_config;
-
-                               const std::vector<double> &init_matrix =
-                                   (project_config.option<ConfigOptionBool>("wiping_volumes_matrix"))->get_values();
-
-                               const std::vector<std::string> extruder_colours =
-                                   wxGetApp().plater()->get_extruder_colors_from_plater_config();
-
-                               WipingDialog dlg(parent, cast<float>(init_matrix), cast<float>(init_extruders),
-                                                extruder_colours);
-
-                               if (dlg.ShowModal() == wxID_OK) {
-                                   std::vector<float> matrix    = dlg.get_matrix();
-                                   (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->set(
-                                       std::vector<double>(matrix.begin(), matrix.end()));
-
-                                   wxGetApp().plater()->update_project_dirty_from_presets();
-                                   wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
-                               }
-                           }));
-
-                auto btn = new ScalableButton(parent, wxID_ANY, "mirroring_transparent.png", wxEmptyString,
-                                              wxDefaultSize, wxDefaultPosition,
-                                              wxBU_EXACTFIT | wxNO_BORDER | wxTRANSPARENT_WINDOW);
-                sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, int(0.3 * wxGetApp().em_unit()));
-                m_empty_buttons.push_back(btn);
-
-                return sizer;
-            };
-            line_for_preheat_printer->append_widget(preheat_printer_btn);
+                    return sizer;
+                };
+                line_for_preheat_printer->append_widget(preheat_printer_btn);
+            }
+            
+            
+            for (const Line &l : pages[0]->m_optgroups[0]->get_lines()) { m_og->append_line(l); }
+            
+            // current_group->m_on_change = on_change;
+            m_og->activate();
+            m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
         }
-
-
-        for (const Line &l : pages[0]->m_optgroups[0]->get_lines()) { m_og->append_line(l); }
-
-        // current_group->m_on_change = on_change;
-        m_og->activate();
-        m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
+        
     }
 
     // Frequently changed parameters for SLA_technology
@@ -4323,6 +4298,9 @@ void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
         else
             this->update_sla_scene();
     }
+
+    Repetier* rep = new Repetier(wxGetApp().preset_bundle->physical_printers.get_selected_printer_config());
+    rep->cooldown_extruders();
 }
 
 void Plater::priv::on_export_began(wxCommandEvent& evt)
