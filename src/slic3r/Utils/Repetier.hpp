@@ -33,8 +33,8 @@ public:
     bool get_printers(wxArrayString &printers) const override;
     
     /// Preheating Post Requests
-    bool preheat_extruders() const;
-    bool cooldown_extruders() const;
+    bool preheat_printer() const;
+    bool cooldown_printer() const;
 
 protected:
     virtual bool validate_version_text(const boost::optional<std::string> &version_text) const;

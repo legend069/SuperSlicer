@@ -152,7 +152,7 @@ bool Repetier::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
     return res;
 }
 
-bool Repetier::cooldown_extruders() const {
+bool Repetier::cooldown_printer() const {
     
     const char *name = get_name();
     std::string endpoint = "/printer/api/printer?a=cooldown";
@@ -182,7 +182,7 @@ bool Repetier::cooldown_extruders() const {
     
 }
 
-bool Repetier::preheat_extruders() const {
+bool Repetier::preheat_printer() const {
     
     const char *name = get_name();
     std::string endpoint = "/printer/api/printer?a=preheat";

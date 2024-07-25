@@ -190,7 +190,7 @@ void ButtonsListCtrl::RemovePage(size_t n)
         m_buttons_sizer->Remove(idx);
     m_buttons_sizer->Remove(idx);
     m_spacers.erase(m_spacers.begin() + n);
-    btn->Reparent(nullptr);
+    btn->Reparent(this);
     btn->Destroy();
     m_sizer->Layout();
 }

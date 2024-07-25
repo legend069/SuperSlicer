@@ -1128,21 +1128,35 @@ void Tab::load_config(const DynamicPrintConfig& config)
 }
 
 // Reload current $self->{config} (aka $self->{presets}->edited_preset->config) into the UI fields.
+// *DONT* delete this, otherwise the sidebar will not create the fields.
 void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
-    //also reload scripted that aren't on the active page.
+
+    PrinterTechnology   pt                  = get_printer_technology();
+    ConfigOptionsGroup *og_freq_chng_params = wxGetApp().sidebar().og_freq_chng_params(pt);
+
+    // also reload scripted that aren't on the active page.
     for (PageShp page : m_pages) {
         if (page.get() != m_active_page) {
-            for (auto group : page->m_optgroups) {
-                // ask for activated the preset even if the gui isn't created, as the script may want to modify the conf.
-                group->update_script_presets(true);
+            DynamicPrintConfig config = static_cast<TabPrinter *>(this)->m_preset_bundle->full_config();
+            if (config.has("nozzle_diameter")) {
+                size_t nozzle_diameters_count = static_cast<ConfigOptionFloats *>(config.option("nozzle_diameter"))->get_values().size();
+
+                Field *field = og_freq_chng_params->get_field("s_nozzle_diameter_2");
+                if (field) {
+                    field->toggle(nozzle_diameters_count == 2);
+                }
+
+                for (auto group : page->m_optgroups) {
+                    // ask for activated the preset even if the gui isn't created, as the script may want to modify the conf.
+                    group->update_script_presets(true);
+                }
             }
         }
     }
 }
-
 void Tab::update_mode()
 {
     m_mode = wxGetApp().get_mode();
@@ -2333,6 +2347,8 @@ std::vector<Slic3r::GUI::PageShp> Tab::create_pages(std::string setting_type_nam
             height = atoi(arg.c_str());
         } else if (full_line == "freq_purging_volumes") {
             // hack (see FreqChangedParams::init() in plater.cpp)
+            current_line.label_tooltip = full_line;
+        } else if (full_line == "preheat_extruders") {
             current_line.label_tooltip = full_line;
         } else if (full_line == "update_nozzle_diameter") {
             current_group->m_on_change = set_or_add(current_group->m_on_change, [this, idx_page]

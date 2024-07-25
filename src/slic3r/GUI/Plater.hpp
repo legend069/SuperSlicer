@@ -177,6 +177,10 @@ public:
     void reload_gcode_from_disk();
     void refresh_print();
     
+    bool physical_printer_is_selected = false;
+    void on_physical_printer_selected(wxCommandEvent &);
+
+    
     //std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, bool load_model = true, bool load_config = true, bool update_dirs = true, bool imperial_units = false);
     // To be called when providing a list of files to the GUI slic3r on command line.
     //std::vector<size_t> load_files(const std::vector<std::string>& input_files, bool load_model = true, bool load_config = true, bool update_dirs = true, bool imperial_units = false);
