@@ -43,7 +43,7 @@ public:
     boost::filesystem::path get_download_path() const;
     
 private:
-    wxCheckBox* cbox_run;
+    wxStaticText* installing_info;
     wxTextCtrl* txtctrl_path;
     wxString filename;
 };

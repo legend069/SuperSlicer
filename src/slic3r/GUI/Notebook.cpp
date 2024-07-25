@@ -65,7 +65,7 @@ void ButtonsListCtrl::OnPaint(wxPaintEvent&)
         btn->SetBackgroundColour(idx == m_selection ? selected_btn_bg : default_btn_bg);
 
         // Adding border to make it look more like buttons
-        btn->SetWindowStyle(wxBORDER_SUNKEN | wxBORDER_SIMPLE);
+        //btn->SetWindowStyle(wxBORDER_SUNKEN | wxBORDER_SIMPLE);
     }
 
     // highlight selected mode button
@@ -76,7 +76,7 @@ void ButtonsListCtrl::OnPaint(wxPaintEvent&)
             btn->SetBackgroundColour(btn->is_selected() ? selected_btn_bg : default_btn_bg);
 
             // Adding border to make it look more like buttons
-            btn->SetWindowStyle(wxBORDER_SUNKEN | wxBORDER_SIMPLE);
+            //btn->SetWindowStyle(wxBORDER_SUNKEN | wxBORDER_SIMPLE);
         }
     }
 

@@ -3,15 +3,18 @@
 
 # name of the slicer
 set(SLIC3R_APP_NAME "SliCR-3D")
+
 # Key fo the slicer, must only contains ascii chars and no spaces (be valid in all filesystems)
 set(SLIC3R_APP_KEY "SliCR-3D")
+
 # exe name of the slicer, should be lowercase and valid in all os
 set(SLIC3R_APP_CMD "SliCR-3D")
+
 # versions
-set(SLIC3R_VERSION "2.6.0.2")
-set(SLIC3R_VERSION_FULL "2.6.0.2")
+set(SLIC3R_VERSION "2.6.0.3")
+set(SLIC3R_VERSION_FULL "2.6.0.3")
 set(SLIC3R_BUILD_ID "${SLIC3R_APP_KEY}_${SLIC3R_VERSION_FULL}_2024-07-02")
-set(SLIC3R_RC_VERSION "2,6,0,2")
+set(SLIC3R_RC_VERSION "2,6,0,3")
 set(SLIC3R_RC_VERSION_DOTS "${SLIC3R_VERSION_FULL}")
 
 # Same as the slicer name but for gcodeviewer

@@ -324,8 +324,9 @@ AppUpdateDownloadDialog::AppUpdateDownloadDialog(const Semver& version_online, b
     content_sizer->AddSpacer(VERT_SPACING);
 
 #ifndef __linux__
-    cbox_run = new wxCheckBox(this, wxID_ANY, _L("Run installer after download. (Otherwise file explorer will be opened.)"));
-    content_sizer->Add(cbox_run);
+    installing_info = new wxStaticText(this, wxID_ANY,
+                                       _L("After finished download explorer will be opened, extract the zip and replace the old version with the new one."));
+    content_sizer->Add(installing_info);
 #endif
 
     content_sizer->AddSpacer(VERT_SPACING);
@@ -427,11 +428,7 @@ AppUpdateDownloadDialog::~AppUpdateDownloadDialog() {}
 
 bool AppUpdateDownloadDialog::run_after_download() const
 {
-    
-#ifndef __linux__
-    return cbox_run->GetValue();
-#endif
-    return false;
+    return true;
 }
 
 boost::filesystem::path AppUpdateDownloadDialog::get_download_path() const
