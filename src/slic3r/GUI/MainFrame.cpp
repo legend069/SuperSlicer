@@ -20,7 +20,9 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Time.hpp"
 
+#include "../Utils/Repetier.hpp"
 #include "../Utils/Process.hpp"
+#include "../Utils/json_diff.hpp"
 #include "3DScene.hpp"
 #include "GLCanvas3D.hpp"
 #include "GUI_ObjectList.hpp"
@@ -29,6 +31,7 @@
 #include "Mouse3DController.hpp"
 #include "Plater.hpp"
 #include "PrintHostDialogs.hpp"
+#include "ScriptExecutor.hpp"
 
 #include "RemovableDriveManager.hpp"
 #include "Tab.hpp"
@@ -1105,6 +1108,7 @@ void MainFrame::init_tabpanel()
                     this->m_plater->select_view_3D("Preview");
             } else if (bt_idx_sel == 2) {
                 DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+              
 
                 if (!selected_printer_config) {
                     // No physical printer found, show blank screen for now
@@ -1279,7 +1283,7 @@ void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc)
 
             load_printer_url(url);
             add_printer_webview_tab(url);
-            select_tab(TabPosition::tpDevice, true);
+            //select_tab(TabPosition::tpDevice, true);
         // No physical printer is selected
     } else {
          if (m_tabpanel->GetPageText(m_tabpanel->GetSelection()) == _L("Device"))

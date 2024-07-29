@@ -4,8 +4,10 @@
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
-
+#include "nlohmann/json.hpp"
 #include "PrintHost.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -35,6 +37,12 @@ public:
     /// Preheating Post Requests
     bool preheat_printer() const;
     bool cooldown_printer() const;
+
+    // Get printer config
+    json get_printer_config() const;
+
+    std::vector<json> get_all_json_values(const json &j, const std::string &key);
+    void              collect_json_values(const json &j, const std::string &key, std::vector<json> &results);
 
 protected:
     virtual bool validate_version_text(const boost::optional<std::string> &version_text) const;

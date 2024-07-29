@@ -18,11 +18,12 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
+#include "nlohmann/json.hpp"
 
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
-
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -155,7 +156,7 @@ bool Repetier::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
 bool Repetier::cooldown_printer() const {
     
     const char *name = get_name();
-    std::string endpoint = "/printer/api/printer?a=cooldown";
+    std::string endpoint = "/printer/api/" + port + "?a=cooldown";
     std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
 
     std::string encoded_json = Http::url_encode(jsonData);
@@ -179,13 +180,12 @@ bool Repetier::cooldown_printer() const {
     
     
     return res;
-    
 }
 
 bool Repetier::preheat_printer() const {
     
     const char *name = get_name();
-    std::string endpoint = "/printer/api/printer?a=preheat";
+    std::string endpoint = "/printer/api/" + port + "?a=preheat";
     std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
 
     std::string encoded_json = Http::url_encode(jsonData);
@@ -209,6 +209,52 @@ bool Repetier::preheat_printer() const {
     
     
     return res;
+}
+
+json Repetier::get_printer_config() const {
+    const char* name = get_name();
+
+    std::string endpoint = "/printer/api/" + port + "?a=getPrinterConfig";
+    std::string url      = make_url((boost::format("printer/api/%1%") % port).str());
+    json json_response;
+
+    auto http = Http::get(std::move(url));
+    set_auth(http);
+
+    http.form_add("a", "getPrinterConfig")
+        .on_complete([&](std::string body, unsigned status) {
+            std::cout << "Getting printer config was successful" << body << std::endl;
+            json_response = json::parse(body);
+
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            std::cout << "Error getting printer config" << error << std::endl;
+            json_response = nullptr;
+        })
+        .perform_sync();
+
+
+
+    return json_response;
+}
+
+void Repetier::collect_json_values(const json &j, const std::string &key, std::vector<json> &results)
+{
+    if (j.is_object()) {
+        if (j.contains(key)) {
+            results.push_back(j.at(key));
+        }
+        for (const auto &item : j.items()) { collect_json_values(item.value(), key, results); }
+    } else if (j.is_array()) {
+        for (const auto &item : j) { collect_json_values(item, key, results); }
+    }
+}
+
+std::vector<json> Repetier::get_all_json_values(const json &j, const std::string &key)
+{
+    std::vector<json> results;
+    collect_json_values(j, key, results);
+    return results;
 }
 
 bool Repetier::validate_version_text(const boost::optional<std::string> &version_text) const

@@ -325,7 +325,7 @@ class FreqChangedParams : public OG_Settings
     wxButton *m_wiping_dialog_button{nullptr};
 
     Repetier* m_rep{nullptr};
-    wxSizer * m_sizer{nullptr};
+    wxSizer* m_sizer{nullptr};
 
     std::map<PrinterTechnology, std::shared_ptr<ConfigOptionsGroup>> m_og_other;
     std::vector<ScalableButton *>                                    m_empty_buttons;
@@ -335,9 +335,11 @@ public:
     ~FreqChangedParams() {}
     void init();
 
-    wxButton *          get_wiping_dialog_button() { return m_wiping_dialog_button; }
-    wxSizer *           get_sizer() override;
-    ConfigOptionsGroup *get_og(PrinterTechnology tech);
+    wxButton*          get_wiping_dialog_button() { return m_wiping_dialog_button; }
+    wxSizer*            get_sizer() override;
+    ConfigOptionsGroup* get_og(PrinterTechnology tech);
+    wxButton*           m_preheat_button{nullptr};
+    wxButton *          get_preheat_button() { return m_preheat_button; }
     void                Show(PrinterTechnology tech);
     void                Show(bool visible) override;
 
@@ -372,7 +374,7 @@ FreqChangedParams::FreqChangedParams(wxWindow *parent) : OG_Settings(parent, fal
 
 void FreqChangedParams::init()
 {
-    DynamicPrintConfig *config = &wxGetApp().preset_bundle->fff_prints.get_edited_preset().config;
+       DynamicPrintConfig *config = &wxGetApp().preset_bundle->fff_prints.get_edited_preset().config;
 
        Tab *tab_print   = wxGetApp().get_tab(Preset::TYPE_FFF_PRINT);
        Tab *tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
@@ -484,31 +486,37 @@ void FreqChangedParams::init()
            m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
        }
 
-        // Add the fixed button
-        auto preheat_printer_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+        // Add preheat button
+        m_preheat_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+        m_preheat_button->SetWindowStyle(wxBORDER_SIMPLE);
+        m_preheat_button->SetToolTip(
+            "Please be aware that the preheating feature is only effective when a physical printer is selected. If "
+            "you are using a virtual or non-physical printer, preheating will not activate.");
+
         wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 8);
-    
-        preheat_printer_button->SetBitmap(preheat_off);
+        m_preheat_button->Disable();
+        m_preheat_button->SetBitmap(preheat_off);
     
         static bool isOn = false;
     
-        preheat_printer_button->Bind(wxEVT_BUTTON, [preheat_printer_button, this](wxCommandEvent&) {
+        m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this](wxCommandEvent&) {
             if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
                 this->m_rep = new Repetier(wxGetApp().preset_bundle->physical_printers.get_selected_printer_config());
 
                 if (isOn) {
                     wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 9);
                 
-                    preheat_printer_button->SetBitmap(preheat_off);
-                    preheat_printer_button->SetLabel("Preheat");
+                    m_preheat_button->SetBitmap(preheat_off);
+                    m_preheat_button->SetLabel("Preheat");
                     
                     this->m_rep->cooldown_printer();
                     
                     isOn = false;
                 } else {
                     wxBitmap preheat_on = create_scaled_bitmap("preheat_on", m_parent, 9);
-                    preheat_printer_button->SetBitmap(preheat_on);
-                    preheat_printer_button->SetLabel("Preheat");
+                    m_preheat_button->SetBitmap(preheat_on);
+                    m_preheat_button->SetLabel("Preheating..");
+
                     this->m_rep->preheat_printer();
                     
                     isOn = true;
@@ -516,7 +524,7 @@ void FreqChangedParams::init()
             }
         });
     
-        m_sizer->Add(preheat_printer_button, 0, wxALIGN_LEFT | wxALL, 10);
+        m_sizer->Add(m_preheat_button, 1, wxALIGN_LEFT | wxALL, 10);
 }
 
 
@@ -569,7 +577,7 @@ struct Sidebar::priv
     PlaterPresetComboBox *              combo_printer;
 
     wxBoxSizer *        sizer_params;
-    FreqChangedParams * frequently_changed_parameters{nullptr};
+    FreqChangedParams*  frequently_changed_parameters{nullptr};
     ObjectList *        object_list{nullptr};
     ObjectManipulation *object_manipulation{nullptr};
     ObjectSettings *    object_settings{nullptr};
@@ -1182,6 +1190,8 @@ ConfigOptionsGroup *Sidebar::og_freq_chng_params(PrinterTechnology tech)
 }
 
 wxButton *Sidebar::get_wiping_dialog_button() { return p->frequently_changed_parameters->get_wiping_dialog_button(); }
+
+wxButton *Sidebar::get_preheat_button() { return p->frequently_changed_parameters->get_preheat_button(); }
 
 void Sidebar::update_objects_list_extruder_column(size_t extruders_count)
 {
@@ -4197,6 +4207,62 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 
     auto idx = combo->get_extruder_idx();
 
+    wxButton* preheat_button = sidebar->get_preheat_button();
+
+    if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
+        DynamicPrintConfig *selected_printer_config =
+            wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+        DynamicPrintConfig *conf = &wxGetApp().get_tab(Preset::TYPE_PRINTER)->m_preset_bundle->full_config();
+        DynamicPrintConfig new_conf;
+
+        Repetier *repetier = new Repetier(selected_printer_config);
+
+        json printer_config = repetier->get_printer_config();
+
+        std::string printer_config_str = printer_config.dump();
+
+        auto                     tool_diameter_values = repetier->get_all_json_values(printer_config, "toolDiameter");
+        std::vector<float>       nozzle_list;
+
+    if (!tool_diameter_values.empty()) {
+            for (const auto &value : tool_diameter_values) {
+                if (value.is_number()) {
+                    double tool_diameter = value.get<double>();
+                    std::cout << "Found diameter: " << tool_diameter << std::endl;
+                    Tab*              tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+                    DynamicPrintConfig config      = tab_printer->get_config()->full_print_config();
+                    new_conf = config;
+
+                    if (config.has("nozzle_diameter")) {
+                        const std::vector<double> &nozzle_diameters =
+                            config.option<ConfigOptionFloats>("nozzle_diameter")->get_values();
+                        std::vector<double> modified_nozzle_diameters = nozzle_diameters;
+
+                        if (idx >= 0 && idx < modified_nozzle_diameters.size()) {
+                            modified_nozzle_diameters[idx] = value;
+                        }
+
+                        ConfigOptionFloats *new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
+                        config.set_key_value("nozzle_diameter", new_nozzle_option);
+
+                        config.apply(config, &new_conf);
+                        tab_printer->load_config(new_conf);
+                    } else {
+                        std::cout << "Nozzle diameter configuration not found." << std::endl;
+                    }
+                } else {
+                    std::cout << "Invalid diameter value type" << std::endl;
+                }
+            }
+        } else {
+            std::cout << "Couldn't find diameter" << std::endl;
+        }
+
+        preheat_button->Enable();
+    } else {
+        preheat_button->Disable();
+    }
+
     //! Because of The MSW and GTK version of wxBitmapComboBox derived from wxComboBox,
     //! but the OSX version derived from wxOwnerDrawnCombo.
     //! So, to get selected string we do
@@ -4206,8 +4272,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 
     std::string preset_name =
         wxGetApp().preset_bundle->get_preset_name_by_alias(preset_type,
-                                                           Preset::remove_suffix_modified(
-                                                               combo->GetString(selection).ToUTF8().data()));
+                                                           Preset::remove_suffix_modified(combo->GetString(selection).ToUTF8().data()));
 
     if (preset_type == Preset::TYPE_FFF_FILAMENT) {
         wxGetApp().preset_bundle->set_filament_preset(idx, preset_name);
