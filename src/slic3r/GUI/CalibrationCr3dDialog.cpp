@@ -77,6 +77,8 @@ void CalibrationCr3dSampleCardDialog::create_buttons(wxStdDialogButtonSizer* but
 }
 
 void CalibrationCr3dMasterSpoolDialog::create_buttons(wxStdDialogButtonSizer* buttons){
+    
+    
 }
 
 void CalibrationCr3dIDEXDialog::create_buttons(wxStdDialogButtonSizer *buttons)

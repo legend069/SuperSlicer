@@ -62,7 +62,7 @@ public:
 
 protected:
     void create_buttons(wxStdDialogButtonSizer *sizer) override;
-    void create_geometry_single(wxCommandEvent &event_args) { create_geometry("/idex/IDEX Kalibrierung.3mf"); }
+    void create_geometry_single(wxCommandEvent &event_args) { create_geometry("/idex/IDEX Calibration.3mf"); }
 };
 
 class CalibrationCr3dMasterSpoolDialog : public CalibrationCr3dAbstractDialog
