@@ -20,7 +20,7 @@ protected:
     void create_row_controls(wxBoxSizer* parent_sizer, int row_count);
     void create_geometry(wxCommandEvent& event_args);
     void on_row_change(wxCommandEvent& event);
-    double calc_PA_values(double, double, double);
+    std::pair<std::vector<double>, int> calc_PA_values(int id_item);
     double magical_scaling(double, double, double, double, double, double, double );
 
     //i've set choice boxes for now just to save me typing numbers in when i want to test it :)

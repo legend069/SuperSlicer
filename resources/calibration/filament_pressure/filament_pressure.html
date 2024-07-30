@@ -34,6 +34,8 @@
 <li>each row is the config for each base test model, eg; first row = externalPerimeter second row = firstLayer </li>
 <li>since each model will have it's own config one test model might be faster/slower than the others, this is expected and normal</li>
 <li>i will reccomend setting 'first_layer_speed' and 'first_layer_min_speed' to the same vales </li>
+<li>first calibration tool that supports Arachne!</li>
+<li>helpfull tip: if you're wanting to run multi test on a single plate take a screenshot of the main config page(or leave it open) so you can see the matching ID label on the bottom right of the loaded model.</li>
 
 </ul>
 
@@ -43,6 +45,14 @@ when i get it working, it's purpose is to make it easy to see what extrusion rol
  it will create a model for each ER role, and assign that roles speed/acceleration/widths/spacing to the single model<br>
 you can then manually add the pressure advance command into the "per region g-code" box, slice and print it.
 </p>
+
+<p>known bugs:<br>
+  <ul>
+    <li>setting first layers PA value for multi test only applies the last rows value into (before_layer_gcode)</li>
+    <li>the first layer gets gap fill on the 90° bend models, reccomended to disable gap fill if this happens.</li>
+    <li></li>
+
+  </ul>
 
 <h2>Advice</h2>
 <p>Before doing this test, it's preferable to tune everything else first!<br>i would reccomended setting XXXX to the same speeds, XXX to a slow speed, and everything else you can send it with.</p>

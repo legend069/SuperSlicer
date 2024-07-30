@@ -868,6 +868,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,              fill_density))
     ((ConfigOptionEnum<InfillPattern>,  fill_pattern))
     ((ConfigOptionPercent,              first_layer_flow_ratio))
+    ((ConfigOptionFloatOrPercent,       first_layer_extrusion_width))
+    ((ConfigOptionFloatOrPercent,       first_layer_extrusion_spacing))
     ((ConfigOptionEnum<FuzzySkinType>,  fuzzy_skin))
     ((ConfigOptionFloatOrPercent,       fuzzy_skin_thickness))
     ((ConfigOptionFloatOrPercent,       fuzzy_skin_point_dist))

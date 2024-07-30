@@ -246,8 +246,11 @@ void Layer::make_perimeters()
                 && config.thin_walls_acceleration                  == other_config.thin_walls_acceleration
                 && config.top_solid_infill_acceleration            == other_config.top_solid_infill_acceleration//compiles fine with moving them here, how to properly test this ?
                 && config.per_objects_gcode                        == other_config.per_objects_gcode */
-                && config.external_perimeter_extrusion_spacing     == other_config.external_perimeter_extrusion_spacing
-                && config.perimeter_extrusion_spacing              == other_config.perimeter_extrusion_spacing
+                //&& config.external_perimeter_extrusion_spacing   == other_config.external_perimeter_extrusion_spacing
+                //&& config.perimeter_extrusion_spacing            == other_config.perimeter_extrusion_spacing
+                //&& config.first_layer_size_compensation          == other_config.first_layer_size_compensation
+                && config.first_layer_extrusion_width              == other_config.first_layer_extrusion_width
+                && config.first_layer_extrusion_spacing            == other_config.first_layer_extrusion_spacing
                 
                 ) {
                 layerms.push_back(other_layerm);
