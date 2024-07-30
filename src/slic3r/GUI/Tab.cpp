@@ -1572,7 +1572,6 @@ void Tab::on_presets_changed()
 
     // Instead of PostEvent (EVT_TAB_PRESETS_CHANGED) just call update_presets
     wxGetApp().plater()->sidebar().update_presets(type());
-    
     // Printer selected at the Printer tab, update "compatible" marks at the print and filament selectors.
     for (auto t: m_dependent_tabs)
     {
@@ -4212,6 +4211,7 @@ void Tab::select_preset(std::string preset_name, bool delete_current /*=false*/,
         // Trigger the on_presets_changed event so that we also restore the previous value in the plater selector,
         // if this action was initiated from the plater.
         on_presets_changed();
+
     } else {
         if (current_dirty)
             m_presets->discard_current_changes();

@@ -951,7 +951,7 @@ void Sidebar::update_all_preset_comboboxes()
     }
     // Update the printer choosers, update the dirty flags.
     p->combo_printer->update();
-
+    
     // Update the filament choosers to only contain the compatible presets, update the color preview,
     // update the dirty flags.
     if (print_tech == ptFFF) {
@@ -999,6 +999,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         }
 
         for (size_t i = 0; i < filament_cnt; i++) p->combos_filament[i]->update();
+        wxGetApp().plater()->filament_notification_plater();
 
         break;
     }
@@ -6960,10 +6961,12 @@ void Plater::filament_notification_plater() {
     std::string recommendation_message;
     
     std::map<std::vector<std::string>, std::string> filament_to_plate = {
-        {{"CR-3D PA", "CR-3D Nylon"}, "---- Recommendation ----\n- MagnetiCR Swap: FR4\n"},
-        {{"CR-3D PC", "CR-3D PP"}, "---- Recommendation ----\n- MagnetiCR Swap:FR4 | PowdCR Coated PEI\n"},
+        {{"CR-3D PA", "CR-3D Nylon"}, "---- Recommendation for " + filament_name + " ----\n- MagnetiCR Swap: FR4\n"},
+        
+        {{"CR-3D PC", "CR-3D PP"}, "---- Recommendation for " + filament_name + " ----\n- MagnetiCR Swap:FR4 | PowdCR Coated PEI\n"},
+        
         {{"CR-3D PETG", "CR-3D ABS", "CR-3D ASA", "CR-3D TPU", "CR-3D Bambus", "CR-3D Flex", "CR-3D Soft", "CR-3D PLA", "CR-3D CRystal"},
-            "---- Recommendation ----\n- MagnetiCR Swap: FR4 | PowdCR Coated PEI | CaRbon\n"}
+            "---- Recommendation for " + filament_name + " ----\n- MagnetiCR Swap: FR4 | PowdCR Coated PEI | CRbon\n"}
     };
     
     std::map<std::vector<std::string>, std::string> filament_to_nozzle = {
@@ -6993,7 +6996,6 @@ void Plater::filament_notification_plater() {
         }
     }
     get_notification_manager()->push_notification(GUI::format(_L(recommendation_message)));
-
 }
 
 void Plater::on_config_change(const DynamicConfig &config)
@@ -7015,8 +7017,6 @@ void Plater::on_config_change(const DynamicConfig &config)
         }
         if (opt_key == "filament_colour") {
             update_scheduled = true; // update should be scheduled (for update 3DScene) #2738
-            filament_notification_plater();
-
             if (update_filament_colors_in_full_config()) {
                 p->sidebar->obj_list()->update_extruder_colors();
                 continue;
