@@ -177,6 +177,7 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void refresh_print();
+    void set_physical_config();
     
     bool physical_printer_is_selected = false;
     void on_physical_printer_selected(wxCommandEvent &);

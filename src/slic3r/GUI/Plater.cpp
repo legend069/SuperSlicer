@@ -488,7 +488,7 @@ void FreqChangedParams::init()
 
         // Add preheat button
         m_preheat_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-        m_preheat_button->SetWindowStyle(wxBORDER_SIMPLE);
+        //m_preheat_button->SetWindowStyle(wxBORDER_SIMPLE | wxBORDER_SUNKEN);
         m_preheat_button->SetToolTip(
             "Please be aware that the preheating feature is only effective when a physical printer is selected. If "
             "you are using a virtual or non-physical printer, preheating will not activate.");
@@ -4207,61 +4207,6 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 
     auto idx = combo->get_extruder_idx();
 
-    wxButton* preheat_button = sidebar->get_preheat_button();
-
-    if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
-        DynamicPrintConfig *selected_printer_config =
-            wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-        DynamicPrintConfig *conf = &wxGetApp().get_tab(Preset::TYPE_PRINTER)->m_preset_bundle->full_config();
-        DynamicPrintConfig new_conf;
-
-        Repetier *repetier = new Repetier(selected_printer_config);
-
-        json printer_config = repetier->get_printer_config();
-
-        std::string printer_config_str = printer_config.dump();
-
-        auto                     tool_diameter_values = repetier->get_all_json_values(printer_config, "toolDiameter");
-        std::vector<float>       nozzle_list;
-
-    if (!tool_diameter_values.empty()) {
-            for (const auto &value : tool_diameter_values) {
-                if (value.is_number()) {
-                    double tool_diameter = value.get<double>();
-                    std::cout << "Found diameter: " << tool_diameter << std::endl;
-                    Tab*              tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
-                    DynamicPrintConfig config      = tab_printer->get_config()->full_print_config();
-                    new_conf = config;
-
-                    if (config.has("nozzle_diameter")) {
-                        const std::vector<double> &nozzle_diameters =
-                            config.option<ConfigOptionFloats>("nozzle_diameter")->get_values();
-                        std::vector<double> modified_nozzle_diameters = nozzle_diameters;
-
-                        if (idx >= 0 && idx < modified_nozzle_diameters.size()) {
-                            modified_nozzle_diameters[idx] = value;
-                        }
-
-                        ConfigOptionFloats *new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
-                        config.set_key_value("nozzle_diameter", new_nozzle_option);
-
-                        config.apply(config, &new_conf);
-                        tab_printer->load_config(new_conf);
-                    } else {
-                        std::cout << "Nozzle diameter configuration not found." << std::endl;
-                    }
-                } else {
-                    std::cout << "Invalid diameter value type" << std::endl;
-                }
-            }
-        } else {
-            std::cout << "Couldn't find diameter" << std::endl;
-        }
-
-        preheat_button->Enable();
-    } else {
-        preheat_button->Disable();
-    }
 
     //! Because of The MSW and GTK version of wxBitmapComboBox derived from wxComboBox,
     //! but the OSX version derived from wxOwnerDrawnCombo.
@@ -4294,6 +4239,13 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         wxWindowUpdateLocker noUpdates(sidebar->presets_panel());
         wxGetApp().get_tab(preset_type)->select_preset(preset_name);
     }
+    
+    DynamicPrintConfig* conf = &wxGetApp().preset_bundle->printers.get_selected_preset().config;
+    DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+    if (selected_printer_config)
+        if (selected_printer_config->has("print_host"))
+            if (selected_printer_config->opt_string("print_host") != "")
+                q->set_physical_config();
 
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
@@ -4313,6 +4265,61 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     // So, set the focus to the combobox explicitly
     combo->SetFocus();
 #endif
+}
+
+void Plater::set_physical_config() {
+    
+    wxButton* preheat_button = this->sidebar().get_preheat_button();
+    
+    if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
+        DynamicPrintConfig *selected_printer_config =
+        wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+        DynamicPrintConfig new_conf;
+        
+        Repetier *repetier = new Repetier(selected_printer_config);
+        
+        auto tool_diameter_values = repetier->get_all_json_values(repetier->get_printer_config(), "toolDiameter");
+        static std::vector<double> modified_nozzle_diameters;
+        
+        if (!tool_diameter_values.empty()) {
+            for (const auto& value : tool_diameter_values) {
+                if (value.is_number()) {
+                    double tool_diameter = value.get<double>();
+                    std::cout << "Found diameter: " << tool_diameter << std::endl;
+                    
+                    Tab* tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+                    
+                    if (tab_printer) {
+                        DynamicPrintConfig *config = tab_printer->get_config();
+                        new_conf = *config;
+                        
+                        if (config->has("nozzle_diameter")) {
+                            static size_t old_nozzles = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values().size();
+                            
+                            // Copy the original diameters and append the new tool diameter
+                            if (modified_nozzle_diameters.size() >= old_nozzles) {
+                                modified_nozzle_diameters.clear();
+                            }
+                            
+                            modified_nozzle_diameters.push_back(tool_diameter);
+                            
+                            ConfigOptionFloats* new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
+                            new_conf.set_key_value("nozzle_diameter", new_nozzle_option);
+
+                            tab_printer->load_config(new_conf);
+                            PrinterTechnology   pt                  = printer_technology();
+                            this->sidebar().og_freq_chng_params(pt)->set_value("s_nozzle_diameter_1", 0.3);
+                            this->sidebar().og_freq_chng_params(pt)->update_script_presets();
+                            
+                        }
+                    }
+                }
+            }
+        }
+        preheat_button->Enable();
+    } else {
+        preheat_button->Disable();
+    }
 }
 
 void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
@@ -6952,6 +6959,7 @@ void Plater::on_config_change(const DynamicConfig &config)
     bool                     update_scheduled  = false;
     bool                     bed_shape_changed = false;
     std::vector<std::string> diff              = p->config->diff(config);
+    
     for (const std::string &opt_key : diff) {
         if (opt_key == "nozzle_diameter") {
             if (p->config->option<ConfigOptionFloats>(opt_key)->size() >

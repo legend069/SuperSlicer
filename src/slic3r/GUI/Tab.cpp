@@ -29,6 +29,7 @@
 #include "Search.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "WipeTowerDialog.hpp"
+#include "../Utils/Repetier.hpp"
 
 
 #include <boost/algorithm/string.hpp>
@@ -1571,7 +1572,7 @@ void Tab::on_presets_changed()
 
     // Instead of PostEvent (EVT_TAB_PRESETS_CHANGED) just call update_presets
     wxGetApp().plater()->sidebar().update_presets(type());
-
+    
     // Printer selected at the Printer tab, update "compatible" marks at the print and filament selectors.
     for (auto t: m_dependent_tabs)
     {
@@ -3537,6 +3538,7 @@ void TabPrinter::on_preset_loaded()
     // update the extruders count field
     auto   *nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(m_config->option("nozzle_diameter"));
     size_t extruders_count = nozzle_diameter->size();
+    wxGetApp().plater_->set_physical_config();
     // update the GUI field according to the number of nozzle diameters supplied
     extruders_count_changed(extruders_count);
 
@@ -3838,16 +3840,15 @@ void TabPrinter::update()
     m_update_cnt++;
     m_presets->get_edited_preset().printer_technology() == ptFFF ? update_fff() : update_sla();
     m_update_cnt--;
-
+    
     update_description_lines();
     Layout();
-
+    
     if (m_update_cnt == 0) {
         assert(m_config);
         wxGetApp().mainframe->on_config_changed(*m_config);
     }
 }
-
 void TabPrinter::update_fff()
 {
     if (m_use_silent_mode != m_config->opt_bool("silent_mode")) {
