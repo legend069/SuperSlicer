@@ -85,13 +85,13 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     {"ExternalPerimeter", "external_perimeter_extrusion_width"},
     //{"GapFill", "placeholder"},//special calc required
     //{"InternalBridgeInfill", "placeholder"},//special calc required, TODO:find out where/how this is calculated
-    {"Ironing", "top_infill_extrusion_width"},
+    //{"Ironing", "top_infill_extrusion_width"},//not fully suported
     {"OverhangPerimeter", "overhangs_width"},
     {"Perimeter", "perimeter_extrusion_width"},
     {"SolidInfill", "solid_infill_extrusion_width"},
     {"SupportMaterial", "support_material_extrusion_width"},
-    {"SupportMaterialInterface", "support_material_extrusion_width"},
-    {"ThinWall", "external_perimeter_extrusion_width"},
+    {"SupportMaterialInterface", "support_material_extrusion_width"},//SupportMaterialInterface and SupportMaterialInterface shares same width calculations?
+    {"ThinWall", "external_perimeter_extrusion_width"},//not fully suported
     {"TopSolidInfill", "top_infill_extrusion_width"},
     {"FirstLayer", "first_layer_extrusion_width"}
 
@@ -137,7 +137,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     {"BridgeInfill", "bridge_speed"},
     {"ExternalPerimeter", "external_perimeter_speed"},
     {"GapFill", "gap_fill_speed"},
-    {"InternalBridgeInfill", "bridge_speed_internal"},
+    {"InternalBridgeInfill", "internal_bridge_speed"},
     {"Ironing", "ironing_speed"},
     {"OverhangPerimeter", "overhangs_speed"},
     {"Perimeter", "perimeter_speed"},
@@ -204,13 +204,13 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     Flow first_layer_flow = Flow::new_from_config(FlowRole::frPerimeter, *print_config, nozzle_diameter, first_layer_height, 1.f, true);
 
 
-    bool broken_config = false;
-    if(default_er_width == 0 || default_er_spacing == 0){//if their config is broken fix it :)
+    bool defaults_broken = false;
+    if(default_er_width == 0 || default_er_spacing == 0){//if their default value config is broken fix it :)
         //Flow broken_config_flow = Flow::new_from_config(FlowRole::frExternalPerimeter, *print_config, nozzle_diameter, first_layer_height, spacing_ratio_external, false);
         //broken_config_flow.spacing() broken_config_flow.width();
         default_er_width = nozzle_diameter;
         default_er_spacing = default_er_width - base_layer_height * float(1. - 0.25 * PI) * spacing_ratio_external; //rounded_rectangle_extrusion_spacing
-        broken_config = true;
+        defaults_broken = true;
     }
 
 
@@ -314,21 +314,24 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                     er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[extrusion_role].c_str(), nozzle_diameter);
 
                     //potential BUG if any of the values are 0 everything else would fail, pull the default value too and assign that
-                    if(er_width == 0){er_width = default_er_width; }
-                    if(er_speed == 0){er_speed = default_er_speed; }
-                    if(er_accel == 0){er_accel = default_er_accel; }
-                    if(er_spacing == 0){er_spacing = default_er_spacing; }
+                    er_width = (er_width != 0) ? er_width : default_er_width;
+                    er_speed = (er_speed != 0) ? er_speed : default_er_speed;
+                    er_accel = (er_accel != 0) ? er_accel : default_er_accel;
+                    er_spacing = (er_spacing != 0) ? er_spacing : default_er_spacing;
 
-                    er_width = er_width * 100 / nozzle_diameter;
-                    er_width = std::round(er_width * 100.0) / 100.0;
+
+                    //TODO: create assert check to see if value is not 0?
+                    er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
+
                 } else {
                     er_width = print_config->get_abs_value("solid_infill_extrusion_width", nozzle_diameter); //used for gapfill_width/bridges selection. TODO: add the bits for this here since gapfill/bridges need special calculations
-                    er_width = er_width * 100 / nozzle_diameter;
-                    er_width = std::round(er_width * 100.0) / 100.0;
+                    er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
+                    //er_width = er_width * 100 / nozzle_diameter;
+                    //er_width = std::round(er_width * 100.0) / 100.0;
 
                 }
             }
-            if(broken_config == true){//if their config is broken fix it :)
+            if(defaults_broken == true){//if their config is broken fix it :)
                 default_er_width = nozzle_diameter;
                 default_er_spacing = default_er_width - base_layer_height * float(1. - 0.25 * PI) * spacing_ratio_external; //rounded_rectangle_extrusion_spacing
             }
@@ -342,6 +345,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         double xyzScale = nozzle_diameter / 0.4;
         double er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, spacing_ratio, spacing_ratio_external, base_layer_height, er_spacing);
         double er_width_to_scale_first_layer = total_width_with_overlap;
+        //TODO: add assert checks on er_width_to_scale ?
         //-- magical scaling 
 
         pressure_tower.emplace_back();
@@ -392,39 +396,30 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 for (size_t i = 0; i < sizeof(choice_extrusion_role) / sizeof(choice_extrusion_role[0]); i++) {
                     er_role = choice_extrusion_role[i];
                     if (er_width_ToOptionKey.find(er_role) != er_width_ToOptionKey.end() && added_roles.find(er_role) == added_roles.end()) {
-                        //er_role = er_role;
                         added_roles.insert(er_role);
                         role_found = true;
                         break;
                     }
                     else{role_found = false;}//role not found and not currently supported by calibration tool.
                 }
-                
-                /*for (const std::string& role : choice_extrusion_role) {
-                    if (er_width_ToOptionKey.find(role) != er_width_ToOptionKey.end()) {
-                        er_role = role;
-                        role_found = true;
-                        break;
-                    }
-                }*/
             } else {
                 role_found = (er_width_ToOptionKey.find(er_role) != er_width_ToOptionKey.end());
             }
 
-            if (role_found == true && broken_config == false) {
-                er_width = std::round((full_print_config.get_computed_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter) * 100 / nozzle_diameter) * 100.0) / 100.0;
-                er_spacing = full_print_config.get_computed_value(er_spacing_ToOptionKey[er_role].c_str(), nozzle_diameter);
+            if (role_found == true) {
+                er_width =   print_config->get_abs_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter);
+                er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[er_role].c_str(), nozzle_diameter);
+
+                er_width = (er_width != 0) ? er_width : default_er_width;//found supported role but it has 0 value, need to give it defaults.
+                er_spacing = (er_spacing != 0) ? er_spacing : default_er_spacing;
+
             } else {
-                er_width = std::round((default_er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
+                er_width = default_er_width;
                 er_spacing = default_er_spacing;
             }
 
-            if(broken_config == true){
-                er_width_to_scale = 1;
-            }
-            else{
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, spacing_ratio, spacing_ratio_external, base_layer_height, er_spacing);
-            }
+            er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
+            er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, spacing_ratio, spacing_ratio_external, base_layer_height, er_spacing);
 
             add_part(model.objects[objs_idx[id_item]], 
                 (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "scaled_with_nozzle_size" / bend_90_nozzle_size_3mf).string(),
@@ -598,6 +593,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
         // config modifers for the base model
         model.objects[objs_idx[id_item]]->config.set_key_value("bottom_fill_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicWGapFill));// ipConcentric or ipConcentricGapFill ?
+        model.objects[objs_idx[id_item]]->config.set_key_value("thin_walls", new ConfigOptionBool(true));
         model.objects[objs_idx[id_item]]->config.set_key_value("bottom_solid_layers", new ConfigOptionInt(1));
         model.objects[objs_idx[id_item]]->config.set_key_value("brim_width", new ConfigOptionFloat(0));
         model.objects[objs_idx[id_item]]->config.set_key_value("external_perimeter_overlap", new ConfigOptionPercent(100));
@@ -633,18 +629,39 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 role_found = (er_width_ToOptionKey.find(er_role) != er_width_ToOptionKey.end());
             }
 
-            if (role_found == true && broken_config == false) {
-                er_width = std::round((full_print_config.get_computed_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter) * 100 / nozzle_diameter) * 100.0) / 100.0;
+            if (role_found == true /*&& defaults_broken == false*/) {
+                er_width = print_config->get_abs_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter);
                 er_speed = full_print_config.get_computed_value(er_speed_ToOptionKey[er_role].c_str(), nozzle_diameter);
                 er_accel = full_print_config.get_computed_value(er_accel_ToOptionKey[er_role].c_str(), nozzle_diameter);
-                er_spacing = full_print_config.get_computed_value(er_spacing_ToOptionKey[er_role].c_str(), nozzle_diameter); // not needed to be applied to models?
+                er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[er_role].c_str(), nozzle_diameter);
+
+                er_width = (er_width != 0) ? er_width : default_er_width;
+                er_speed = (er_speed != 0) ? er_speed : default_er_speed;
+                er_accel = (er_accel != 0) ? er_accel : default_er_accel;
+                er_spacing = (er_spacing != 0) ? er_spacing : default_er_spacing;
+
+
             } else {
-                er_width = std::round((default_er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
+                //instead of loading defaults for everything only load defaults for broken/unsupported values.
+                er_width = default_er_width;
                 er_speed = default_er_speed;
                 er_accel = default_er_accel;
                 er_spacing = default_er_spacing;
-                er_role = std::string("default values");
+                
+                
+                //er_width = print_config->get_abs_value(er_width_ToOptionKey[er_role].c_str(), nozzle_diameter);
+                er_speed = full_print_config.get_computed_value(er_speed_ToOptionKey[er_role].c_str(), nozzle_diameter);
+                er_accel = full_print_config.get_computed_value(er_accel_ToOptionKey[er_role].c_str(), nozzle_diameter);
+                //er_spacing = print_config->get_abs_value(er_spacing_ToOptionKey[er_role].c_str(), nozzle_diameter);
+
+                //er_width = (er_width != 0) ? er_width : default_er_width;
+                er_speed = (er_speed != 0) ? er_speed : default_er_speed;
+                er_accel = (er_accel != 0) ? er_accel : default_er_accel;
+                //er_spacing = (er_spacing != 0) ? er_spacing : default_er_spacing;
+
+                er_role = "defaults for " + er_role + " width spacing";
             }
+            er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
 
             std::string set_advance_prefix ="";
             if (gcfKlipper == flavor) {
