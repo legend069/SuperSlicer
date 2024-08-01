@@ -156,6 +156,7 @@ BundleMap BundleMap::load()
 
     return res;
 }
+
 #ifdef ALLOW_PRUSA_FIRST
 Bundle& BundleMap::prusa_bundle()
 {
@@ -399,16 +400,14 @@ void PrinterPicker::select_all(bool select, bool alternates)
     }
 }
 
-void PrinterPicker::select_one(size_t i, bool select)
-{
+void PrinterPicker::select_one(size_t i, bool select) {
     if (i < cboxes.size() && cboxes[i]->GetValue() != select) {
         cboxes[i]->SetValue(select);
         on_checkbox(cboxes[i], select);
     }
 }
 
-bool PrinterPicker::any_selected() const
-{
+bool PrinterPicker::any_selected() const {
     for (const auto &cb : cboxes) {
         if (cb->GetValue()) { return true; }
     }
@@ -420,8 +419,7 @@ bool PrinterPicker::any_selected() const
     return false;
 }
 
-std::set<std::string> PrinterPicker::get_selected_models() const 
-{
+std::set<std::string> PrinterPicker::get_selected_models() const {
     std::set<std::string> ret_set;
 
     for (const auto& cb : cboxes)
@@ -435,8 +433,7 @@ std::set<std::string> PrinterPicker::get_selected_models() const
     return ret_set;
 }
 
-void PrinterPicker::on_checkbox(const Checkbox *cbox, bool checked)
-{
+void PrinterPicker::on_checkbox(const Checkbox *cbox, bool checked) {
     PrinterPickerEvent evt(EVT_PRINTER_PICK, GetId(), vendor_id, cbox->model, cbox->variant, checked);
     AddPendingEvent(evt);
 }
@@ -479,8 +476,7 @@ ConfigWizardPage::ConfigWizardPage(ConfigWizard *parent, wxString title, wxStrin
 
 ConfigWizardPage::~ConfigWizardPage() {}
 
-wxStaticText* ConfigWizardPage::append_text(wxString text)
-{
+wxStaticText* ConfigWizardPage::append_text(wxString text) {
     auto *widget = new wxStaticText(this, wxID_ANY, text, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     widget->Wrap(WRAP_WIDTH);
     widget->SetMinSize(wxSize(WRAP_WIDTH, -1));
@@ -488,8 +484,7 @@ wxStaticText* ConfigWizardPage::append_text(wxString text)
     return widget;
 }
 
-void ConfigWizardPage::append_spacer(int space)
-{
+void ConfigWizardPage::append_spacer(int space) {
     // FIXME: scaling
     content->AddSpacer(space);
 }
@@ -521,8 +516,7 @@ PageWelcome::PageWelcome(ConfigWizard *parent)
     cbox_integrate->Hide();    
 }
 
-void PageWelcome::set_run_reason(ConfigWizard::RunReason run_reason)
-{
+void PageWelcome::set_run_reason(ConfigWizard::RunReason run_reason) {
     const bool data_empty = run_reason == ConfigWizard::RR_DATA_EMPTY;
     welcome_text->Show(data_empty);
     cbox_reset->Show(!data_empty);
@@ -650,21 +644,18 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
 
 }
 
-void PagePrinters::select_all(bool select, bool alternates)
-{
+void PagePrinters::select_all(bool select, bool alternates) {
     for (auto picker : printer_pickers) {
         picker->select_all(select, alternates);
     }
 }
 
-int PagePrinters::get_width() const
-{
+int PagePrinters::get_width() const {
     return std::accumulate(printer_pickers.begin(), printer_pickers.end(), 0,
         [](int acc, const PrinterPicker *picker) { return std::max(acc, picker->get_width()); });
 }
 
-bool PagePrinters::any_selected() const
-{
+bool PagePrinters::any_selected() const {
     for (const auto *picker : printer_pickers) {
         if (picker->any_selected()) { return true; }
     }
@@ -672,12 +663,10 @@ bool PagePrinters::any_selected() const
     return false;
 }
 
-std::set<std::string> PagePrinters::get_selected_models()
-{
+std::set<std::string> PagePrinters::get_selected_models() {
     std::set<std::string> ret_set;
 
-    for (const auto *picker : printer_pickers)
-    {
+    for (const auto *picker : printer_pickers) {
         std::set<std::string> tmp_models = picker->get_selected_models();
         ret_set.insert(tmp_models.begin(), tmp_models.end());
     }
@@ -685,8 +674,7 @@ std::set<std::string> PagePrinters::get_selected_models()
     return ret_set;
 }
 
-void PagePrinters::set_run_reason(ConfigWizard::RunReason run_reason)
-{
+void PagePrinters::set_run_reason(ConfigWizard::RunReason run_reason) {
 #ifdef ALLOW_PRUSA_FIRST
     if (is_primary_printer_page
         && (run_reason == ConfigWizard::RR_DATA_EMPTY || run_reason == ConfigWizard::RR_DATA_LEGACY)
@@ -720,8 +708,6 @@ PageMaterials::PageMaterials(ConfigWizard *parent, Materials *materials, wxStrin
     list_type->SetMinSize(wxSize(13*em, list_h));
     list_vendor->SetMinSize(wxSize(13*em, list_h));
     list_profile->SetMinSize(wxSize(23*em, list_h));
-
-
 
     grid = new wxFlexGridSizer(4, em/2, em);
     grid->AddGrowableCol(3, 1);
@@ -787,9 +773,11 @@ PageMaterials::PageMaterials(ConfigWizard *parent, Materials *materials, wxStrin
     reload_presets();
     set_compatible_printers_html_window(std::vector<std::string>(), false);
 }
+
 void PageMaterials::on_paint()
 {
 }
+
 void PageMaterials::on_mouse_move_on_profiles(wxMouseEvent& evt)
 {
     const wxClientDC dc(list_profile);
@@ -797,14 +785,14 @@ void PageMaterials::on_mouse_move_on_profiles(wxMouseEvent& evt)
     int item = list_profile->HitTest(pos);
     on_material_hovered(item);
 }
-void PageMaterials::on_mouse_enter_profiles(wxMouseEvent& evt)
-{}
-void PageMaterials::on_mouse_leave_profiles(wxMouseEvent& evt)
-{
+
+void PageMaterials::on_mouse_enter_profiles(wxMouseEvent& evt) {}
+
+void PageMaterials::on_mouse_leave_profiles(wxMouseEvent& evt) {
     on_material_hovered(-1);
 }
-void PageMaterials::reload_presets()
-{
+
+void PageMaterials::reload_presets() {
     clear();
 
 	list_printer->append(_L("(All)"), &EMPTY);
@@ -824,9 +812,8 @@ void PageMaterials::reload_presets()
     presets_loaded = true;
 }
 
-void PageMaterials::set_compatible_printers_html_window(const std::vector<std::string>& printer_names, bool all_printers)
-{
-    const auto bgr_clr = 
+void PageMaterials::set_compatible_printers_html_window(const std::vector<std::string>& printer_names, bool all_printers) {
+    const auto bgr_clr =
 #if defined(__APPLE__)
         html_window->GetParent()->GetBackgroundColour();
 #else
@@ -908,18 +895,15 @@ void PageMaterials::set_compatible_printers_html_window(const std::vector<std::s
     html_window->SetPage(text);
 }
 
-void PageMaterials::clear_compatible_printers_label()
-{
+void PageMaterials::clear_compatible_printers_label() {
     set_compatible_printers_html_window(std::vector<std::string>(), false);
 }
 
-void PageMaterials::on_material_hovered(int sel_material)
-{
+void PageMaterials::on_material_hovered(int sel_material) {
 
 }
 
-void PageMaterials::on_material_highlighted(int sel_material)
-{
+void PageMaterials::on_material_highlighted(int sel_material) {
     if (sel_material == last_hovered_item)
         return;
     if (sel_material == -1) {
@@ -953,8 +937,7 @@ void PageMaterials::on_material_highlighted(int sel_material)
     set_compatible_printers_html_window(names, names.size() == materials->printers.size());
 }
 
-void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected_printer/* = -1*/)
-{
+void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected_printer/* = -1*/) {
 	wxWindowUpdateLocker freeze_guard(this);
 	(void)freeze_guard;
 
@@ -1123,8 +1106,7 @@ void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected
     wxGetApp().UpdateDarkUI(list_profile);
 }
 
-void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool material_type_ordering)
-{
+void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool material_type_ordering) {
 // get data from list
 // sort data
 // first should be <all>
@@ -1182,8 +1164,7 @@ void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool mat
         list->append(item, &const_cast<std::string&>(item.get()));
 }     
 
-void PageMaterials::sort_list_data(PresetList* list, const std::vector<ProfilePrintData>& data)
-{
+void PageMaterials::sort_list_data(PresetList* list, const std::vector<ProfilePrintData>& data) {
     // sort data
     // then prusa profiles
     // then the rest
@@ -1198,6 +1179,7 @@ void PageMaterials::sort_list_data(PresetList* list, const std::vector<ProfilePr
         else
             other_profiles.emplace_back(item);
     }
+    
     std::sort(prusa_profiles.begin(), prusa_profiles.end(), [](ProfilePrintData a, ProfilePrintData b) {
         return a.name.get() < b.name.get();
         });
@@ -1215,16 +1197,14 @@ void PageMaterials::sort_list_data(PresetList* list, const std::vector<ProfilePr
     }
 }
 
-void PageMaterials::select_material(int i)
-{
+void PageMaterials::select_material(int i) {
     const bool checked = list_profile->IsChecked(i);
 
     const std::string& alias_key = list_profile->get_data(i);
     wizard_p()->update_presets_in_config(materials->appconfig_section(), alias_key, checked);
 }
 
-void PageMaterials::select_all(bool select)
-{
+void PageMaterials::select_all(bool select) {
     wxWindowUpdateLocker freeze_guard(this);
     (void)freeze_guard;
 
@@ -1237,8 +1217,7 @@ void PageMaterials::select_all(bool select)
     }
 }
 
-void PageMaterials::clear()
-{
+void PageMaterials::clear() {
 	list_printer->Clear();
     list_type->Clear();
     list_vendor->Clear();
@@ -1249,8 +1228,7 @@ void PageMaterials::clear()
     presets_loaded = false;
 }
 
-void PageMaterials::on_activate()
-{
+void PageMaterials::on_activate() {
     if (! presets_loaded) {
         wizard_p()->update_materials(materials->technology);
         reload_presets();
@@ -1262,8 +1240,8 @@ void PageMaterials::on_activate()
 const char *PageCustom::default_profile_name = "My Settings";
 
 PageCustom::PageCustom(ConfigWizard *parent)
-    : ConfigWizardPage(parent, _L("Custom Printer Setup"), _L("Custom Printer"))
-{
+    : ConfigWizardPage(parent, _L("Custom Printer Setup"), _L("Custom Printer")) {
+        
     cb_custom = new wxCheckBox(this, wxID_ANY, _L("Define a custom printer profile"));
     tc_profile_name = new wxTextCtrl(this, wxID_ANY, default_profile_name);
     auto *label = new wxStaticText(this, wxID_ANY, _L("Custom profile name:"));
@@ -1295,8 +1273,8 @@ PageCustom::PageCustom(ConfigWizard *parent)
 PageUpdate::PageUpdate(ConfigWizard *parent)
     : ConfigWizardPage(parent, _L("Automatic updates"), _L("Updates"))
     , version_check(true)
-    , preset_update(true)
-{
+    , preset_update(true) {
+    
     const AppConfig *app_config = wxGetApp().app_config.get();
     auto boldfont = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     boldfont.SetWeight(wxFONTWEIGHT_BOLD);
@@ -1379,8 +1357,7 @@ PageMode::PageMode(ConfigWizard *parent)
     append(check_inch);
 }
 
-void PageMode::on_activate()
-{
+void PageMode::on_activate() {
     std::string mode { "simple" };
     wxGetApp().app_config->get("", "view_mode", mode);
 
@@ -1391,8 +1368,7 @@ void PageMode::on_activate()
     check_inch->SetValue(wxGetApp().app_config->get("use_inches") == "1");
 }
 
-void PageMode::serialize_mode(AppConfig *app_config) const
-{
+void PageMode::serialize_mode(AppConfig *app_config) const {
     std::string mode = "";
 
     if (radio_simple->GetValue()) { mode = "simple"; }
@@ -1410,8 +1386,8 @@ void PageMode::serialize_mode(AppConfig *app_config) const
 
 #ifdef ALLOW_PRUSA_FIRST
 PageVendors::PageVendors(ConfigWizard *parent)
-    : ConfigWizardPage(parent, _L("Other Vendors"), _L("Other Vendors"))
-{
+    : ConfigWizardPage(parent, _L("Other Vendors"), _L("Other Vendors")) {
+        
     const AppConfig &appconfig = this->wizard_p()->appconfig_new;
 
     append_text(wxString::Format(_L("Pick another vendor supported by %s"), SLIC3R_APP_NAME) + ":");
@@ -1450,8 +1426,8 @@ PageVendors::PageVendors(ConfigWizard *parent)
 PageFirmware::PageFirmware(ConfigWizard *parent)
     : ConfigWizardPage(parent, _L("Firmware Type"), _L("Firmware"), 1)
     , gcode_opt(*print_config_def.get("gcode_flavor"))
-    , gcode_picker(nullptr)
-{
+    , gcode_picker(nullptr) {
+        
     append_text(_L("Choose the type of firmware used by your printer."));
     append_text(_(gcode_opt.tooltip));
 
@@ -1477,8 +1453,7 @@ PageFirmware::PageFirmware(ConfigWizard *parent)
     append(gcode_picker);
 }
 
-void PageFirmware::apply_custom_config(DynamicPrintConfig &config)
-{
+void PageFirmware::apply_custom_config(DynamicPrintConfig &config) {
     auto sel = gcode_picker->GetSelection();
     if (sel >= 0 && (size_t)sel < gcode_opt.enum_labels.size()) {
         auto *opt = new ConfigOptionEnum<GCodeFlavor>(static_cast<GCodeFlavor>(sel));
@@ -1488,8 +1463,7 @@ void PageFirmware::apply_custom_config(DynamicPrintConfig &config)
 
 PageBedShape::PageBedShape(ConfigWizard *parent)
     : ConfigWizardPage(parent, _L("Bed Shape and Size"), _L("Bed Shape"), 1)
-    , shape_panel(new BedShapePanel(this))
-{
+    , shape_panel(new BedShapePanel(this)) {
     append_text(_L("Set the shape of your printer's bed."));
 
     shape_panel->build_panel(*wizard_p()->custom_config->option<ConfigOptionPoints>("bed_shape"),
@@ -1499,8 +1473,7 @@ PageBedShape::PageBedShape(ConfigWizard *parent)
     append(shape_panel);
 }
 
-void PageBedShape::apply_custom_config(DynamicPrintConfig &config)
-{
+void PageBedShape::apply_custom_config(DynamicPrintConfig &config) {
     const std::vector<Vec2d>& points = shape_panel->get_shape();
     const std::string& custom_texture = shape_panel->get_custom_texture();
     const std::string& custom_model = shape_panel->get_custom_model();
@@ -1509,8 +1482,7 @@ void PageBedShape::apply_custom_config(DynamicPrintConfig &config)
     config.set_key_value("bed_custom_model", new ConfigOptionString(custom_model));
 }
 
-static void focus_event(wxFocusEvent& e, wxTextCtrl* ctrl, double def_value) 
-{
+static void focus_event(wxFocusEvent& e, wxTextCtrl* ctrl, double def_value) {
     e.Skip();
     wxString str = ctrl->GetValue();
 
@@ -1769,8 +1741,7 @@ ConfigWizardPage* ConfigWizardIndex::active_page() const
     return items[item_active].page;
 }
 
-void ConfigWizardIndex::go_prev()
-{
+void ConfigWizardIndex::go_prev() {
     // Search for a preceiding item that is a page (not a label, ie. page != nullptr)
 
     if (item_active == NO_ITEM) { return; }
@@ -1783,8 +1754,7 @@ void ConfigWizardIndex::go_prev()
     }
 }
 
-void ConfigWizardIndex::go_next()
-{
+void ConfigWizardIndex::go_next() {
     // Search for a next item that is a page (not a label, ie. page != nullptr)
 
     if (item_active == NO_ITEM) { return; }
@@ -1798,8 +1768,7 @@ void ConfigWizardIndex::go_next()
 }
 
 // This one actually performs the go-to op
-void ConfigWizardIndex::go_to(size_t i)
-{
+void ConfigWizardIndex::go_to(size_t i) {
     if (i != item_active
         && i < items.size()
         && items[i].page != nullptr) {

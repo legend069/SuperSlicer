@@ -1014,7 +1014,6 @@ void Preview::load_print_as_fff(bool keep_z_range)
 
     GCodeViewer::EViewType gcode_view_type = m_canvas->get_gcode_view_preview_type();
     bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
-    gcode_preview_data_valid = gcode_preview_data_valid && current_force_state != ForceState::ForceExtrusions;
     // Collect colors per extruder.
     std::vector<std::string> colors;
     std::vector<CustomGCode::Item> color_print_values = {};
@@ -1060,14 +1059,12 @@ void Preview::load_print_as_fff(bool keep_z_range)
     if (IsShown()) {
         if (current_force_state == ForceState::ForceGcode)
             m_canvas->set_items_show(false, true);
-        else if (current_force_state == ForceState::ForceExtrusions)
-            m_canvas->set_items_show(true, false);
         else
             m_canvas->set_items_show(true, true);
 
         m_canvas->set_selected_extruder(0);
         bool gcode_not_extrusions = false;
-        if (current_force_state == ForceState::ForceGcode || (gcode_preview_data_valid && current_force_state != ForceState::ForceExtrusions)) {
+        if (current_force_state == ForceState::ForceGcode) {
             // Load the real G-code preview.
             if (current_force_state == ForceState::NoForce)
                 m_canvas->set_items_show(false, true);

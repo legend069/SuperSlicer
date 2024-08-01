@@ -155,7 +155,6 @@ public:
 
     enum class ForceState : unsigned int {
         NoForce,
-        ForceExtrusions,
         ForceGcode
     };
 
