@@ -550,29 +550,31 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
     enum {
         COL_SIZE = 200,
     };
-
+    
     AppConfig *appconfig = &this->wizard_p()->appconfig_new;
-
+    
     const t_config_option_keys families = vendor.families();
     for (const std::string &family : families) {
         const auto filter = [&](const VendorProfile::PrinterModel &model) {
             return (model.technology == technology)
                 && model.family == family;
         };
-
+        
         if (std::find_if(vendor.models.begin(), vendor.models.end(), filter) == vendor.models.end()) {
             continue;
         }
 
         static bool warningAdded = false;
         
+        wxFont font(14, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("Arial"));
+
         const t_config_option_keys families = vendor.families();
         for (const std::string &family : families) {
             if (family == "C-Serie" || !warningAdded) {
                 wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
                 
                 wxStaticText *warningText = new wxStaticText(this, wxID_ANY, "Warning: ");
-                warningText->SetFont(wxFont(wxFontInfo(10)).Bold());
+                warningText->SetFont(wxFont(wxFontInfo(12)).Bold());
                 warningText->SetForegroundColour(wxColour(255, 0, 0));
                 sizer->Add(warningText);
                 
@@ -580,14 +582,22 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
                 new wxStaticText(this,
                                  wxID_ANY,
                                  "Older devices manufactured before November 2023 require absolute extrusion.  ");
-                infoText->SetFont(wxFont(wxFontInfo(10).Bold()));
+                infoText->SetFont(wxFont(wxFontInfo(12).Bold()));
                 sizer->Add(infoText);
                 
-                wxHyperlinkCtrl *hyperlink = new wxHyperlinkCtrl(this, wxID_ANY, "Find more information here.",
-                                                                 "https://github.com/CR-3D/SliCR-3D-V2/blob/master/resources/profiles/CR3D/ReadMe.md", wxDefaultPosition, wxDefaultSize,
+                std::string CR3D_README_LINK = "https://github.com/CR-3D/SliCR-3D-profiles/blob/02a963ccc3001657b24cd402147bde05b048d973/CR3D/ReadMe.md";
+                
+                wxHyperlinkCtrl *hyperlink = new wxHyperlinkCtrl(this, 
+                                                                 wxID_ANY,
+                                                                 "Find more information here.",
+                                                                 CR3D_README_LINK, 
+                                                                 wxDefaultPosition,
+                                                                 wxDefaultSize,
                                                                  wxHL_DEFAULT_STYLE | wxNO_BORDER);
+                
                 hyperlink->SetNormalColour(wxColour(0, 0, 255));
-                hyperlink->SetFont(wxFont(wxFontInfo(9).FaceName("Arial")));
+                hyperlink->SetFont(wxFont(wxFontInfo(12).FaceName("Arial")));
+                hyperlink->SetVisitedColour(wxColour(0, 0, 255));
                 sizer->Add(hyperlink, 0, wxALIGN_CENTER_VERTICAL);
                 
                 append(sizer);
@@ -595,8 +605,33 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
             }
         }
         
+        // Shop hyperlink
+        wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
+        
+        wxStaticText *infoText = new wxStaticText(this,
+                                                  wxID_ANY,
+                                                  "For more information visit our shop by clicking ");
+        infoText->SetFont(font);
+        sizer->Add(infoText);
+        
+        wxHyperlinkCtrl* shop_hyperlink = new wxHyperlinkCtrl(this, 
+                                                              wxID_ANY,
+                                                              "here",
+                                                              "https://www.cr3d.de/kategorie/empfohlen/",
+                                                              wxDefaultPosition,
+                                                              wxDefaultSize,
+                                                              wxHL_DEFAULT_STYLE | wxNO_BORDER);
+        
+        shop_hyperlink->SetNormalColour(wxColour(94, 111, 252));
+        shop_hyperlink->SetVisitedColour(wxColour(94, 111, 252));
+        shop_hyperlink->SetFont(font);
+        
+        sizer->Add(shop_hyperlink, 0, wxALIGN_CENTER_VERTICAL);
+        append(sizer);
+        
         const auto picker_title = family.empty() ? wxString() : from_u8((boost::format(_utf8(L("%s Family"))) % family).str());
         uint8_t max_cols = MAX_COLS;
+        
         if (vendor.family_2_line_size.find(family) != vendor.family_2_line_size.end())
             max_cols = vendor.family_2_line_size.at(family);
         auto *picker = new PrinterPicker(this, vendor, picker_title, max_cols, *appconfig, filter);
@@ -605,9 +640,9 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
             appconfig->set_variant(evt.vendor_id, evt.model_id, evt.variant_name, evt.enable);
             wizard_p()->on_printer_pick(this, evt);
         });
-
+        
         append(new StaticLine(this));
-
+        
         append(picker);
         printer_pickers.push_back(picker);
         has_printers = true;
