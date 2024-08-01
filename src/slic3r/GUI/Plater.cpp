@@ -5542,6 +5542,8 @@ bool Plater::new_project(std::string project_name)
     wxGetApp().update_saved_preset_from_current_preset();
     // Update Project dirty state, update application title bar.
     update_project_dirty_from_presets();
+    // Update physical printer config
+    refresh_physical_printer_config();
     return true;
 }
 
@@ -5579,6 +5581,8 @@ void Plater::load_project(const wxString &filename)
         wxGetApp().update_saved_preset_from_current_preset();
         // Update Project dirty state, update application title bar.
         update_project_dirty_from_presets();
+        // Update physical printer config
+        refresh_physical_printer_config();
     }
 }
 
@@ -5611,6 +5615,16 @@ void Plater::add_model(bool imperial_units /* = false*/)
     Plater::TakeSnapshot snapshot(this, snapshot_label);
     if (!load_files(paths, true, false, true, imperial_units).empty())
         wxGetApp().mainframe->update_title();
+    
+    refresh_physical_printer_config();
+}
+
+void Plater::refresh_physical_printer_config() {
+    DynamicPrintConfig* conf = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+    if (conf)
+        if (conf->has("print_host"))
+            if (conf->opt_string("print_host") != "")
+                this->set_physical_printer_config(conf);
 }
 
 void Plater::import_sl1_archive()
@@ -5778,6 +5792,14 @@ ProjectDropDialog::ProjectDropDialog(const std::string &filename)
 
     // Update DarkUi just for buttons
     wxGetApp().UpdateDlgDarkUI(this, true);
+    
+    DynamicPrintConfig* conf = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+    if (conf)
+        if (conf->has("print_host"))
+            if (conf->opt_string("print_host") != "")
+                wxGetApp().plater_->set_physical_printer_config(conf);
+    
+    
 }
 
 void ProjectDropDialog::on_dpi_changed(const wxRect &suggested_rect)
@@ -5794,7 +5816,7 @@ bool Plater::load_files(const wxArrayString &filenames)
     const std::regex pattern_gcode_drop(".*[.](gcode|g)", std::regex::icase);
 
     std::vector<fs::path> paths;
-
+    
     // gcode viewer section
     if (wxGetApp().is_gcode_viewer()) {
         for (const auto &filename : filenames) {
@@ -5827,6 +5849,7 @@ bool Plater::load_files(const wxArrayString &filenames)
         else
             continue;
     }
+    
     if (paths.empty())
         // Likely all paths processed were gcodes, for which a G-code viewer instance has hopefully been started.
         return false;
@@ -7121,6 +7144,7 @@ void Plater::on_config_change(const DynamicConfig &config)
 
     if (p->main_frame->is_loaded())
         this->p->schedule_background_process();
+    
 }
 
 void Plater::set_bed_shape() const
