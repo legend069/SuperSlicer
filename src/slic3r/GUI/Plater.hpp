@@ -100,7 +100,8 @@ public:
     
     ConfigOptionsGroup*     og_freq_chng_params(PrinterTechnology tech);
     wxButton*               get_wiping_dialog_button();
-    wxButton *              get_preheat_button();
+    wxButton*               get_preheat_button();
+    wxButton*               get_refresh_button();
     void                    update_objects_list_extruder_column(size_t extruders_count);
     void                    show_info_sizer();
     void                    show_sliced_info_sizer(const bool show);
@@ -177,7 +178,7 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void refresh_print();
-    void set_physical_config();
+    void set_physical_printer_config(DynamicPrintConfig* conf);
     
     bool physical_printer_is_selected = false;
     void on_physical_printer_selected(wxCommandEvent &);

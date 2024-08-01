@@ -1366,9 +1366,9 @@ bool GUI_App::on_init_inner()
     mainframe = new MainFrame();
     // hide settings tabs after first Layout
     if (is_editor())
-        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater, true);
     else
-        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater, true);
 
 
     sidebar().obj_list()->init_objects(); // propagate model objects to object list
@@ -1403,6 +1403,11 @@ bool GUI_App::on_init_inner()
     obj_list()->set_min_height();
 
     show_printer_webview_tab();
+    DynamicPrintConfig *selected_printer_config = preset_bundle->physical_printers.get_selected_printer_config();
+    if (selected_printer_config)
+        if (selected_printer_config->has("print_host"))
+            if (selected_printer_config->opt_string("print_host") != "")
+                plater_->set_physical_printer_config(selected_printer_config);
 
     update_mode(); // update view mode after fix of the object_list size
 
@@ -1891,9 +1896,9 @@ void GUI_App::recreate_GUI(const wxString& msg_name)
     mainframe = new MainFrame();
     if (is_editor())
         // hide settings tabs after first Layout
-        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater, true);
     else
-        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater, true);
     // Propagate model objects to object list.
     sidebar().obj_list()->init_objects();
     SetTopWindow(mainframe);
@@ -2703,7 +2708,7 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
                 // hide full main_sizer for mainFrame
                 mainframe->GetSizer()->Show(false);
                 mainframe->update_layout();
-                mainframe->select_tab(MainFrame::TabPosition::tpLastPlater);
+                mainframe->select_tab(MainFrame::TabPosition::tpPlater, true);
             }
             break;
         }
@@ -2797,7 +2802,7 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         // hide full main_sizer for mainFrame
         mainframe->GetSizer()->Show(false);
         mainframe->update_layout();
-        mainframe->select_tab(MainFrame::TabPosition::tpPlater);
+        mainframe->select_tab(MainFrame::TabPosition::tpPlater, true);
     }
 }
 

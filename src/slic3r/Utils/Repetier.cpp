@@ -153,6 +153,21 @@ bool Repetier::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
     return res;
 }
 
+std::string removeHttpPrefix(const std::string& host) {
+    std::string cleanedHost = host;
+
+    const std::string httpPrefix = "http://";
+    const std::string httpsPrefix = "https://";
+
+    if (cleanedHost.compare(0, httpPrefix.size(), httpPrefix) == 0) {
+        cleanedHost.erase(0, httpPrefix.size());
+    } else if (cleanedHost.compare(0, httpsPrefix.size(), httpsPrefix) == 0) {
+        cleanedHost.erase(0, httpsPrefix.size());
+    }
+
+    return cleanedHost;
+}
+
 bool Repetier::cooldown_printer() const {
     
     const char *name = get_name();
@@ -160,7 +175,9 @@ bool Repetier::cooldown_printer() const {
     std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
 
     std::string encoded_json = Http::url_encode(jsonData);
-    std::string url = "http://" + host + endpoint + "&data=" + encoded_json;
+    std::string cleanedHost = removeHttpPrefix(host);
+
+    std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
     bool res = true;
     
     auto http = Http::post(std::move(url));
@@ -187,9 +204,10 @@ bool Repetier::preheat_printer() const {
     const char *name = get_name();
     std::string endpoint = "/printer/api/" + port + "?a=preheat";
     std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
-
+    std::string cleanedHost = removeHttpPrefix(host);
     std::string encoded_json = Http::url_encode(jsonData);
-    std::string url = "http://" + host + endpoint + "&data=" + encoded_json;
+    
+    std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
     bool res = true;
     
     auto http = Http::post(std::move(url));

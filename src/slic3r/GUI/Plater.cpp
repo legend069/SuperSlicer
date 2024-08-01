@@ -335,11 +335,16 @@ public:
     ~FreqChangedParams() {}
     void init();
 
-    wxButton*          get_wiping_dialog_button() { return m_wiping_dialog_button; }
+    wxButton*           get_wiping_dialog_button() { return m_wiping_dialog_button; }
     wxSizer*            get_sizer() override;
     ConfigOptionsGroup* get_og(PrinterTechnology tech);
-    wxButton*           m_preheat_button{nullptr};
-    wxButton *          get_preheat_button() { return m_preheat_button; }
+    
+    wxButton*           m_preheat_button { nullptr };
+    wxButton*           get_preheat_button() { return m_preheat_button; }
+    
+    wxButton*           m_refresh_button { nullptr };
+    wxButton*           get_refresh_button() { return m_refresh_button; }
+    
     void                Show(PrinterTechnology tech);
     void                Show(bool visible) override;
 
@@ -486,6 +491,8 @@ void FreqChangedParams::init()
            m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
        }
 
+    DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+
         // Add preheat button
         m_preheat_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
         //m_preheat_button->SetWindowStyle(wxBORDER_SIMPLE | wxBORDER_SUNKEN);
@@ -493,15 +500,15 @@ void FreqChangedParams::init()
             "Please be aware that the preheating feature is only effective when a physical printer is selected. If "
             "you are using a virtual or non-physical printer, preheating will not activate.");
 
-        wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 8);
+        wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 9 );
         m_preheat_button->Disable();
         m_preheat_button->SetBitmap(preheat_off);
     
         static bool isOn = false;
     
-        m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this](wxCommandEvent&) {
-            if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
-                this->m_rep = new Repetier(wxGetApp().preset_bundle->physical_printers.get_selected_printer_config());
+    m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this, selected_printer_config](wxCommandEvent&) {
+            if (selected_printer_config) {
+                this->m_rep = new Repetier(selected_printer_config);
 
                 if (isOn) {
                     wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 9);
@@ -524,7 +531,33 @@ void FreqChangedParams::init()
             }
         });
     
-        m_sizer->Add(m_preheat_button, 1, wxALIGN_LEFT | wxALL, 10);
+    // Add refresh button
+    m_refresh_button = new wxButton(m_parent, wxID_ANY, "Refresh", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    m_refresh_button->SetToolTip("Refresh the physical printer settings.");
+    
+    wxBitmap refresh_bmp = create_scaled_bitmap("revert_all_", m_parent, 9 );
+    m_refresh_button->Disable();
+    m_refresh_button->SetBitmap(refresh_bmp);
+
+    m_refresh_button->Bind(wxEVT_BUTTON, [this, selected_printer_config](wxCommandEvent&) {
+        // Call the same preheat function or any function you want to refresh
+        if (selected_printer_config) {
+            this->m_rep = new Repetier(selected_printer_config);
+            wxGetApp().plater_->set_physical_printer_config(selected_printer_config);
+            isOn = false;
+        }
+    });
+    
+    wxBoxSizer* hbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+
+    // Add the buttons to the horizontal sizer
+    hbox_sizer->Add(m_refresh_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 10);
+    hbox_sizer->Add(m_preheat_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 10);
+
+    // Add the horizontal sizer to the main sizer
+    m_sizer->Add(hbox_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 10);
+
 }
 
 
@@ -567,30 +600,29 @@ struct Sidebar::priv
     wxScrolledWindow *scrolled;
     wxPanel *         presets_panel; // Used for MSW better layouts
 
-    ModeSizer *                         mode_sizer{nullptr};
-    wxFlexGridSizer *                   sizer_presets;
-    PlaterPresetComboBox *              combo_print;
-    std::vector<PlaterPresetComboBox *> combos_filament;
-    wxBoxSizer *                        sizer_filaments;
-    PlaterPresetComboBox *              combo_sla_print;
-    PlaterPresetComboBox *              combo_sla_material;
-    PlaterPresetComboBox *              combo_printer;
+    ModeSizer*                         mode_sizer{nullptr};
+    wxFlexGridSizer*                   sizer_presets;
+    PlaterPresetComboBox*              combo_print;
+    std::vector<PlaterPresetComboBox*> combos_filament;
+    wxBoxSizer*                        sizer_filaments;
+    PlaterPresetComboBox*              combo_sla_print;
+    PlaterPresetComboBox*              combo_sla_material;
+    PlaterPresetComboBox*              combo_printer;
 
-    wxBoxSizer *        sizer_params;
-    FreqChangedParams*  frequently_changed_parameters{nullptr};
-    ObjectList *        object_list{nullptr};
+    wxBoxSizer*        sizer_params;
+    FreqChangedParams* frequently_changed_parameters{nullptr};
+    ObjectList*        object_list{nullptr};
     ObjectManipulation *object_manipulation{nullptr};
-    ObjectSettings *    object_settings{nullptr};
-    ObjectLayers *      object_layers{nullptr};
-    ObjectInfo *        object_info;
-    SlicedInfo *        sliced_info;
+    ObjectSettings*    object_settings{nullptr};
+    ObjectLayers*      object_layers{nullptr};
+    ObjectInfo*        object_info;
+    SlicedInfo*        sliced_info;
 
-    wxButton *      btn_export_gcode;
-    wxButton *      btn_reslice;
-    ScalableButton *btn_send_gcode;
+    wxButton*      btn_export_gcode;
+    wxButton*      btn_reslice;
+    ScalableButton* btn_send_gcode;
     // ScalableButton *btn_eject_device;
-    ScalableButton
-        *btn_export_gcode_removable; // exports to removable drives (appears only if removable drive is connected)
+    ScalableButton* btn_export_gcode_removable; // exports to removable drives (appears only if removable drive is connected)
 
     bool                    is_collapsed{false};
     Search::OptionsSearcher searcher;
@@ -1193,6 +1225,8 @@ ConfigOptionsGroup *Sidebar::og_freq_chng_params(PrinterTechnology tech)
 wxButton *Sidebar::get_wiping_dialog_button() { return p->frequently_changed_parameters->get_wiping_dialog_button(); }
 
 wxButton *Sidebar::get_preheat_button() { return p->frequently_changed_parameters->get_preheat_button(); }
+
+wxButton *Sidebar::get_refresh_button() { return p->frequently_changed_parameters->get_refresh_button(); }
 
 void Sidebar::update_objects_list_extruder_column(size_t extruders_count)
 {
@@ -4241,12 +4275,11 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         wxGetApp().get_tab(preset_type)->select_preset(preset_name);
     }
     
-    DynamicPrintConfig* conf = &wxGetApp().preset_bundle->printers.get_selected_preset().config;
     DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
     if (selected_printer_config)
         if (selected_printer_config->has("print_host"))
             if (selected_printer_config->opt_string("print_host") != "")
-                q->set_physical_config();
+                q->set_physical_printer_config(selected_printer_config);
 
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
@@ -4268,16 +4301,15 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 #endif
 }
 
-void Plater::set_physical_config() {
+void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     
     wxButton* preheat_button = this->sidebar().get_preheat_button();
+    wxButton* refresh_button = this->sidebar().get_refresh_button();
     
-    if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
-        DynamicPrintConfig *selected_printer_config =
-        wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+    if (conf) {
         DynamicPrintConfig new_conf;
         
-        Repetier *repetier = new Repetier(selected_printer_config);
+        Repetier *repetier = new Repetier(conf);
         
         auto tool_diameter_values = repetier->get_all_json_values(repetier->get_printer_config(), "toolDiameter");
         static std::vector<double> modified_nozzle_diameters;
@@ -4287,7 +4319,6 @@ void Plater::set_physical_config() {
                 if (value.is_number()) {
                     double tool_diameter = value.get<double>();
                     std::cout << "Found diameter: " << tool_diameter << std::endl;
-                    
                     Tab* tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
                     
                     if (tab_printer) {
@@ -4296,10 +4327,20 @@ void Plater::set_physical_config() {
                         
                         if (config->has("nozzle_diameter")) {
                             static size_t old_nozzles = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values().size();
-                            
+                            const std::vector<double>& nozzle_diameters = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values();
+                            std::cout << "Original nozzle diameters: ";
+                             for (const auto& nd : nozzle_diameters) {
+                                 std::cout << nd << " ";
+                             }
+                             std::cout << std::endl;
                             // Copy the original diameters and append the new tool diameter
                             if (modified_nozzle_diameters.size() >= old_nozzles) {
                                 modified_nozzle_diameters.clear();
+                            }
+                            
+                            std::cout << "Modified nozzle diameters: ";
+                            for (const auto& mnd : modified_nozzle_diameters) {
+                                std::cout << mnd << " ";
                             }
                             
                             modified_nozzle_diameters.push_back(tool_diameter);
@@ -4309,17 +4350,17 @@ void Plater::set_physical_config() {
 
                             tab_printer->load_config(new_conf);
                             PrinterTechnology   pt                  = printer_technology();
-                            this->sidebar().og_freq_chng_params(pt)->set_value("s_nozzle_diameter_1", 0.3);
                             this->sidebar().og_freq_chng_params(pt)->update_script_presets();
-                            
                         }
                     }
                 }
             }
         }
         preheat_button->Enable();
+        refresh_button->Enable();
     } else {
         preheat_button->Disable();
+        refresh_button->Disable();
     }
 }
 
