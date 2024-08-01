@@ -691,8 +691,6 @@ void MainFrame::update_layout()
         
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 1);
 
-        m_webView->Raise();
-
         update_icon();
         // show
         m_plater->Show();
@@ -1097,8 +1095,17 @@ void MainFrame::init_tabpanel()
 
             if (bt_idx_sel == 0) {
                 this->m_plater->select_view_3D("3D");
+                this->m_webView->Hide();
+                this->m_webView->Lower();
+                this->m_webView->Disable();
+                this->m_plater->Show();
+                this->m_plater->Raise();
+                this->m_plater->SetFocus();
                 
             } else if (bt_idx_sel == 1) {
+                this->m_webView->Hide();
+                this->m_plater->Show();
+
                 if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
                     this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                     this->m_plater->select_view_3D("Preview");
@@ -1107,9 +1114,10 @@ void MainFrame::init_tabpanel()
                 } else
                     this->m_plater->select_view_3D("Preview");
             } else if (bt_idx_sel == 2) {
+                this->m_webView->Show();
+                this->m_plater->Hide();
                 DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-              
-
+                
                 if (!selected_printer_config) {
                     // No physical printer found, show blank screen for now
                     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
@@ -1119,9 +1127,11 @@ void MainFrame::init_tabpanel()
                         m_webView->LoadURL("https://google.com");
                     }
                 } else {
-                    // Device is selected, only show and enable m_webView
+                    // Device is selected
                     m_webView->Show();
                     m_webView->Enable();
+                    m_webView->Raise();
+                    m_webView->SetFocus();
                 }
             }
 
@@ -1217,11 +1227,12 @@ void MainFrame::init_tabpanel()
 
     m_webView = m_webViewPanel->m_webView;    
 
-        if (m_webView != nullptr) {
+    if (m_webView != nullptr) {
         m_webView->Hide();
     } else {
         m_webView->Show();
     }
+        
     create_preset_tabs();
 
     m_plater->init_after_tabs();
@@ -1260,7 +1271,9 @@ void MainFrame::add_printer_webview_tab(const wxString &url)
      m_printer_webview_added = true;
      // add as the last (rightmost) panel
      dynamic_cast<Notebook *>(m_tabpanel)->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size);
-     m_webView->Show();
+        //select_tab(TabPosition::tpPlater);
+        this->m_webView->Hide();
+        this->m_plater->Show();
  }
 
 void MainFrame::remove_printer_webview_tab()
@@ -1270,27 +1283,33 @@ void MainFrame::remove_printer_webview_tab()
      }
      m_printer_webview_added = false;
      m_webView->Hide();
+     m_webView->Lower();
+        
+     m_plater->Raise();
+     m_plater->SetFocus();
      m_tabpanel->RemovePage(m_tabpanel->FindPage(m_webView));
  }
 
-void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc)
- {
-   if (dpc && dpc->option<ConfigOptionEnum<PrintHostType>>("host_type")->value != htPrusaConnect) {
-         std::string url = dpc->opt_string("print_host");
-
-          if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos) 
-              url = "http://" + url;
-
-            load_printer_url(url);
-            add_printer_webview_tab(url);
-            //select_tab(TabPosition::tpDevice, true);
+ void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc) {
+    if (dpc && dpc->option<ConfigOptionEnum<PrintHostType>>("host_type")->value != htPrusaConnect) {
+        std::string url = dpc->opt_string("print_host");
+        
+        if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
+            url = "http://" + url;
+        
+        load_printer_url(url);
+        add_printer_webview_tab(url);
+        //select_tab(TabPosition::tpDevice, false);
+        this->m_plater->Raise();
+        this->m_plater->SetFocus();
         // No physical printer is selected
     } else {
-         if (m_tabpanel->GetPageText(m_tabpanel->GetSelection()) == _L("Device"))
-             //select_tab(TabPosition::tpDevice, true);
-         remove_printer_webview_tab();
-     }
- }
+        this->m_webView->Hide();
+        this->m_plater->SetFocus();
+        this->m_plater->Raise();
+        remove_printer_webview_tab();
+    }
+}
 
 
 #ifdef WIN32

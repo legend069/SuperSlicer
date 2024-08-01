@@ -3452,25 +3452,6 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         background_process.apply(q->model(), wxGetApp().preset_bundle->full_config(),
                                  wxGetApp().preset_bundle->physical_printers.get_selected_printer_config());
 
-    DynamicPrintConfig *selected_printer_config = wxGetApp()
-                                                      .preset_bundle->physical_printers.get_selected_printer_config();
-    auto p_mainframe = wxGetApp().mainframe;
-
-    if (selected_printer_config)
-        if (selected_printer_config->has("print_host")) {
-            const auto print_host_opt = selected_printer_config->opt_string("print_host");
-
-            std::cout << print_host_opt;
-            wxString url = print_host_opt;
-
-            if (!url.empty()) {
-                if (!url.Lower().starts_with("http"))
-                    url = wxString::Format("http://%s", url);
-
-                p_mainframe->load_printer_url(url);
-            }
-        }
-
     // Just redraw the 3D canvas without reloading the scene to consume the update of the layer height profile.
     if (view3D->is_layers_editing_enabled())
         view3D->get_wxglcanvas()->Refresh();
