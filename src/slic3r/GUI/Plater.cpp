@@ -7015,7 +7015,7 @@ void Plater::filament_notification_plater() {
     };
     
     std::map<std::vector<std::string>, std::string> filament_to_nozzle = {
-        {{"CR-3D ABS FibCR20", "CR-3D PC FibCR20", "CR-3D PA 6 G4 (Glasfaser)", "CR-3D PA 6 C4 (Carbon)", "CR-3D PA12 CRbon15", "CR-3DPP FibCR20", "CR-3D Flex FibCR20", "CR-3D Bambus", "CR-3D ABS ESD", "CR-3D TPU ESD", "CR-3D Nylon ESD", "CR-3D PETG ESD"},
+        {{"CR-3D ABS FibCR20", "CR-3D PC FibCR20", "CR-3D ABS CRbon", "CR-3D PCTG", "CR-3D PETG CRbon", "CR-3D PA 6 G4 (Glasfaser)", "CR-3D PA 6 C4 (Carbon)", "CR-3D PA12 CRbon15", "CR-3DPP FibCR20", "CR-3D Flex FibCR20", "CR-3D Bambus", "CR-3D ABS ESD", "CR-3D TPU ESD", "CR-3D Nylon ESD", "CR-3D PETG ESD"},
             "- Print surface: Min. nozzle size of 0.6 & hardened steel nozzle"}
     };
     
