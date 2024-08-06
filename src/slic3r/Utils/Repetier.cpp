@@ -170,7 +170,6 @@ std::string removeHttpPrefix(const std::string& host) {
 
 bool Repetier::cooldown_printer() const {
     
-    const char *name = get_name();
     std::string endpoint = "/printer/api/" + port + "?a=cooldown";
     std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
 
@@ -185,11 +184,10 @@ bool Repetier::cooldown_printer() const {
     
     http.form_add("a", "cooldown")
         .on_complete([&](std::string body, unsigned status) {
-            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
             std::cout << "Cooldown was successful" << std::endl;
+            res = true;
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
-            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error uploading file: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
             std::cout << "Error preheating" << error << std::endl;
             res = false;
         })
@@ -201,7 +199,6 @@ bool Repetier::cooldown_printer() const {
 
 bool Repetier::preheat_printer() const {
     
-    const char *name = get_name();
     std::string endpoint = "/printer/api/" + port + "?a=preheat";
     std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
     std::string cleanedHost = removeHttpPrefix(host);
@@ -215,11 +212,9 @@ bool Repetier::preheat_printer() const {
     
     http.form_add("a", "preheat")
         .on_complete([&](std::string body, unsigned status) {
-            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
             std::cout << "Preheat was successful" << std::endl;
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
-            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error uploading file: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
             std::cout << "Error preheating" << error << std::endl;
             res = false;
         })
@@ -230,7 +225,6 @@ bool Repetier::preheat_printer() const {
 }
 
 json Repetier::get_printer_config() const {
-    const char* name = get_name();
 
     std::string endpoint = "/printer/api/" + port + "?a=getPrinterConfig";
     std::string url      = make_url((boost::format("printer/api/%1%") % port).str());
@@ -243,16 +237,13 @@ json Repetier::get_printer_config() const {
         .on_complete([&](std::string body, unsigned status) {
             std::cout << "Getting printer config was successful" << body << std::endl;
             json_response = json::parse(body);
-
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
             std::cout << "Error getting printer config" << error << std::endl;
             json_response = nullptr;
         })
         .perform_sync();
-
-
-
+    
     return json_response;
 }
 

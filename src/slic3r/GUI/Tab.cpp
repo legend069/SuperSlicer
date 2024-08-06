@@ -3538,7 +3538,11 @@ void TabPrinter::on_preset_loaded()
     auto   *nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(m_config->option("nozzle_diameter"));
     size_t extruders_count = nozzle_diameter->size();
     
-    wxGetApp().plater_->set_physical_printer_config(this->m_config);
+    if (this->m_config)
+        if (this->m_config->has("print_host"))
+            if (this->m_config->opt_string("print_host") != "")
+                wxGetApp().plater_->set_physical_printer_config(this->m_config);
+    
     // update the GUI field according to the number of nozzle diameters supplied
     extruders_count_changed(extruders_count);
 

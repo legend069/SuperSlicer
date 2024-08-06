@@ -491,8 +491,6 @@ void FreqChangedParams::init()
            m_sizer->Add(m_og->sizer, 0, wxEXPAND, 5);
        }
 
-    DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-
         // Add preheat button
         m_preheat_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
         //m_preheat_button->SetWindowStyle(wxBORDER_SIMPLE | wxBORDER_SUNKEN);
@@ -506,8 +504,10 @@ void FreqChangedParams::init()
     
         static bool isOn = false;
     
-    m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this, selected_printer_config](wxCommandEvent&) {
-            if (selected_printer_config) {
+    m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this](wxCommandEvent&) {
+        DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+        
+        if (selected_printer_config) {
                 this->m_rep = new Repetier(selected_printer_config);
 
                 if (isOn) {
@@ -515,16 +515,23 @@ void FreqChangedParams::init()
                 
                     m_preheat_button->SetBitmap(preheat_off);
                     m_preheat_button->SetLabel("Preheat");
-                    
-                    this->m_rep->cooldown_printer();
+                    if (this->m_rep->cooldown_printer()) {
+                        wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Cooldowning Printer."));
+                    } else {
+                        wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error cooldowning the printer, please try again."));
+                    }
                     
                     isOn = false;
                 } else {
                     wxBitmap preheat_on = create_scaled_bitmap("preheat_on", m_parent, 9);
                     m_preheat_button->SetBitmap(preheat_on);
                     m_preheat_button->SetLabel("Preheating..");
-
-                    this->m_rep->preheat_printer();
+                    
+                    if (this->m_rep->preheat_printer()) {
+                        wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
+                    } else {
+                        wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error preheating the printer, please try again."));
+                    }
                     
                     isOn = true;
                 }
@@ -539,8 +546,9 @@ void FreqChangedParams::init()
     m_refresh_button->Disable();
     m_refresh_button->SetBitmap(refresh_bmp);
 
-    m_refresh_button->Bind(wxEVT_BUTTON, [this, selected_printer_config](wxCommandEvent&) {
-        // Call the same preheat function or any function you want to refresh
+    m_refresh_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+        
         if (selected_printer_config) {
             this->m_rep = new Repetier(selected_printer_config);
             wxGetApp().plater_->set_physical_printer_config(selected_printer_config);
@@ -4257,10 +4265,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     }
     
     DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-    if (selected_printer_config)
-        if (selected_printer_config->has("print_host"))
-            if (selected_printer_config->opt_string("print_host") != "")
-                q->set_physical_printer_config(selected_printer_config);
+    q->set_physical_printer_config(selected_printer_config);
 
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
@@ -4286,6 +4291,7 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     
     wxButton* preheat_button = this->sidebar().get_preheat_button();
     wxButton* refresh_button = this->sidebar().get_refresh_button();
+    std::string message = "";
     
     if (conf) {
         DynamicPrintConfig new_conf;
@@ -4293,7 +4299,19 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
         Repetier *repetier = new Repetier(conf);
         
         auto tool_diameter_values = repetier->get_all_json_values(repetier->get_printer_config(), "toolDiameter");
+        
         static std::vector<double> modified_nozzle_diameters;
+        
+        if (repetier->get_printer_config() != nullptr) {
+            std::string message = "The physical printer config has been set successfully.";
+            get_notification_manager()->push_notification(_u8L(message));
+        } else if (conf->has("print_host")) {
+            if (conf->opt_string("print_host") != "") {
+                std::string message = "There was an error updating the physical printer config, please try again.";
+                get_notification_manager()->push_notification(_u8L(message));
+            }
+            return;
+        }
         
         if (!tool_diameter_values.empty()) {
             for (const auto& value : tool_diameter_values) {
@@ -5779,8 +5797,6 @@ ProjectDropDialog::ProjectDropDialog(const std::string &filename)
         if (conf->has("print_host"))
             if (conf->opt_string("print_host") != "")
                 wxGetApp().plater_->set_physical_printer_config(conf);
-    
-    
 }
 
 void ProjectDropDialog::on_dpi_changed(const wxRect &suggested_rect)
