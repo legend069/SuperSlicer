@@ -1003,10 +1003,7 @@ void Sidebar::update_all_preset_comboboxes()
     if (selected_printer_config)
         if (selected_printer_config->has("print_host")) {
             const auto print_host_opt = selected_printer_config->opt_string("print_host");
-
-            std::cout << print_host_opt;
             wxString url = print_host_opt;
-
             if (!url.empty()) {
                 if (!url.Lower().starts_with("http"))
                     url = wxString::Format("http://%s", url);
