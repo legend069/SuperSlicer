@@ -560,7 +560,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
 
         static bool warningAdded = false;
         
-        wxFont font(14, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("Arial"));
+        wxFont font(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("Arial"));
 
         const t_config_option_keys families = vendor.families();
         for (const std::string &family : families) {
@@ -576,7 +576,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
                 new wxStaticText(this,
                                  wxID_ANY,
                                  "Older devices manufactured before November 2023 require absolute extrusion.  ");
-                infoText->SetFont(wxFont(wxFontInfo(12).Bold()));
+                infoText->SetFont(wxFont(wxFontInfo(10).Bold()));
                 sizer->Add(infoText);
                 
                 std::string CR3D_README_LINK = "https://github.com/CR-3D/SliCR-3D-profiles/blob/02a963ccc3001657b24cd402147bde05b048d973/CR3D/ReadMe.md";
@@ -614,7 +614,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
                                                               "https://www.cr3d.de/kategorie/empfohlen/",
                                                               wxDefaultPosition,
                                                               wxDefaultSize,
-                                                              wxHL_DEFAULT_STYLE | wxNO_BORDER);
+                                                              wxNO_BORDER);
         
         shop_hyperlink->SetNormalColour(wxColour(94, 111, 252));
         shop_hyperlink->SetVisitedColour(wxColour(94, 111, 252));

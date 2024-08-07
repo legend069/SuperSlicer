@@ -50,7 +50,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
     
     init_combo(&m_combo_printer, "Printer", Preset::TYPE_PRINTER, false);
     m_combo_printer->update();
-    m_combo_printer->SetMaxSize(wxSize(400, 100));
+    m_combo_printer->SetMaxSize(wxSize(600, 100));
     
     sizer->Add(m_combo_printer, 0, wxEXPAND | wxALL, 5);  // Add padding around the combo box
     sizer->Add(m_webView, 1, wxEXPAND | wxALL, 5);  // Add padding around the web view and make it expand to fill the remaining space

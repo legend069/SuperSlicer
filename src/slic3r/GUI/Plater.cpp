@@ -452,8 +452,7 @@ void FreqChangedParams::init()
                                   const std::vector<double> &init_matrix =
                                       (project_config.option<ConfigOptionFloats>("wiping_volumes_matrix"))->get_values();
                                   const std::vector<double> &init_extruders = (project_config.option<ConfigOptionFloats>(
-                                                                                   "wiping_volumes_extruders"))
-                                                                                  ->get_values();
+                                                                                   "wiping_volumes_extruders"))->get_values();
 
                                   const std::vector<std::string> extruder_colours =
                                       wxGetApp().plater()->get_extruder_colors_from_plater_config();
@@ -492,7 +491,7 @@ void FreqChangedParams::init()
        }
 
         // Add preheat button
-        m_preheat_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+        m_preheat_button = new wxButton(m_parent, wxID_ANY, "Preheat", wxDefaultPosition, wxDefaultSize, wxEXPAND);
         //m_preheat_button->SetWindowStyle(wxBORDER_SIMPLE | wxBORDER_SUNKEN);
         m_preheat_button->SetToolTip(
             "Please be aware that the preheating feature is only effective when a physical printer is selected. If "
@@ -525,7 +524,7 @@ void FreqChangedParams::init()
                 } else {
                     wxBitmap preheat_on = create_scaled_bitmap("preheat_on", m_parent, 9);
                     m_preheat_button->SetBitmap(preheat_on);
-                    m_preheat_button->SetLabel("Preheating..");
+                    m_preheat_button->SetLabel("Cooldown");
                     
                     if (this->m_rep->preheat_printer()) {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
@@ -539,7 +538,7 @@ void FreqChangedParams::init()
         });
     
     // Add refresh button
-    m_refresh_button = new wxButton(m_parent, wxID_ANY, "Refresh", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    m_refresh_button = new wxButton(m_parent, wxID_ANY, "Refresh", wxDefaultPosition, wxDefaultSize);
     m_refresh_button->SetToolTip("Refresh the physical printer settings.");
     
     wxBitmap refresh_bmp = create_scaled_bitmap("revert_all_", m_parent, 9 );
@@ -4303,11 +4302,10 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
             std::string message = "The physical printer config has been set successfully.";
             get_notification_manager()->push_notification(_u8L(message));
         } else if (conf->has("print_host")) {
-            if (conf->opt_string("print_host") != "") {
+            if (conf->opt_string("print_host") == "") {
                 std::string message = "There was an error updating the physical printer config, please try again.";
                 get_notification_manager()->push_notification(_u8L(message));
             }
-            return;
         }
         
         if (!tool_diameter_values.empty()) {
