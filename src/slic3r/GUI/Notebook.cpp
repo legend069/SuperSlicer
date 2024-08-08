@@ -62,7 +62,11 @@ void ButtonsListCtrl::OnPaint(wxPaintEvent&)
     // highlight selected notebook button
     for (int idx = 0; idx < int(m_pageButtons.size()); idx++) {
         wxButton* btn = m_pageButtons[idx];
-        btn->SetBackgroundColour(idx == m_selection ? selected_btn_bg : default_btn_bg);
+        if (idx == m_selection) {
+            btn->SetBackgroundColour(selected_btn_bg); // Set different color for selected tab
+        } else {
+            btn->SetBackgroundColour(default_btn_bg);
+        }
 
         // Adding border to make it look more like buttons
         //btn->SetWindowStyle(wxBORDER_SIMPLE);
@@ -73,10 +77,7 @@ void ButtonsListCtrl::OnPaint(wxPaintEvent&)
         const std::vector<Slic3r::GUI::ModeButton*>& mode_btns = m_mode_sizer->get_btns();
         for (int idx = 0; idx < int(mode_btns.size()); idx++) {
             Slic3r::GUI::ModeButton* btn = mode_btns[idx];
-            btn->SetBackgroundColour(btn->is_selected() ? selected_btn_bg : default_btn_bg);
-
-            // Adding border to make it look more like buttons
-           // btn->SetWindowStyle(wxBORDER_SIMPLE);
+            //btn->SetBackgroundColour(btn->is_selected() ? selected_btn_bg : default_btn_bg);
         }
     }
 

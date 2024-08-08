@@ -1142,8 +1142,6 @@ void MainFrame::init_tabpanel()
     });
 
     m_plater = new Plater(this, this);
-    m_plater->Hide();
-
     wxGetApp().plater_ = m_plater;
 
     m_webViewPanel = new WebViewPanel(this);
@@ -1153,7 +1151,6 @@ void MainFrame::init_tabpanel()
 
         m_webViewPanel->load_url(url);
     });
-        
     create_preset_tabs();
 
     m_plater->init_after_tabs();
@@ -1161,14 +1158,16 @@ void MainFrame::init_tabpanel()
     if (m_plater) {
         // load initial config
         auto full_config = wxGetApp().preset_bundle->full_config();
-        m_plater->on_config_change(full_config);
+       // m_plater->on_config_change(full_config);
 
         // Show a correct number of filament fields.
         // nozzle_diameter is undefined when SLA printer is selected
         if (full_config.has("nozzle_diameter")) {
-            m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->size());
+            //m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->size());
         }
     }
+        m_plater->Hide();
+
 }
 
 void MainFrame::load_printer_url(wxString url) {
@@ -1294,8 +1293,8 @@ void MainFrame::create_preset_tabs()
     wxGetApp().update_label_colours_from_appconfig();
     add_created_tab(new TabPrint(m_tabpanel));
     add_created_tab(new TabFilament(m_tabpanel));
-    add_created_tab(new TabSLAPrint(m_tabpanel));
-    add_created_tab(new TabSLAMaterial(m_tabpanel));
+    //add_created_tab(new TabSLAPrint(m_tabpanel));
+    //add_created_tab(new TabSLAMaterial(m_tabpanel));
     add_created_tab(new TabPrinter(m_tabpanel));
 }
 

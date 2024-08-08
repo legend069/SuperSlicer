@@ -5675,7 +5675,7 @@ void TabSLAMaterial::init()
     m_presets = &m_preset_bundle->sla_materials;
     load_initial_data();
 }
-void TabSLAMaterial::build() { append(this->m_pages, create_pages("sla_material.ui")); }
+void TabSLAMaterial::build() { append(this->m_pages, create_pages("2.ui")); }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
 void TabSLAMaterial::reload_config()
@@ -5716,7 +5716,7 @@ void TabSLAPrint::init()
     load_initial_data();
 }
 
-void TabSLAPrint::build() { append(this->m_pages, create_pages("sla_print.ui")); }
+void TabSLAPrint::build() { append(this->m_pages, create_pages("l.ui")); }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
 void TabSLAPrint::reload_config()
