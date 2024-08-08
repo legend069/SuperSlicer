@@ -224,8 +224,7 @@ bool Repetier::preheat_printer() const {
     return res;
 }
 
-json Repetier::get_printer_config() const {
-
+void Repetier::get_printer_config(const CompletionHandler& handler) const {
     std::string endpoint = "/printer/api/" + port + "?a=getPrinterConfig";
     std::string url      = make_url((boost::format("printer/api/%1%") % port).str());
     json json_response;
@@ -235,16 +234,15 @@ json Repetier::get_printer_config() const {
 
     http.form_add("a", "getPrinterConfig")
         .on_complete([&](std::string body, unsigned status) {
-            std::cout << "Getting printer config was successful" << body << std::endl;
+            std::cout << "Getting printer config was successful: " << body << std::endl;
             json_response = json::parse(body);
+            handler(json_response, true, "");  // Call handler with success
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
-            std::cout << "Error getting printer config" << error << std::endl;
-            json_response = nullptr;
+            std::cout << "Error getting printer config: " << error << std::endl;
+            handler(json(), false, error);  // Call handler with error
         })
         .perform_sync();
-    
-    return json_response;
 }
 
 void Repetier::collect_json_values(const json &j, const std::string &key, std::vector<json> &results)

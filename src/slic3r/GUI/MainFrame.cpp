@@ -343,7 +343,7 @@ void MainFrame::update_icon() {
             m_tabpanel->SetPageImage(1, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 4);
             m_tabpanel->SetPageImage(2, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 5);
         }
-        break; 
+        break;
     }
     case ESettingsLayout::GCodeViewer:
     {
@@ -1171,29 +1171,28 @@ void MainFrame::init_tabpanel()
     }
 }
 
-void MainFrame::load_printer_url(wxString url)
-{
-    auto evt = new LoadPrinterViewEvent(EVT_LOAD_PRINTER_URL, this->GetId());
-    evt->SetString(url);
-    wxQueueEvent(this, evt);
-}
-
+void MainFrame::load_printer_url(wxString url) {
+        auto evt = new LoadPrinterViewEvent(EVT_LOAD_PRINTER_URL, this->GetId());
+        evt->SetString(url);
+        wxQueueEvent(this, evt);
+    }
+                     
 void MainFrame::add_printer_webview_tab(const wxString &url) {
- if (m_printer_webview_added) {
-     return;
- }
- int icon_size = 0;
- try {
-     icon_size = atoi(wxGetApp().app_config->get("tab_icon_size").c_str());
- } catch (std::exception e) {}
-
- m_printer_webview_added = true;
- // add as the last (rightmost) panel
- dynamic_cast<Notebook *>(m_tabpanel)->InsertBtPage(2, m_webViewPanel, _L("Device"), std::string("tab_device_active"), icon_size);
+    if (m_printer_webview_added) {
+            return;
+    }
+        int icon_size = 0;
+        try {
+            icon_size = atoi(wxGetApp().app_config->get("tab_icon_size").c_str());
+        } catch (std::exception e) {}
         
- this->m_webViewPanel->Hide();
- this->m_plater->Show();
-}
+        m_printer_webview_added = true;
+        // add as the last (rightmost) panel
+        dynamic_cast<Notebook *>(m_tabpanel)->InsertBtPage(2, m_webViewPanel, _L("Device"), std::string("tab_device_active"), icon_size);
+        
+        this->m_webViewPanel->Hide();
+        this->m_plater->Show();
+    }
                      
 void MainFrame::remove_printer_webview_tab()
  {
@@ -1209,20 +1208,22 @@ void MainFrame::remove_printer_webview_tab()
      m_tabpanel->RemovePage(m_tabpanel->FindPage(m_webViewPanel));
  }
 
- void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc) {
+void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc) {
 
     if (dpc && dpc->option<ConfigOptionEnum<PrintHostType>>("host_type")->value != htPrusaConnect) {
         std::string url = dpc->opt_string("print_host");
         
-        if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
-            url = "http://" + url;
+    if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
+        url = "http://" + url;
         
         load_printer_url(url);
         add_printer_webview_tab(url);
         //select_tab(TabPosition::tpDevice, false);
-        this->m_plater->Raise();
-        this->m_plater->SetFocus();
-        // No physical printer is selected
+        //this->m_plater->Raise();
+        //this->m_plater->SetFocus();
+        if (m_tabpanel->GetCurrentPage() == m_webViewPanel) 
+            select_tab(TabPosition::tpDevice, true);
+        
     } else {
         this->m_webViewPanel->Hide();
         this->m_plater->SetFocus();
@@ -2690,7 +2691,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
     };
 
     if (m_layout == ESettingsLayout::Tabs) {
-        if (tab == TabPosition::tpPlater || 
+        if (tab == TabPosition::tpPlater ||
            (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
             m_plater->select_view_3D("3D");
         } else if (tab == TabPosition::tpPlaterGCode ||

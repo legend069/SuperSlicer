@@ -844,7 +844,9 @@ void PhysicalPrinterDialog::OnOK(wxEvent& event)
 
     // save new physical printer
     printers.save_printer(m_printer, renamed_from);
-
+    
+    wxGetApp().plater_->set_physical_printer_config(printers.get_selected_printer_config());
+    
     if (m_printer.preset_names.find(printers.get_selected_printer_preset_name()) == m_printer.preset_names.end()) {
         // select first preset for this printer
         printers.select_printer(m_printer);

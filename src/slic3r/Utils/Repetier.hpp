@@ -38,8 +38,9 @@ public:
     bool preheat_printer() const;
     bool cooldown_printer() const;
 
-    // Get printer config
-    json get_printer_config() const;
+    // Get printer config -> API
+    using CompletionHandler = std::function<void(const json&, bool, const std::string&)>;
+    void get_printer_config(const CompletionHandler& handler) const;
 
     std::vector<json> get_all_json_values(const json &j, const std::string &key);
     void              collect_json_values(const json &j, const std::string &key, std::vector<json> &results);

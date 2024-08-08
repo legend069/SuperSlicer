@@ -96,6 +96,7 @@ void WebViewPanel::on_select_preset(wxCommandEvent &evt)
     DynamicPrintConfig phys = wxGetApp().preset_bundle->physical_printers.get_selected_printer().config;
     
     this->m_webView->LoadURL("http://" + phys.opt_string("print_host"));
+    
 #ifdef __WXMSW__
     // From the Win 2004 preset combobox lose a focus after change the preset selection
     // and that is why the up/down arrow doesn't work properly

@@ -2253,6 +2253,7 @@ void PhysicalPrinterCollection::save_printer(PhysicalPrinter& edited_printer, co
 
     // update idx_selected
     m_idx_selected = it - m_printers.begin();
+    
 }
 
 bool PhysicalPrinterCollection::delete_printer(const std::string& name)

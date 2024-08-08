@@ -3586,20 +3586,22 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         if (wxGetApp().app_config->get("auto_switch_preview") == "3") {
             if (this->preview->can_display_gcode())
                 main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
+            
             // auto_switch_preview == 1 means "force tab change"
         } else if (wxGetApp().app_config->get("auto_switch_preview") == "1") {
             main_frame->select_tab(MainFrame::TabPosition::tpPlater, true);
+            
             // auto_switch_preview == 2 means "force tab change only if already on a platter one"
-        } else if (wxGetApp().app_config->get("auto_switch_preview") == "2" ||
-                   main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) {
+        } else if (wxGetApp().app_config->get("auto_switch_preview") == "2" || main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) {
             if (this->preview->can_display_gcode())
                 main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
+            
             else if (this->preview->can_display_volume() &&
                      background_process.running()) // don't switch to plater3D if you modify a gcode settign and you
                                                    // don't have background processing
                 main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
             else
-                main_frame->select_tab(MainFrame::TabPosition::tpPlater, true);
+                main_frame->select_tab(MainFrame::TabPosition::tpDevice, true);
         }
     }
     return return_state;
@@ -4260,8 +4262,14 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         wxGetApp().get_tab(preset_type)->select_preset(preset_name);
     }
     
-    DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-    q->set_physical_printer_config(selected_printer_config);
+    if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
+        DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+        q->set_physical_printer_config(selected_printer_config);
+    } else {
+        std::cout << "No Physical Printer Config was found.";
+    }
+    
+
 
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
@@ -4288,70 +4296,78 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     wxButton* preheat_button = this->sidebar().get_preheat_button();
     wxButton* refresh_button = this->sidebar().get_refresh_button();
     std::string message = "";
-    
-    if (conf) {
-        DynamicPrintConfig new_conf;
-        
-        Repetier *repetier = new Repetier(conf);
-        
-        auto tool_diameter_values = repetier->get_all_json_values(repetier->get_printer_config(), "toolDiameter");
-        
-        static std::vector<double> modified_nozzle_diameters;
-        
-        if (repetier->get_printer_config() != nullptr) {
-            std::string message = "The physical printer config has been set successfully.";
-            get_notification_manager()->push_notification(_u8L(message));
-        } else if (conf->has("print_host")) {
-            if (conf->opt_string("print_host") == "") {
-                std::string message = "There was an error updating the physical printer config, please try again.";
-                get_notification_manager()->push_notification(_u8L(message));
-            }
-        }
-        
-        if (!tool_diameter_values.empty()) {
-            for (const auto& value : tool_diameter_values) {
-                if (value.is_number()) {
-                    double tool_diameter = value.get<double>();
-                    std::cout << "Found diameter: " << tool_diameter << std::endl;
-                    Tab* tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
-                    
-                    if (tab_printer) {
-                        DynamicPrintConfig *config = tab_printer->get_config();
-                        new_conf = *config;
-                        
-                        if (config->has("nozzle_diameter")) {
-                            static size_t old_nozzles = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values().size();
-                            const std::vector<double>& nozzle_diameters = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values();
-                            std::cout << "Original nozzle diameters: ";
-                             for (const auto& nd : nozzle_diameters) {
-                                 std::cout << nd << " ";
-                             }
-                             std::cout << std::endl;
-                            // Copy the original diameters and append the new tool diameter
-                            if (modified_nozzle_diameters.size() >= old_nozzles) {
-                                modified_nozzle_diameters.clear();
-                            }
-                            
-                            std::cout << "Modified nozzle diameters: ";
-                            for (const auto& mnd : modified_nozzle_diameters) {
-                                std::cout << mnd << " ";
-                            }
-                            
-                            modified_nozzle_diameters.push_back(tool_diameter);
-                            
-                            ConfigOptionFloats* new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
-                            new_conf.set_key_value("nozzle_diameter", new_nozzle_option);
+    Repetier *repetier = new Repetier(conf);
 
-                            tab_printer->load_config(new_conf);
-                            PrinterTechnology   pt                  = printer_technology();
-                            this->sidebar().og_freq_chng_params(pt)->update_script_presets();
+    if (conf) {
+        
+        repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf](const json& printer_config, bool success, const std::string& error_msg) {
+            /// Declarations
+            DynamicPrintConfig new_conf;
+            NotificationManager* notification_manager = get_notification_manager();
+            Tab* tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+            static std::vector<double> modified_nozzle_diameters;
+            
+            if (success) {
+                auto tool_diameter_values = repetier->get_all_json_values(printer_config, "toolDiameter");
+                if (!tool_diameter_values.empty()) {
+                    for (const auto& value : tool_diameter_values) {
+                        if (value.is_number()) {
+                            double tool_diameter = value.get<double>();
+                            std::cout << "Found diameter: " << tool_diameter << std::endl;
+                            
+                            if (tab_printer) {
+                                DynamicPrintConfig *config = tab_printer->get_config();
+                                new_conf = *config;
+                                
+                                if (config->has("nozzle_diameter")) {
+                                    static size_t old_nozzles = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values().size();
+                                    const std::vector<double>& nozzle_diameters = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values();
+                                    std::cout << "Original nozzle diameters: ";
+                                     for (const auto& nd : nozzle_diameters) {
+                                         std::cout << nd << " ";
+                                     }
+                                     std::cout << std::endl;
+                                    // Copy the original diameters and append the new tool diameter
+                                    if (modified_nozzle_diameters.size() >= old_nozzles) {
+                                        modified_nozzle_diameters.clear();
+                                    }
+                                    
+                                    std::cout << "Modified nozzle diameters: ";
+                                    for (const auto& mnd : modified_nozzle_diameters) {
+                                        std::cout << mnd << " ";
+                                    }
+                                    
+                                    modified_nozzle_diameters.push_back(tool_diameter);
+                                    
+                                    ConfigOptionFloats* new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
+                                    new_conf.set_key_value("nozzle_diameter", new_nozzle_option);
+
+                                    tab_printer->load_config(new_conf);
+                                    PrinterTechnology   pt                  = printer_technology();
+                                    this->sidebar().og_freq_chng_params(pt)->update_script_presets();
+                                }
+                            }
                         }
                     }
                 }
+                preheat_button->Enable();
+                refresh_button->Enable();
+                std::string message = "The physical printer config has been set successfully.";
+                notification_manager->push_notification(_u8L(message));
+            } else {
+                std::string message = "There was an error updating the physical printer config: " + error_msg;
+                notification_manager->push_notification(_u8L(error_msg));
+                preheat_button->Disable();
+                refresh_button->Disable();
             }
-        }
-        preheat_button->Enable();
-        refresh_button->Enable();
+            
+            if (conf->has("print_host") && conf->opt_string("print_host") == "") {
+                std::string message = "There was an error updating the physical printer config, please try again.";
+                notification_manager->push_notification(_u8L(message));
+                preheat_button->Disable();
+                refresh_button->Disable();
+            }
+        });
     } else {
         preheat_button->Disable();
         refresh_button->Disable();
