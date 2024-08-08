@@ -245,6 +245,7 @@ void Repetier::get_printer_config(const CompletionHandler& handler) const {
         .perform_sync();
 }
 
+
 void Repetier::collect_json_values(const json &j, const std::string &key, std::vector<json> &results)
 {
     if (j.is_object()) {

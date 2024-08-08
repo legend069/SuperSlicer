@@ -2621,13 +2621,21 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             new_selection = (uint8_t) tab - (uint8_t) TabPosition::tpPrintSettings;
             if (tab == TabPosition::tpLastSettings)
                 new_selection = m_last_selected_setting_tab > 2 ? 0 : m_last_selected_setting_tab;
-
+            
             // push to the correct position
-            if (m_layout == ESettingsLayout::Tabs)
-                new_selection = new_selection + 3;
-            else if (m_layout != ESettingsLayout::Dlg)
-                new_selection = new_selection + 3;
+            if (m_printer_webview_added) {
+                if (m_layout == ESettingsLayout::Tabs)
+                    new_selection = new_selection + 3;
+                else if (m_layout != ESettingsLayout::Dlg)
+                    new_selection = new_selection + 3;
+            } else {
+                if (m_layout == ESettingsLayout::Tabs)
+                    new_selection = new_selection + 2;
+                else if (m_layout != ESettingsLayout::Dlg)
+                    new_selection = new_selection + 2;
+            }
         }
+        
 
 #ifndef _USE_CUSTOM_NOTEBOOK
         if (m_tabpanel->GetPageCount() == 0) return; // failsafe

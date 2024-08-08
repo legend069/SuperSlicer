@@ -557,13 +557,12 @@ void FreqChangedParams::init()
     
     wxBoxSizer* hbox_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-
     // Add the buttons to the horizontal sizer
-    hbox_sizer->Add(m_refresh_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 10);
-    hbox_sizer->Add(m_preheat_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 10);
+    hbox_sizer->Add(m_refresh_button, 0, wxALIGN_LEFT | wxALL, 10);
+    hbox_sizer->Add(m_preheat_button, 0, wxALIGN_LEFT | wxALL, 10);
 
     // Add the horizontal sizer to the main sizer
-    m_sizer->Add(hbox_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 10);
+    m_sizer->Add(hbox_sizer, 0, wxALIGN_LEFT | wxALL, 10);
 
 }
 
@@ -4301,13 +4300,13 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     Repetier *repetier = new Repetier(conf);
 
     if (conf) {
-        
         repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf](const json& printer_config, bool success, const std::string& error_msg) {
             /// Declarations
             DynamicPrintConfig new_conf;
             NotificationManager* notification_manager = get_notification_manager();
             Tab* tab_printer = wxGetApp().get_tab(Preset::TYPE_PRINTER);
             static std::vector<double> modified_nozzle_diameters;
+            m_api_success = success;
             
             if (success) {
                 auto tool_diameter_values = repetier->get_all_json_values(printer_config, "toolDiameter");
@@ -4324,21 +4323,12 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
                                 if (config->has("nozzle_diameter")) {
                                     static size_t old_nozzles = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values().size();
                                     const std::vector<double>& nozzle_diameters = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values();
-                                    std::cout << "Original nozzle diameters: ";
-                                     for (const auto& nd : nozzle_diameters) {
-                                         std::cout << nd << " ";
-                                     }
-                                     std::cout << std::endl;
+
                                     // Copy the original diameters and append the new tool diameter
                                     if (modified_nozzle_diameters.size() >= old_nozzles) {
                                         modified_nozzle_diameters.clear();
                                     }
-                                    
-                                    std::cout << "Modified nozzle diameters: ";
-                                    for (const auto& mnd : modified_nozzle_diameters) {
-                                        std::cout << mnd << " ";
-                                    }
-                                    
+
                                     modified_nozzle_diameters.push_back(tool_diameter);
                                     
                                     ConfigOptionFloats* new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
