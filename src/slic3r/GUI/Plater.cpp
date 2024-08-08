@@ -3580,8 +3580,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 
     // update tab if needed
     // auto_switch_preview == 0 means "no force tab change"
-    if (wxGetApp().is_editor() && invalidated != Print::ApplyStatus::APPLY_STATUS_UNCHANGED &&
-        wxGetApp().app_config->get("auto_switch_preview") != "0") {
+    if (wxGetApp().is_editor() && invalidated != Print::ApplyStatus::APPLY_STATUS_UNCHANGED && wxGetApp().app_config->get("auto_switch_preview") != "0" && invalidated != Print::ApplyStatus::APPLY_STATUS_CHANGED) {
         // auto_switch_preview == 3 means "force tab change only if for gcode"
         if (wxGetApp().app_config->get("auto_switch_preview") == "3") {
             if (this->preview->can_display_gcode())
@@ -3595,13 +3594,10 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         } else if (wxGetApp().app_config->get("auto_switch_preview") == "2" || main_frame->selected_tab() < MainFrame::TabPosition::tpPlaterGCode) {
             if (this->preview->can_display_gcode())
                 main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
-            
             else if (this->preview->can_display_volume() &&
                      background_process.running()) // don't switch to plater3D if you modify a gcode settign and you
                                                    // don't have background processing
                 main_frame->select_tab(MainFrame::TabPosition::tpPlaterGCode, true);
-            else
-                main_frame->select_tab(MainFrame::TabPosition::tpDevice, true);
         }
     }
     return return_state;
