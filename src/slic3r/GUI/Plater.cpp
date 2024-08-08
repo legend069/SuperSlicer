@@ -1173,7 +1173,7 @@ void Sidebar::jump_to_option(const std::string &opt_key, Preset::Type type, cons
 void Sidebar::jump_to_option(size_t selected)
 {
     const Search::Option &opt = p->searcher.get_option(selected);
-
+    
     ConfigOptionMode mode = wxGetApp().get_mode();
     if ((opt.tags & mode) != mode) {
         wxString your_modes   = _L("Your current tags:");
@@ -1190,21 +1190,27 @@ void Sidebar::jump_to_option(size_t selected)
         int result = MessageDialog(this,
                                    _L("The option you selected in the search dialog isn't available in the current "
                                       "mode/tags. Do you want to switch to the option tag?") +
-                                       "\n" + your_modes + "\n" + option_modes,
+                                   "\n" + your_modes + "\n" + option_modes,
                                    _L("Option use another tags than the current mode."),
                                    wxYES_NO | wxICON_WARNING | wxCENTRE)
-                         .ShowModal();
+        .ShowModal();
         if (result == wxID_YES) {
             wxGetApp().save_mode(opt.tags);
         } else {
             return;
         }
     }
-
+    
     wxGetApp().get_tab(opt.type, false)->activate_option(opt.opt_key_with_idx(), boost::nowide::narrow(opt.category));
-
+    
     // Switch to the Settings NotePad
-    //    wxGetApp().mainframe->select_tab(MainFrame::ETabType::tpLastSettings);
+    if (opt.type == Preset::TYPE_PRINTER) {
+        wxGetApp().mainframe->select_tab(MainFrame::TabPosition::tpPrinterSettings, false);
+    } else if (opt.type == Preset::TYPE_FFF_PRINT || opt.type == Preset::TYPE_PRINT1) {
+        wxGetApp().mainframe->select_tab(MainFrame::TabPosition::tpPrintSettings, false);
+    } else if (opt.type == Preset::TYPE_FFF_FILAMENT || opt.type == Preset::TYPE_FFF) {
+        wxGetApp().mainframe->select_tab(MainFrame::TabPosition::tpFilamentSettings, false);
+    }
 }
 
 ObjectManipulation *Sidebar::obj_manipul() { return p->object_manipulation; }
