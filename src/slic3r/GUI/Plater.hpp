@@ -168,6 +168,7 @@ public:
     const PrintBase* current_print() const;
 
     bool m_should_recreate = false;
+    bool m_api_success = false;
     bool new_project(std::string project_name = "");
     void load_project();
     void load_project(const wxString& filename);

@@ -807,7 +807,7 @@ void DevicePresetComboBox::update()
             if (!m_preset_bundle->physical_printers.empty()) {
                 set_label_marker(Append(separator(L("Physical printers")), wxNullBitmap));
                 const PhysicalPrinterCollection& ph_printers = m_preset_bundle->physical_printers;
-                
+    
                 for (PhysicalPrinterCollection::ConstIterator it = ph_printers.begin(); it != ph_printers.end(); ++it) {
                     for (const std::string& preset_name : it->get_preset_names()) {
                         Preset* preset = m_collection->find_preset(preset_name);
@@ -816,6 +816,8 @@ void DevicePresetComboBox::update()
                         std::string main_icon_name, bitmap_key = main_icon_name = preset->printer_technology() == ptSLA ? "sla_printer" : m_main_bitmap_name;
                         wxBitmap* bmp = get_bmp(main_icon_name, wide_icons, main_icon_name);
                         assert(bmp);
+                        
+                        bool is_online = wxGetApp().plater_->m_api_success;
                         
                         set_label_marker(Append(from_u8(it->get_full_name(preset_name) + suffix(preset)), *bmp), LABEL_ITEM_PHYSICAL_PRINTER);
                         validate_selection(ph_printers.is_selected(it, preset_name));

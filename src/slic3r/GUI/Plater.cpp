@@ -4300,7 +4300,9 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     Repetier *repetier = new Repetier(conf);
 
     if (conf) {
-        repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf](const json& printer_config, bool success, const std::string& error_msg) {
+        repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf](const json& printer_config, 
+                                                                                            bool success,
+                                                                                            const std::string& error_msg) {
             /// Declarations
             DynamicPrintConfig new_conf;
             NotificationManager* notification_manager = get_notification_manager();
