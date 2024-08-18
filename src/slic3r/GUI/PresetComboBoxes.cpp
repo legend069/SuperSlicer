@@ -39,6 +39,7 @@
 #include "PhysicalPrinterDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "MsgDialog.hpp"
+#include "../Utils/Repetier.hpp"
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 // See e.g.: https://github.com/prusa3d/PrusaSlicer/issues/4584
@@ -800,6 +801,8 @@ void DevicePresetComboBox::update()
     bool wide_icons = selected_preset && !selected_preset->is_compatible;
         
     wxString tooltip;
+    std::vector<DynamicPrintConfig> conf_vec;;
+    static bool wait = false;
     
         if (m_type == Preset::TYPE_PRINTER)
         {
@@ -807,30 +810,42 @@ void DevicePresetComboBox::update()
             if (!m_preset_bundle->physical_printers.empty()) {
                 set_label_marker(Append(separator(L("Physical printers")), wxNullBitmap));
                 const PhysicalPrinterCollection& ph_printers = m_preset_bundle->physical_printers;
-    
+                
                 for (PhysicalPrinterCollection::ConstIterator it = ph_printers.begin(); it != ph_printers.end(); ++it) {
                     for (const std::string& preset_name : it->get_preset_names()) {
                         Preset* preset = m_collection->find_preset(preset_name);
                         if (!preset || !preset->is_visible)
                             continue;
-                        std::string main_icon_name, bitmap_key = main_icon_name = preset->printer_technology() == ptSLA ? "sla_printer" : m_main_bitmap_name;
-                        wxBitmap* bmp = get_bmp(main_icon_name, wide_icons, main_icon_name);
-                        assert(bmp);
                         
-                        bool is_online = wxGetApp().plater_->m_api_success;
-                        
-                        set_label_marker(Append(from_u8(it->get_full_name(preset_name) + suffix(preset)), *bmp), LABEL_ITEM_PHYSICAL_PRINTER);
-                        validate_selection(ph_printers.is_selected(it, preset_name));
+                        conf_vec.push_back(it->config);
+                        wxBitmap status_bmp;
+                        /*
+                        if (wait) {
+                            for (DynamicPrintConfig conf : conf_vec) {
+                                Repetier *repetier = new Repetier(&conf);
+                                repetier->get_printer_config([this, &status_bmp, wide_icons](const json& printer_config,
+                                                                                             bool success,
+                                                                                             const std::string& error_msg) {
+                                    
+                                    ;
+                                    
+                                    status_bmp = success ? create_scaled_bitmap("printer_online", this, 10) : create_scaled_bitmap("printer_offline", this, 10);
+                                    
+                                });
+                            }
+                        } else {
+                            status_bmp = create_scaled_bitmap("printer", this, 10);
+                        }
+                         */
+                            
+                            std::string main_icon_name, bitmap_key = main_icon_name = preset->printer_technology() == ptSLA ? "sla_printer" : m_main_bitmap_name;
+                            
+                            set_label_marker(Append(from_u8(it->get_full_name(preset_name) + suffix(preset)), status_bmp), LABEL_ITEM_PHYSICAL_PRINTER);
+                            validate_selection(ph_printers.is_selected(it, preset_name));
                     }
                 }
             }
-        }
-    
-        if (m_type == Preset::TYPE_PRINTER) {
-            wxBitmap* bmp = get_bmp("edit_preset_list", wide_icons, "edit_uni");
-            assert(bmp);
-
-            set_label_marker(Append(separator(L("Add/Remove printers")), *bmp), LABEL_ITEM_WIZARD_PRINTERS);
+            wait = true;
         }
         
         update_selection();

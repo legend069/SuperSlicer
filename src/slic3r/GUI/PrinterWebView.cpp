@@ -36,7 +36,9 @@
 #endif
 
 namespace Slic3r {
+
 namespace GUI {
+
 WebViewPanel::WebViewPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
 {
     wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
@@ -72,7 +74,7 @@ wxWebView* WebViewPanel::CreateWebView(wxWindow* parent) {
 
 void WebViewPanel::on_select_preset(wxCommandEvent &evt)
 {
-    PlaterPresetComboBox *combo       = static_cast<PlaterPresetComboBox *>(evt.GetEventObject());
+    DevicePresetComboBox *combo       = static_cast<DevicePresetComboBox *>(evt.GetEventObject());
     Preset::Type          preset_type = combo->get_type();
 
     // see https://github.com/prusa3d/PrusaSlicer/issues/3889
@@ -96,6 +98,7 @@ void WebViewPanel::on_select_preset(wxCommandEvent &evt)
     DynamicPrintConfig phys = wxGetApp().preset_bundle->physical_printers.get_selected_printer().config;
     
     this->m_webView->LoadURL("http://" + phys.opt_string("print_host"));
+    combo->update();
     
 #ifdef __WXMSW__
     // From the Win 2004 preset combobox lose a focus after change the preset selection
