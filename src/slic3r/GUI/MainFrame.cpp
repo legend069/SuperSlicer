@@ -20,7 +20,9 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Time.hpp"
 
+#include "../Utils/Repetier.hpp"
 #include "../Utils/Process.hpp"
+#include "../Utils/json_diff.hpp"
 #include "3DScene.hpp"
 #include "GLCanvas3D.hpp"
 #include "GUI_ObjectList.hpp"
@@ -29,6 +31,7 @@
 #include "Mouse3DController.hpp"
 #include "Plater.hpp"
 #include "PrintHostDialogs.hpp"
+#include "ScriptExecutor.hpp"
 
 #include "RemovableDriveManager.hpp"
 #include "Tab.hpp"
@@ -46,6 +49,7 @@
 #include "GUI_ObjectList.hpp"
 #include "GalleryDialog.hpp"
 #include "NotificationManager.hpp"
+#include "PresetComboBoxes.hpp"
 
 #ifdef _WIN32
 #include <dbt.h>
@@ -339,7 +343,7 @@ void MainFrame::update_icon() {
             m_tabpanel->SetPageImage(1, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 6 : 4);
             m_tabpanel->SetPageImage(2, m_plater->printer_technology() == PrinterTechnology::ptSLA ? 7 : 5);
         }
-        break; 
+        break;
     }
     case ESettingsLayout::GCodeViewer:
     {
@@ -688,8 +692,6 @@ void MainFrame::update_layout()
         
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 1);
 
-        m_webView->Raise();
-
         update_icon();
         // show
         m_plater->Show();
@@ -1014,7 +1016,6 @@ void MainFrame::init_tabpanel()
     m_tabpanel->Hide();
     m_settings_dialog.set_tabpanel(m_tabpanel);
 
-#if _USE_CUSTOM_NOTEBOOK
     int icon_size = 0;
     try {
         icon_size = atoi(wxGetApp().app_config->get("tab_icon_size").c_str());
@@ -1052,8 +1053,6 @@ void MainFrame::init_tabpanel()
         }
     }
     m_tabpanel->AssignImageList(img_list);
-
-#endif
     
 #ifdef __WXMSW__
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
@@ -1082,7 +1081,6 @@ void MainFrame::init_tabpanel()
                 last_selected_setting_tab = m_tabpanel->GetSelection() - 1;
         } else if (this->m_layout == ESettingsLayout::Tabs) {
 
-#if _USE_CUSTOM_NOTEBOOK
             int bt_idx_sel = 0;
             if (wxGetApp().tabs_as_menu()) {
                 bt_idx_sel = (uint8_t)get_tab_bt_selected(this->m_menubar, this->get_layout());
@@ -1094,8 +1092,17 @@ void MainFrame::init_tabpanel()
 
             if (bt_idx_sel == 0) {
                 this->m_plater->select_view_3D("3D");
+                this->m_webViewPanel->Hide();
+                this->m_webViewPanel->Lower();
+                this->m_webViewPanel->Disable();
+                this->m_plater->Show();
+                this->m_plater->Raise();
+                this->m_plater->SetFocus();
                 
             } else if (bt_idx_sel == 1) {
+                this->m_webViewPanel->Hide();
+                this->m_plater->Show();
+
                 if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
                     this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
                     this->m_plater->select_view_3D("Preview");
@@ -1104,90 +1111,30 @@ void MainFrame::init_tabpanel()
                 } else
                     this->m_plater->select_view_3D("Preview");
             } else if (bt_idx_sel == 2) {
+                this->m_webViewPanel->m_webView->Show();
+                this->m_webViewPanel->m_combo_printer->update();
+                
+                this->m_plater->Hide();
                 DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-
+                
                 if (!selected_printer_config) {
                     // No physical printer found, show blank screen for now
                     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
                     auto cfg = preset_bundle.printers.get_edited_preset().config;
                     wxString url = cfg.opt_string("print_host");
                     if (!url) {
-                        m_webView->LoadURL("https://google.com");
+                        m_webViewPanel->m_webView->LoadURL("https://google.com");
                     }
+                } else {
+                    // Device is selected
+                    m_webViewPanel->Show();
+                    m_webViewPanel->Enable();
+                    m_webViewPanel->Raise();
+                    m_webViewPanel->SetFocus();
                 }
             }
 
             m_last_selected_plater_tab = bt_idx_sel;
-#else
-
-            if (last_selected_plater_tab == m_tabpanel->GetSelection()) {
-                return;
-            }
-            bool need_freeze = !this->IsFrozen();
-            bool need_freeze_plater = true;
-            if(need_freeze) Freeze();
-            else {
-                need_freeze_plater = !m_plater->IsFrozen();
-                if (need_freeze_plater) m_plater->Freeze();
-            }
-
-            size_t new_tab = m_tabpanel->GetSelection();
-
-            size_t max = 0;
-            for (int i = 0; i < 4; i++)
-                max = std::max(max, m_tabpanel->GetPage(i)->GetSizer()->GetItemCount());
-#if __APPLE__
-            BOOST_LOG_TRIVIAL(debug) << " 1 - hide & clear the sizers: " << max << "->";
-#endif
-            for(int i=0;i<3;i++)
-                m_tabpanel->GetPage(i)->GetSizer()->Clear();
-            max = 0;
-            for (int i = 0; i < 4; i++)
-                max = std::max(max, m_tabpanel->GetPage(i)->GetSizer()->GetItemCount());
-#if __APPLE__
-            BOOST_LOG_TRIVIAL(debug) << max << "\n";
-#endif
-            m_plater->Reparent(m_tabpanel->GetCurrentPage());
-#ifdef __APPLE__
-            BOOST_LOG_TRIVIAL(debug) << " 2 - change parent from tab " << m_last_selected_plater_tab << " to tab " << m_tabpanel->GetSelection() << "\n";
-#endif
-
-            if (m_tabpanel->GetSelection() == 0) {
-                this->m_plater->Show();
-                this->m_webView->Hide();
-                this->m_plater->select_view_3D("3D");
-                this->m_plater->refresh_print();
-           } else if (m_tabpanel->GetSelection() == 1) {
-               this->m_plater->Show();
-               this->m_webView->Hide();
-                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceExtrusions) {
-                    this->m_plater->set_force_preview(Preview::ForceState::ForceExtrusions);
-                    this->m_plater->select_view_3D("Preview");
-                    this->m_plater->refresh_print();
-                }
-            } else if (m_tabpanel->GetSelection() == 2) {
-                this->m_plater->Show();
-                this->m_webView->Hide();
-                if (this->m_plater->get_force_preview() != Preview::ForceState::ForceGcode) {
-                    this->m_plater->set_force_preview(Preview::ForceState::ForceGcode);
-                    this->m_plater->select_view_3D("Preview");
-                    this->m_plater->refresh_print();
-                }
-            } else if (m_tabpanel->GetSelection() == 3) {
-                this->m_plater->Hide();
-
-                this->m_webView->Show();
-                this->m_webView->Enable();
-            }
-
-            m_tabpanel->GetCurrentPage()->GetSizer()->Add(m_plater, 1, wxEXPAND);
-
-            m_last_selected_plater_tab = m_tabpanel->GetSelection();
-
-            if (need_freeze) Thaw();
-            else if (need_freeze_plater) m_plater->Thaw();
-
-#endif
         } else {
             select_tab(MainFrame::TabPosition::tpPlaterGCode); // select Plater
             m_last_selected_plater_tab = 999;
@@ -1195,8 +1142,6 @@ void MainFrame::init_tabpanel()
     });
 
     m_plater = new Plater(this, this);
-    m_plater->Hide();
-
     wxGetApp().plater_ = m_plater;
 
     m_webViewPanel = new WebViewPanel(this);
@@ -1206,14 +1151,6 @@ void MainFrame::init_tabpanel()
 
         m_webViewPanel->load_url(url);
     });
-
-    m_webView = m_webViewPanel->m_webView;    
-
-        if (m_webView != nullptr) {
-        m_webView->Hide();
-    } else {
-        m_webView->Show();
-    }
     create_preset_tabs();
 
     m_plater->init_after_tabs();
@@ -1221,72 +1158,78 @@ void MainFrame::init_tabpanel()
     if (m_plater) {
         // load initial config
         auto full_config = wxGetApp().preset_bundle->full_config();
-        m_plater->on_config_change(full_config);
+       // m_plater->on_config_change(full_config);
 
         // Show a correct number of filament fields.
         // nozzle_diameter is undefined when SLA printer is selected
         if (full_config.has("nozzle_diameter")) {
-            m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->size());
+            //m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->size());
         }
     }
+        m_plater->Hide();
+
 }
 
-void MainFrame::load_printer_url(wxString url)
-{
-    auto evt = new LoadPrinterViewEvent(EVT_LOAD_PRINTER_URL, this->GetId());
-    evt->SetString(url);
-    wxQueueEvent(this, evt);
-}
-
-void MainFrame::add_printer_webview_tab(const wxString &url)
- {
-     if (m_printer_webview_added) {
-         return;
-     }
-     int icon_size = 0;
-     try {
-         icon_size = atoi(wxGetApp().app_config->get("tab_icon_size").c_str());
-     } catch (std::exception e) {}
-
-
-     m_printer_webview_added = true;
-     // add as the last (rightmost) panel
-     dynamic_cast<Notebook *>(m_tabpanel)->InsertBtPage(2, m_webView, _L("Device"), std::string("tab_device_active"), icon_size);
-        m_webView->Show();
- }
-
+void MainFrame::load_printer_url(wxString url) {
+        auto evt = new LoadPrinterViewEvent(EVT_LOAD_PRINTER_URL, this->GetId());
+        evt->SetString(url);
+        wxQueueEvent(this, evt);
+    }
+                     
+void MainFrame::add_printer_webview_tab(const wxString &url) {
+    if (m_printer_webview_added) {
+            return;
+    }
+        int icon_size = 0;
+        try {
+            icon_size = atoi(wxGetApp().app_config->get("tab_icon_size").c_str());
+        } catch (std::exception e) {}
+        
+        m_printer_webview_added = true;
+        // add as the last (rightmost) panel
+        dynamic_cast<Notebook *>(m_tabpanel)->InsertBtPage(2, m_webViewPanel, _L("Device"), std::string("tab_device_active"), icon_size);
+        
+        this->m_webViewPanel->Hide();
+        this->m_plater->Show();
+    }
+                     
 void MainFrame::remove_printer_webview_tab()
  {
      if (!m_printer_webview_added) {
          return;
      }
      m_printer_webview_added = false;
-        m_webView->Hide();
-     
-     m_tabpanel->RemovePage(m_tabpanel->FindPage(m_webView));
-    //dynamic_cast<Notebook *>(m_tabpanel)->RemoveBtPage(size_t(TabPosition::tpDevice));
-
- }
-
-void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc)
- {
-   if (dpc && dpc->option<ConfigOptionEnum<PrintHostType>>("host_type")->value != htPrusaConnect) {
-         std::string url = dpc->opt_string("print_host");
-
-          if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos) 
-              url = "http://" + url;
-
-            load_printer_url(url);
-            add_printer_webview_tab(url);
-            select_tab(TabPosition::tpDevice, true);
-        // No physical printer is selected
-    } else {
-         if (m_tabpanel->GetPageText(m_tabpanel->GetSelection()) == _L("Device"))
-             select_tab(TabPosition::tpPlater, false);
+        m_webViewPanel->Hide();
+        m_webViewPanel->Lower();
         
-        remove_printer_webview_tab();
-     }
+     m_plater->Raise();
+     m_plater->SetFocus();
+     m_tabpanel->RemovePage(m_tabpanel->FindPage(m_webViewPanel));
  }
+
+void MainFrame::show_printer_webview_tab(DynamicPrintConfig *dpc) {
+
+    if (dpc && dpc->option<ConfigOptionEnum<PrintHostType>>("host_type")->value != htPrusaConnect) {
+        std::string url = dpc->opt_string("print_host");
+        
+    if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
+        url = "http://" + url;
+        
+        load_printer_url(url);
+        add_printer_webview_tab(url);
+        //select_tab(TabPosition::tpDevice, false);
+        //this->m_plater->Raise();
+        //this->m_plater->SetFocus();
+        if (m_tabpanel->GetCurrentPage() == m_webViewPanel) 
+            select_tab(TabPosition::tpDevice, true);
+        
+    } else {
+        this->m_webViewPanel->Hide();
+        this->m_plater->SetFocus();
+        this->m_plater->Raise();
+        remove_printer_webview_tab();
+    }
+}
 
 
 #ifdef WIN32
@@ -1350,8 +1293,8 @@ void MainFrame::create_preset_tabs()
     wxGetApp().update_label_colours_from_appconfig();
     add_created_tab(new TabPrint(m_tabpanel));
     add_created_tab(new TabFilament(m_tabpanel));
-    add_created_tab(new TabSLAPrint(m_tabpanel));
-    add_created_tab(new TabSLAMaterial(m_tabpanel));
+    //add_created_tab(new TabSLAPrint(m_tabpanel));
+    //add_created_tab(new TabSLAMaterial(m_tabpanel));
     add_created_tab(new TabPrinter(m_tabpanel));
 }
 
@@ -1641,21 +1584,15 @@ static wxMenu* generate_help_menu()
     wxMenu* helpMenu = new wxMenu();
     append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("%s Releases"), SLIC3R_APP_NAME), wxString::Format(_L("Open the %s releases page in your browser"), SLIC3R_APP_NAME),
         [](wxCommandEvent&) { wxGetApp().open_browser_with_warning_dialog(SLIC3R_DOWNLOAD, nullptr, false); });
-    append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("%s wiki"), SLIC3R_APP_NAME), wxString::Format(_L("Open the %s wiki in your browser"), SLIC3R_APP_NAME),
-        [](wxCommandEvent&) { wxGetApp().open_browser_with_warning_dialog("http://github.com/" SLIC3R_GITHUB "/wiki"); });
-    append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("%s website"), SLIC3R_APP_NAME), _L("Open the Slic3r website in your browser"),
-        [](wxCommandEvent&) { wxGetApp().open_browser_with_warning_dialog("http://slic3r.org"); });
-    //#        my $versioncheck = $self->_append_menu_item($helpMenu, "Check for &Updates...", "Check for new Slic3r versions", sub{
-    //#            wxTheApp->check_version(1);
-    //#        });
-    //#        $versioncheck->Enable(wxTheApp->have_version_check);
-    append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("Slic3r Manual")),
-        wxString::Format(_L("Open the Slic3r Manual in your browser")),
-        //            [this](wxCommandEvent&) { wxGetApp().open_web_page_localized("http://manual.slic3r.org"); });
-        //        append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("%s &Manual"), SLIC3R_APP_NAME),
-        //                                             wxString::Format(_L("Open the %s manual in your browser"), SLIC3R_APP_NAME),
-        [](wxCommandEvent&) { wxGetApp().open_browser_with_warning_dialog("http://manual.slic3r.org/"); });
+
+    append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("%s Website"), SLIC3R_APP_NAME), _L("Open the SliCR-3D website in your browser"),
+        [](wxCommandEvent&) { wxGetApp().open_browser_with_warning_dialog("https://www.cr3d.de"); });
+        
+    append_menu_item(helpMenu, wxID_ANY, wxString::Format(_L("%s Shop"), "CR-3D"), _L("Open our shop in your browser "),
+            [](wxCommandEvent&) { wxGetApp().open_browser_with_warning_dialog("https://www.cr3d.de/kategorie/empfohlen/"); });
+
     helpMenu->AppendSeparator();
+        
     append_menu_item(helpMenu, wxID_ANY, _L("System &Info"), _L("Show system information"),
         [](wxCommandEvent&) { wxGetApp().system_info(); });
     append_menu_item(helpMenu, wxID_ANY, _L("Show &Configuration Folder"), _L("Show user configuration folder (datadir)"),
@@ -2684,13 +2621,21 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
             new_selection = (uint8_t) tab - (uint8_t) TabPosition::tpPrintSettings;
             if (tab == TabPosition::tpLastSettings)
                 new_selection = m_last_selected_setting_tab > 2 ? 0 : m_last_selected_setting_tab;
-
+            
             // push to the correct position
-            if (m_layout == ESettingsLayout::Tabs)
-                new_selection = new_selection + 3;
-            else if (m_layout != ESettingsLayout::Dlg)
-                new_selection = new_selection + 3;
+            if (m_printer_webview_added) {
+                if (m_layout == ESettingsLayout::Tabs)
+                    new_selection = new_selection + 3;
+                else if (m_layout != ESettingsLayout::Dlg)
+                    new_selection = new_selection + 3;
+            } else {
+                if (m_layout == ESettingsLayout::Tabs)
+                    new_selection = new_selection + 2;
+                else if (m_layout != ESettingsLayout::Dlg)
+                    new_selection = new_selection + 2;
+            }
         }
+        
 
 #ifndef _USE_CUSTOM_NOTEBOOK
         if (m_tabpanel->GetPageCount() == 0) return; // failsafe
@@ -2753,7 +2698,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
     };
 
     if (m_layout == ESettingsLayout::Tabs) {
-        if (tab == TabPosition::tpPlater || 
+        if (tab == TabPosition::tpPlater ||
            (tab == TabPosition::tpPlaterGCode && m_last_selected_plater_tab == 0)) {
             m_plater->select_view_3D("3D");
         } else if (tab == TabPosition::tpPlaterGCode ||

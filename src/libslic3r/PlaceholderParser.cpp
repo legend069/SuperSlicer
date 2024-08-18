@@ -812,7 +812,8 @@ struct MyContext : public ConfigOptionResolver {
             }
         }
         std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " has not a valid option type for get_abs_value()";
-        throw ConfigurationError(ss.str());
+        //throw ConfigurationError(ss.str());
+        return 0;
     }
     
     const ConfigOption*     resolve_symbol(const std::string &opt_key) const { return this->optptr(opt_key); }

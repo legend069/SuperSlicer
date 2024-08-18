@@ -4,8 +4,10 @@
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
-
+#include "nlohmann/json.hpp"
 #include "PrintHost.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -31,6 +33,17 @@ public:
     
     bool get_groups(wxArrayString &groups) const override;
     bool get_printers(wxArrayString &printers) const override;
+    
+    /// Preheating Post Requests
+    bool preheat_printer() const;
+    bool cooldown_printer() const;
+
+    // Get printer config -> API
+    using CompletionHandler = std::function<void(const json&, bool, const std::string&)>;
+    void get_printer_config(const CompletionHandler& handler) const;
+
+    std::vector<json> get_all_json_values(const json &j, const std::string &key);
+    void              collect_json_values(const json &j, const std::string &key, std::vector<json> &results);
 
 protected:
     virtual bool validate_version_text(const boost::optional<std::string> &version_text) const;

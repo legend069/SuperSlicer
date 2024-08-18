@@ -24,6 +24,9 @@ group:freq_settings_event:no_title:no_search:
         setting:simple:script:float:depends$nozzle_diameter[0]:label_width$7:label$Tool [0]:tooltip$Value for nozzle[0]:full_width:s_nozzle_diameter_1
         setting:simple:script:float:depends$nozzle_diameter[1]:label_width$7:label$Tool [1]:tooltip$Value for nozzle[1]:full_width:s_nozzle_diameter_2
     end_line
+    line:
+    preheat_printer
+    end_line
     
 
     

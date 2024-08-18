@@ -100,6 +100,8 @@ public:
     
     ConfigOptionsGroup*     og_freq_chng_params(PrinterTechnology tech);
     wxButton*               get_wiping_dialog_button();
+    wxButton*               get_preheat_button();
+    wxButton*               get_refresh_button();
     void                    update_objects_list_extruder_column(size_t extruders_count);
     void                    show_info_sizer();
     void                    show_sliced_info_sizer(const bool show);
@@ -166,6 +168,7 @@ public:
     const PrintBase* current_print() const;
 
     bool m_should_recreate = false;
+    bool m_api_success = false;
     bool new_project(std::string project_name = "");
     void load_project();
     void load_project(const wxString& filename);
@@ -176,6 +179,11 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void refresh_print();
+    void set_physical_printer_config(DynamicPrintConfig* conf);
+    void refresh_physical_printer_config();
+    bool physical_printer_is_selected = false;
+    void on_physical_printer_selected(wxCommandEvent &);
+
     
     //std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, bool load_model = true, bool load_config = true, bool update_dirs = true, bool imperial_units = false);
     // To be called when providing a list of files to the GUI slic3r on command line.

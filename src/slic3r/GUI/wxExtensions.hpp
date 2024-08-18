@@ -162,7 +162,8 @@ public:
                     const std::string& icon_name = "",
                     const int px_cnt = 16, 
                     const bool grayscale = false);
-    ScalableBitmap(wxWindow* parent, 
+    
+    ScalableBitmap(wxWindow* parent,
         const wxBitmap& bitmap,
         const int px_cnt = 16) 
         : m_bmp(bitmap), m_px_cnt(px_cnt) {};

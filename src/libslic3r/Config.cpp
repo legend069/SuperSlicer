@@ -1169,7 +1169,8 @@ double ConfigBase::get_computed_value(const t_config_option_key &opt_key, int ex
     }
     std::stringstream ss;
     ss << "ConfigBase::get_abs_value(): " << opt_key << " has not a valid option type for get_abs_value()";
-    throw ConfigurationError(ss.str());
+    //throw ConfigurationError(ss.str());
+    return 0;
 }
 
 // Return an absolute value of a possibly relative config variable.

@@ -229,10 +229,8 @@ protected:
 
 	// This panel is needed for correct showing of the ToolTips for Button, StaticText and CheckBox
 	// Tooltips on GTK doesn't work inside wxStaticBoxSizer unless you insert a panel 
-	// inside it before you insert the other controls.
-#if 0//#ifdef__WXGTK__
+
 	wxPanel*				m_panel {nullptr};
-#endif /* __WXGTK__ */
 
     /// Generate a wxSizer or wxWindow from a configuration option
     /// Precondition: opt resolves to a known ConfigOption

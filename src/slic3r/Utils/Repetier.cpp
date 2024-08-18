@@ -18,11 +18,12 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
+#include "nlohmann/json.hpp"
 
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
-
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -150,6 +151,118 @@ bool Repetier::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
         .perform_sync();
 
     return res;
+}
+
+std::string removeHttpPrefix(const std::string& host) {
+    std::string cleanedHost = host;
+
+    const std::string httpPrefix = "http://";
+    const std::string httpsPrefix = "https://";
+
+    if (cleanedHost.compare(0, httpPrefix.size(), httpPrefix) == 0) {
+        cleanedHost.erase(0, httpPrefix.size());
+    } else if (cleanedHost.compare(0, httpsPrefix.size(), httpsPrefix) == 0) {
+        cleanedHost.erase(0, httpsPrefix.size());
+    }
+
+    return cleanedHost;
+}
+
+bool Repetier::cooldown_printer() const {
+    
+    std::string endpoint = "/printer/api/" + port + "?a=cooldown";
+    std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
+
+    std::string encoded_json = Http::url_encode(jsonData);
+    std::string cleanedHost = removeHttpPrefix(host);
+
+    std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
+    bool res = true;
+    
+    auto http = Http::post(std::move(url));
+    set_auth(http);
+    
+    http.form_add("a", "cooldown")
+        .on_complete([&](std::string body, unsigned status) {
+            std::cout << "Cooldown was successful" << std::endl;
+            res = true;
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            std::cout << "Error preheating" << error << std::endl;
+            res = false;
+        })
+        .perform_sync();
+    
+    
+    return res;
+}
+
+bool Repetier::preheat_printer() const {
+    
+    std::string endpoint = "/printer/api/" + port + "?a=preheat";
+    std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
+    std::string cleanedHost = removeHttpPrefix(host);
+    std::string encoded_json = Http::url_encode(jsonData);
+    
+    std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
+    bool res = true;
+    
+    auto http = Http::post(std::move(url));
+    set_auth(http);
+    
+    http.form_add("a", "preheat")
+        .on_complete([&](std::string body, unsigned status) {
+            std::cout << "Preheat was successful" << std::endl;
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            std::cout << "Error preheating" << error << std::endl;
+            res = false;
+        })
+        .perform_sync();
+    
+    
+    return res;
+}
+
+void Repetier::get_printer_config(const CompletionHandler& handler) const {
+    std::string endpoint = "/printer/api/" + port + "?a=getPrinterConfig";
+    std::string url      = make_url((boost::format("printer/api/%1%") % port).str());
+    json json_response;
+
+    auto http = Http::get(std::move(url));
+    set_auth(http);
+
+    http.form_add("a", "getPrinterConfig")
+        .on_complete([&](std::string body, unsigned status) {
+            std::cout << "Getting printer config was successful: " << body << std::endl;
+            json_response = json::parse(body);
+            handler(json_response, true, "");  // Call handler with success
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            std::cout << "Error getting printer config: " << error << std::endl;
+            handler(json(), false, error);  // Call handler with error
+        })
+        .perform_sync();
+}
+
+
+void Repetier::collect_json_values(const json &j, const std::string &key, std::vector<json> &results)
+{
+    if (j.is_object()) {
+        if (j.contains(key)) {
+            results.push_back(j.at(key));
+        }
+        for (const auto &item : j.items()) { collect_json_values(item.value(), key, results); }
+    } else if (j.is_array()) {
+        for (const auto &item : j) { collect_json_values(item, key, results); }
+    }
+}
+
+std::vector<json> Repetier::get_all_json_values(const json &j, const std::string &key)
+{
+    std::vector<json> results;
+    collect_json_values(j, key, results);
+    return results;
 }
 
 bool Repetier::validate_version_text(const boost::optional<std::string> &version_text) const

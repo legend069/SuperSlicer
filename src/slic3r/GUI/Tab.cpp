@@ -29,6 +29,7 @@
 #include "Search.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "WipeTowerDialog.hpp"
+#include "../Utils/Repetier.hpp"
 
 
 #include <boost/algorithm/string.hpp>
@@ -493,6 +494,7 @@ int Tab::get_icon_id(const wxString& title, const std::string& icon)
 
 Slic3r::GUI::PageShp Tab::create_options_page(const wxString& title, const std::string& icon)
 {
+    assert((this->type() & Preset::Type::TYPE_FREQUENT) == 0);
     assert(Tab::fake_build || m_page_view);
     // Initialize the page.
     PageShp page(new Page(this, m_page_view, title, get_icon_id(title, icon)));
@@ -1127,6 +1129,7 @@ void Tab::load_config(const DynamicPrintConfig& config)
 }
 
 // Reload current $self->{config} (aka $self->{presets}->edited_preset->config) into the UI fields.
+// *DONT* delete this, otherwise the sidebar will not create the fields.
 void Tab::reload_config()
 {
     if (m_active_page)
@@ -1155,7 +1158,6 @@ void Tab::reload_config()
         }
     }
 }
-
 void Tab::update_mode()
 {
     m_mode = wxGetApp().get_mode();
@@ -1570,7 +1572,6 @@ void Tab::on_presets_changed()
 
     // Instead of PostEvent (EVT_TAB_PRESETS_CHANGED) just call update_presets
     wxGetApp().plater()->sidebar().update_presets(type());
-
     // Printer selected at the Printer tab, update "compatible" marks at the print and filament selectors.
     for (auto t: m_dependent_tabs)
     {
@@ -2346,6 +2347,8 @@ std::vector<Slic3r::GUI::PageShp> Tab::create_pages(std::string setting_type_nam
             height = atoi(arg.c_str());
         } else if (full_line == "freq_purging_volumes") {
             // hack (see FreqChangedParams::init() in plater.cpp)
+            current_line.label_tooltip = full_line;
+        } else if (full_line == "preheat_extruders") {
             current_line.label_tooltip = full_line;
         } else if (full_line == "update_nozzle_diameter") {
             current_group->m_on_change = set_or_add(current_group->m_on_change, [this, idx_page]
@@ -3534,6 +3537,12 @@ void TabPrinter::on_preset_loaded()
     // update the extruders count field
     auto   *nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(m_config->option("nozzle_diameter"));
     size_t extruders_count = nozzle_diameter->size();
+    
+    if (this->m_config)
+        if (this->m_config->has("print_host"))
+            if (this->m_config->opt_string("print_host") != "")
+                wxGetApp().plater_->set_physical_printer_config(this->m_config);
+    
     // update the GUI field according to the number of nozzle diameters supplied
     extruders_count_changed(extruders_count);
 
@@ -3835,16 +3844,15 @@ void TabPrinter::update()
     m_update_cnt++;
     m_presets->get_edited_preset().printer_technology() == ptFFF ? update_fff() : update_sla();
     m_update_cnt--;
-
+    
     update_description_lines();
     Layout();
-
+    
     if (m_update_cnt == 0) {
         assert(m_config);
         wxGetApp().mainframe->on_config_changed(*m_config);
     }
 }
-
 void TabPrinter::update_fff()
 {
     if (m_use_silent_mode != m_config->opt_bool("silent_mode")) {
@@ -4208,6 +4216,7 @@ void Tab::select_preset(std::string preset_name, bool delete_current /*=false*/,
         // Trigger the on_presets_changed event so that we also restore the previous value in the plater selector,
         // if this action was initiated from the plater.
         on_presets_changed();
+
     } else {
         if (current_dirty)
             m_presets->discard_current_changes();
@@ -5666,7 +5675,7 @@ void TabSLAMaterial::init()
     m_presets = &m_preset_bundle->sla_materials;
     load_initial_data();
 }
-void TabSLAMaterial::build() { append(this->m_pages, create_pages("sla_material.ui")); }
+void TabSLAMaterial::build() { append(this->m_pages, create_pages("2.ui")); }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
 void TabSLAMaterial::reload_config()
@@ -5707,7 +5716,7 @@ void TabSLAPrint::init()
     load_initial_data();
 }
 
-void TabSLAPrint::build() { append(this->m_pages, create_pages("sla_print.ui")); }
+void TabSLAPrint::build() { append(this->m_pages, create_pages("l.ui")); }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
 void TabSLAPrint::reload_config()

@@ -57,7 +57,7 @@ private:
 class Notebook: public wxBookCtrlBase
 {
 public:
-    Notebook(wxWindow * parent,
+    Notebook(wxWindow* parent,
                  wxWindowID winid = wxID_ANY,
                  const wxPoint & pos = wxDefaultPosition,
                  const wxSize & size = wxDefaultSize,

@@ -2780,7 +2780,7 @@ void GCode::_print_first_layer_extruder_temperatures(std::string &out, const Pri
                 if (print.config().ooze_prevention.value)
                     temp += print.config().standby_temperature_delta.value;
                 if (temp > 0)
-                    out += (m_writer.set_temperature(temp, false, tool.id()));
+                     out += (m_writer.set_temperature(temp, false, tool.id()));
             }
         }
         if (wait || print.config().single_extruder_multi_material.value) {
