@@ -770,11 +770,11 @@ namespace client
                 if (vector_opt->is_extruder_size()) {
 
                     if (raw_opt->type() == coFloats || raw_opt->type() == coInts || raw_opt->type() == coBools)
-                        return vector_opt->getFloat(int(current_extruder_id));
+                        return vector_opt->get_float(int(current_extruder_id));
                     if (raw_opt->type() == coFloatsOrPercents) {
                         const ConfigOptionFloatsOrPercents* opt_fl_per = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
-                        if (!opt_fl_per->values[current_extruder_id].percent)
-                            return opt_fl_per->values[current_extruder_id].value;
+                        if (!opt_fl_per->get_at(current_extruder_id).percent)
+                            return opt_fl_per->get_at(current_extruder_id).value;
 
                         const ConfigOptionDef* opt_def = print_config_def.get(opt_key);
                         if (!opt_def->ratio_over.empty() && opt_def->ratio_over != "depends")
@@ -869,7 +869,7 @@ namespace client
                 ctx->throw_exception("Variable does not exist", opt_key);
             if (opt_index->type() != coInt)
                 ctx->throw_exception("Indexing variable has to be integer", opt_key);
-			int idx = opt_index->getInt();
+			int idx = opt_index->get_int();
 			if (idx < 0)
                 ctx->throw_exception("Negative vector index", opt_key);
 			output = vec->vserialize()[(idx >= (int)vec->size()) ? 0 : idx];
@@ -934,14 +934,16 @@ namespace client
                 if (!vector_opt->is_extruder_size())
                     ctx->throw_exception("Referencing a vector variable when scalar is expected", opt.it_range);
             }
-            const ConfigOptionDef* opt_def;
+            const ConfigOptionDef* opt_def = nullptr;
             switch (opt.opt->type()) {
-            case coFloat:   output.set_d(opt.opt->getFloat());   break;
-            case coInt:     output.set_i(opt.opt->getInt());     break;
+            case coFloat:   output.set_d(opt.opt->get_float());   break;
+            case coInt:     output.set_i(opt.opt->get_int());     break;
             case coString:  output.set_s(static_cast<const ConfigOptionString*>(opt.opt)->value); break;
-            case coPercent: output.set_d(opt.opt->getFloat());   break;
-            case coPoint:   output.set_s(opt.opt->serialize());  break;
-            case coBool:    output.set_b(opt.opt->getBool());    break;
+            case coPercent: output.set_d(opt.opt->get_float());   break;
+            case coPoint:
+            case coGraph:
+            case coEnum:    output.set_s(opt.opt->serialize());  break;
+            case coBool:    output.set_b(opt.opt->get_bool());    break;
             case coFloatOrPercent:
             {
                 if (boost::ends_with(opt_key, "extrusion_width")) {
@@ -949,13 +951,13 @@ namespace client
                     output.set_d(Flow::extrusion_width(opt_key, *ctx, static_cast<unsigned int>(ctx->current_extruder_id)));
                 } else if (! static_cast<const ConfigOptionFloatOrPercent*>(opt.opt)->percent) {
                 	// Not a percent, just return the value.
-                    output.set_d(opt.opt->getFloat());
+                    output.set_d(opt.opt->get_float());
                 } else {
                 	// Resolve dependencies using the "ratio_over" link to a parent value.
 			        opt_def = print_config_def.get(opt_key);
 			        assert(opt_def != nullptr);
-			        double v = opt.opt->getFloat() * 0.01; // percent to ratio
-			        for (;;) {
+			        double v = opt.opt->get_float() * 0.01; // percent to ratio
+                    if (opt_def) for (;;) {
 			        	const ConfigOption *opt_parent = opt_def->ratio_over.empty() ? nullptr : ctx->resolve_symbol(opt_def->ratio_over);
 			        	if (opt_parent == nullptr)
 			                ctx->throw_exception("FloatOrPercent variable failed to resolve the \"ratio_over\" dependencies", opt.it_range);
@@ -969,7 +971,7 @@ namespace client
                         v *= val;
                         break;
             //        	if (opt_parent->type() == coFloat || opt_parent->type() == coFloatOrPercent) {
-			        	//	v *= opt_parent->getFloat();
+			        	//	v *= opt_parent->get_float();
 			        	//	if (opt_parent->type() == coFloat || ! static_cast<const ConfigOptionFloatOrPercent*>(opt_parent)->percent)
 			        	//		break;
 			        	//	v *= 0.01; // percent to ratio
@@ -984,8 +986,8 @@ namespace client
 		    }
             case coInts:
                 opt_def = print_config_def.get(opt_key);
-                if (opt_def->is_vector_extruder) {
-                    output.set_i(int(((ConfigOptionVectorBase*)opt.opt)->getFloat(int(ctx->current_extruder_id))));
+                if (opt_def && opt_def->is_vector_extruder) {
+                    output.set_i(int(((ConfigOptionVectorBase*)opt.opt)->get_float(int(ctx->current_extruder_id))));
                     break;
                 } else
                     ctx->throw_exception("Unknown scalar variable type", opt.it_range);
@@ -993,7 +995,7 @@ namespace client
             case coPercents:
                 vector_opt = static_cast<const ConfigOptionVectorBase*>(opt.opt);
                 if (vector_opt->is_extruder_size()) {
-                    output.set_d(((ConfigOptionVectorBase*)opt.opt)->getFloat(int(ctx->current_extruder_id)));
+                    output.set_d(((ConfigOptionVectorBase*)opt.opt)->get_float(int(ctx->current_extruder_id)));
                     break;
                 } else
                     ctx->throw_exception("Unknown scalar variable type", opt.it_range);
@@ -1007,18 +1009,24 @@ namespace client
             case coStrings:
                 vector_opt = static_cast<const ConfigOptionVectorBase*>(opt.opt);
                 if (vector_opt->is_extruder_size()) {
-                    output.set_s(((ConfigOptionStrings*)opt.opt)->values[ctx->current_extruder_id]);
+                    output.set_s(((ConfigOptionStrings*)opt.opt)->get_at(ctx->current_extruder_id));
                     break;
                 } else
                     ctx->throw_exception("Unknown scalar variable type", opt.it_range);
             case coPoints:
                 vector_opt = static_cast<const ConfigOptionVectorBase*>(opt.opt);
                 if (vector_opt->is_extruder_size()) {
-                    output.set_s(to_string(((ConfigOptionPoints*)opt.opt)->values[ctx->current_extruder_id]));
+                    output.set_s(to_string(((ConfigOptionPoints*)opt.opt)->get_at(ctx->current_extruder_id)));
                     break;
                 }else
                     ctx->throw_exception("Unknown scalar variable type", opt.it_range);
-                //TODO: coFloatOrPercents
+            case coGraphs:
+                vector_opt = static_cast<const ConfigOptionVectorBase*>(opt.opt);
+                if (vector_opt->is_extruder_size()) {
+                    output.set_s(((ConfigOptionGraphs*)opt.opt)->get_at(ctx->current_extruder_id).serialize());
+                    break;
+                }else
+                    ctx->throw_exception("Unknown scalar variable type", opt.it_range);
             default:
                 ctx->throw_exception("Unknown scalar variable type", opt.it_range);
             }
@@ -1043,13 +1051,14 @@ namespace client
                 ctx->throw_exception("Indexing an empty vector variable", opt.it_range);
             size_t idx = (index < 0) ? 0 : (index >= int(vec->size())) ? 0 : size_t(index);
             switch (opt.opt->type()) {
-            case coFloats:   output.set_d(static_cast<const ConfigOptionFloats  *>(opt.opt)->values[idx]); break;
-            case coInts:     output.set_i(static_cast<const ConfigOptionInts    *>(opt.opt)->values[idx]); break;
-            case coStrings:  output.set_s(static_cast<const ConfigOptionStrings *>(opt.opt)->values[idx]); break;
-            case coPercents: output.set_d(static_cast<const ConfigOptionPercents*>(opt.opt)->values[idx]); break;
-            case coFloatsOrPercents: output.set_d(static_cast<const ConfigOptionFloatsOrPercents*>(opt.opt)->values[idx].value); break;
-            case coPoints:   output.set_s(to_string(static_cast<const ConfigOptionPoints  *>(opt.opt)->values[idx])); break;
-            case coBools:    output.set_b(static_cast<const ConfigOptionBools   *>(opt.opt)->values[idx] != 0); break;
+            case coFloats:   output.set_d(static_cast<const ConfigOptionFloats  *>(opt.opt)->get_at(idx)); break;
+            case coInts:     output.set_i(static_cast<const ConfigOptionInts    *>(opt.opt)->get_at(idx)); break;
+            case coStrings:  output.set_s(static_cast<const ConfigOptionStrings *>(opt.opt)->get_at(idx)); break;
+            case coPercents: output.set_d(static_cast<const ConfigOptionPercents*>(opt.opt)->get_at(idx)); break;
+            case coFloatsOrPercents: output.set_d(static_cast<const ConfigOptionFloatsOrPercents*>(opt.opt)->get_at(idx).value); break;
+            case coPoints:   output.set_s(to_string(static_cast<const ConfigOptionPoints  *>(opt.opt)->get_at(idx))); break;
+            case coGraphs:   output.set_s(static_cast<const ConfigOptionGraphs  *>(opt.opt)->get_at(idx).serialize()); break;
+            case coBools:    output.set_b(static_cast<const ConfigOptionBools   *>(opt.opt)->get_at(idx) != 0); break;
             default:
                 ctx->throw_exception("Unknown vector variable type", opt.it_range);
             }
@@ -1658,14 +1667,7 @@ void PlaceholderParser::append_custom_variables(std::map<std::string, std::vecto
         if (!SLIC3R_REGEX_NAMESPACE::regex_match(entry.first, is_a_name))
             continue;
         const std::vector<std::string>& values = entry.second;
-        //check if all values are empty
-        bool is_not_string = false;
-        for (uint16_t extruder_id = 0; extruder_id < nb_extruders; ++extruder_id) {
-            if (!values[extruder_id].empty()) {
-                is_not_string = true;
-                break;
-            }
-        }
+        bool is_not_string = true;
         std::vector<std::string> string_values;
         //check if all values are strings
         if (is_not_string) {
@@ -1678,6 +1680,7 @@ void PlaceholderParser::append_custom_variables(std::map<std::string, std::vecto
                     }
                     string_values.push_back(values[extruder_id].substr(1, values[extruder_id].size() - 2));
                 } else {
+                    //if value is empty, it's a string.
                     string_values.push_back("");
                 }
             }
@@ -1721,7 +1724,7 @@ void PlaceholderParser::append_custom_variables(std::map<std::string, std::vecto
             }
         }
         //if nothing, then it's strings
-        if (!is_not_string && is_not_numeric && is_not_bool) {
+        if (is_not_string && is_not_numeric && is_not_bool) {
             string_values = values;
             is_not_string = false;
         }
@@ -1805,11 +1808,11 @@ void PlaceholderParser::parse_custom_variables(const ConfigOptionString& custom_
 void PlaceholderParser::parse_custom_variables(const ConfigOptionStrings& filament_custom_variables)
 {
     std::map<std::string, std::vector<std::string>> name2var_array;
-    const std::vector<std::string> empty_array(filament_custom_variables.values.size());
+    const std::vector<std::string> empty_array(filament_custom_variables.size());
 
-    for (int extruder_id = 0; extruder_id < filament_custom_variables.values.size(); ++extruder_id)
+    for (size_t extruder_id = 0; extruder_id < filament_custom_variables.size(); ++extruder_id)
     {
-        std::string raw_text = filament_custom_variables.values[extruder_id];
+        std::string raw_text = filament_custom_variables.get_at(extruder_id);
         boost::erase_all(raw_text, "\r");
         std::vector<std::string> lines;
         boost::algorithm::split(lines, raw_text, boost::is_any_of("\n"));
@@ -1828,7 +1831,7 @@ void PlaceholderParser::parse_custom_variables(const ConfigOptionStrings& filame
             }
         }
     }
-    append_custom_variables(name2var_array, uint16_t(filament_custom_variables.values.size()));
+    append_custom_variables(name2var_array, uint16_t(filament_custom_variables.size()));
 }
 
 }

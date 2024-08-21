@@ -10,8 +10,9 @@
 #include <wx/dc.h>
 #include <wx/slider.h>
 
-#include <vector>
+#include <mutex>
 #include <set>
+#include <vector>
 
 class wxMenu;
 
@@ -222,12 +223,12 @@ public:
     void    msw_rescale();
     void    sys_color_changed();
 
-    int     GetMinValue() const { return m_min_value; }
-    int     GetMaxValue() const { return m_max_value; }
-    double  GetMinValueD() { return m_values.empty() ? 0. : m_values[m_min_value]; }
-    double  GetMaxValueD() { return m_values.empty() ? 0. : m_values[m_max_value]; }
-    int     GetLowerValue()  const { return m_lower_value; }
-    int     GetHigherValue() const { return m_higher_value; }
+    int     GetMinValue() const { return m_min_tick; }
+    int     GetMaxValue() const { return m_max_tick; }
+    double  GetMinValueD() { return m_values.empty() ? 0. : m_values[m_min_tick]; }
+    double  GetMaxValueD() { return m_values.empty() ? 0. : m_values[m_max_tick]; }
+    int     GetLowerValue()  const { return m_lower_tick; }
+    int     GetHigherValue() const { return m_higher_tick; }
     int     GetActiveValue() const;
     double  GetLowerValueD()  { return get_double_value(ssLower); }
     double  GetHigherValueD() { return get_double_value(ssHigher); }
@@ -235,11 +236,11 @@ public:
     wxSize  get_min_size()  const ;
 
     // Set low and high slider position. If the span is non-empty, disable the "one layer" mode.
-    void    SetLowerValue (const int lower_val);
-    void    SetHigherValue(const int higher_val);
-    void    SetSelectionSpan(const int lower_val, const int higher_val);
+    void    SetLowerValue (const int lower_tick);
+    void    SetHigherValue(const int higher_tick);
+    void    SetSelectionSpan(const int lower_tick, const int higher_tick);
 
-    void    SetMaxValue(const int max_value);
+    void    SetMaxValue(const int max_tick);
     void    SetKoefForLabels(const double koef)                { m_label_koef = koef; }
     void    SetSliderValues(const std::vector<double>& values);
     void    ChangeOneLayerLock();
@@ -249,6 +250,7 @@ public:
     void    SetTicksValues(const Info &custom_gcode_per_print_z);
     void    SetLayersTimes(const std::vector<float>& layers_times, float total_time);
     void    SetLayersTimes(const std::vector<double>& layers_times);
+    void    SetLayersAreas(const std::vector<float>& layers_areas);
 
     void    SetDrawMode(bool is_sla_print, bool is_sequential_print);
     void    SetDrawMode(DrawMode mode) { m_draw_mode = mode; }
@@ -265,8 +267,8 @@ public:
 
     bool is_horizontal() const      { return m_style == wxSL_HORIZONTAL; }
     bool is_one_layer() const       { return m_is_one_layer; }
-    bool is_lower_at_min() const    { return m_lower_value == m_min_value; }
-    bool is_higher_at_max() const   { return m_higher_value == m_max_value; }
+    bool is_lower_at_min() const    { return m_lower_tick == m_min_tick; }
+    bool is_higher_at_max() const   { return m_higher_tick == m_max_tick; }
     bool is_full_span() const       { return this->is_lower_at_min() && this->is_higher_at_max(); }
 
     void OnPaint(wxPaintEvent& ) { render(); }
@@ -299,6 +301,12 @@ public:
     void show_edit_context_menu();
     void show_cog_icon_context_menu();
     void auto_color_change();
+
+    // mutex to lock the rendering & callbacks while updating the data.
+    std::recursive_mutex &lock_render() { return m_lock_data; }
+    // emit refresh, update, and event. Do it only outside of lock_render()
+    void fire_update_if_needed();
+    bool ensure_correctly_filled() const;
 
     ExtrudersSequence m_extruders_sequence;
 
@@ -340,13 +348,13 @@ private:
     double      get_scroll_step();
     wxString    get_label(int tick, LabelType label_type = ltHeightWithLayer) const;
     void        get_lower_and_higher_position(int& lower_pos, int& higher_pos);
-    int         get_value_from_position(const wxCoord x, const wxCoord y);
-    int         get_value_from_position(const wxPoint pos) { return get_value_from_position(pos.x, pos.y); }
-    wxCoord     get_position_from_value(const int value);
+    int         get_tick_from_position(const wxCoord x, const wxCoord y);
+    int         get_tick_from_position(const wxPoint pos) { return get_tick_from_position(pos.x, pos.y); }
+    wxCoord     get_position_from_tick(const int tick);
     wxSize      get_size() const;
     void        get_size(int* w, int* h) const;
     double      get_double_value(const SelectedSlider& selection);
-    int         get_tick_from_value(double value, bool force_lower_bound = false);
+    int         get_tick_from_value(double value, bool force_lower_bound = false) const;
     wxString    get_tooltip(int tick = -1);
     int         get_edited_tick_for_position(wxPoint pos, Type type = ColorChange);
 
@@ -368,10 +376,10 @@ private:
 
     bool        is_osx { false };
     wxFont      m_font;
-    int         m_min_value;
-    int         m_max_value;
-    int         m_lower_value;
-    int         m_higher_value;
+    int         m_min_tick;
+    int         m_max_tick;
+    int         m_lower_tick;
+    int         m_higher_tick;
 
     bool        m_render_as_disabled{ false };
 
@@ -405,6 +413,7 @@ private:
     FocusedItem m_focus = fiNone;
     wxPoint     m_moving_pos = wxDefaultPosition;
 
+    int         m_dead_zone_height;
     wxRect      m_rect_lower_thumb;
     wxRect      m_rect_higher_thumb;
     wxRect      m_rect_tick_action;
@@ -420,9 +429,17 @@ private:
     long        m_extra_style;
     float       m_label_koef{ 1.0 };
 
+    //for updating
+    bool m_need_refresh_and_update = false;
+    bool m_need_fire_scroll_change = false;
+
+    // lock for avoiding render & callbacks while data is updating
+    std::recursive_mutex m_lock_data;
+    
     std::vector<double> m_values;
     TickCodeInfo        m_ticks;
     std::vector<double> m_layers_times;
+    std::vector<double> m_layers_areas;
     std::vector<double> m_layers_values;
     std::vector<std::string>    m_extruder_colors;
     std::string         m_print_obj_idxs;
@@ -448,15 +465,17 @@ private:
     std::vector<wxPen*> m_segm_pens;
 
     struct Ruler {
-        double long_step;
-        double short_step;
-        std::vector<double> max_values;// max value for each object/instance in sequence print
-                                       // > 1 for sequential print
+        //double long_step;
+        //double short_step;
+        int long_step; //in tick
+        int short_step; //in tick
+        // max value for each object/instance in sequence print, > 1 for sequential print (not used anymore)
+        std::vector<std::pair<double,double>> sequences;
 
         void init(const std::vector<double>& values);
         void update(wxWindow* win, const std::vector<double>& values, double scroll_step);
         bool is_ok() { return long_step > 0 && short_step > 0; }
-        size_t count() { return max_values.size(); }
+        size_t count() { return sequences.size(); }
     } m_ruler;
 };
 

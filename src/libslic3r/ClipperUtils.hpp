@@ -297,7 +297,23 @@ namespace ClipperUtils {
         const SurfacesPtr &m_surfaces;
         size_t             m_size;
     };
-}
+
+    using ZPoint = Vec3i32;
+    using ZPoints = std::vector<Vec3i32>;
+
+    // Clip source polygon to be used as a clipping polygon with a bouding box around the source (to be clipped) polygon.
+    // Useful as an optimization for expensive ClipperLib operations, for example when clipping source polygons one by
+    // one with a set of polygons covering the whole layer below.
+    void clip_clipper_polygon_with_subject_bbox(const Points &src, const BoundingBox &bbox, Points &out);
+    void clip_clipper_polygon_with_subject_bbox(const ZPoints &src, const BoundingBox &bbox, ZPoints &out);
+    [[nodiscard]] Points  clip_clipper_polygon_with_subject_bbox(const Points &src, const BoundingBox &bbox);
+    [[nodiscard]] ZPoints clip_clipper_polygon_with_subject_bbox(const ZPoints &src, const BoundingBox &bbox);
+    void clip_clipper_polygon_with_subject_bbox(const Polygon &src, const BoundingBox &bbox, Polygon &out);
+    [[nodiscard]] Polygon  clip_clipper_polygon_with_subject_bbox(const Polygon &src, const BoundingBox &bbox);
+    [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const Polygons &src, const BoundingBox &bbox);
+    [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const ExPolygon &src, const BoundingBox &bbox);
+    [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const ExPolygons &src, const BoundingBox &bbox);
+    }
 
 // Perform union of input polygons using the non-zero rule, convert to ExPolygons.
 ExPolygons ClipperPaths_to_Slic3rExPolygons(const ClipperLib::Paths &input, bool do_union = false);
@@ -403,6 +419,7 @@ Slic3r::ExPolygons diff_ex(const Slic3r::Surfaces &subject, const Slic3r::Surfac
 Slic3r::ExPolygons diff_ex(const Slic3r::SurfacesPtr &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polylines  diff_pl(const Slic3r::Polylines &subject, const Slic3r::Polygons &clip);
 Slic3r::Polylines  diff_pl(const Slic3r::Polyline &subject, const Slic3r::ExPolygon &clip);
+Slic3r::Polylines  diff_pl(const Slic3r::Polyline &subject, const Slic3r::Polygon &clip);
 Slic3r::Polylines  diff_pl(const Slic3r::Polylines &subject, const Slic3r::ExPolygon &clip);
 Slic3r::Polylines  diff_pl(const Slic3r::Polylines &subject, const Slic3r::ExPolygons &clip);
 Slic3r::Polylines  diff_pl(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip);

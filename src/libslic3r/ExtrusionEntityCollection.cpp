@@ -81,40 +81,51 @@ void ExtrusionEntityCollection::remove(size_t i)
     this->m_entities.erase(this->m_entities.begin() + i);
 }
 
-ExtrusionEntityCollection ExtrusionEntityCollection::chained_path_from(const ExtrusionEntitiesPtr& extrusion_entities, const Point &start_near, ExtrusionRole role)
-//ExtrusionEntityCollection ExtrusionEntityCollection::chained_path_from(const Point &start_near, ExtrusionRole role)
+void ExtrusionEntityCollection::chained_path_from(const Point &start_near)
 {
-    //ExtrusionEntityCollection out;
-    //if (this->no_sort) {
-    //    out = *this;
-    //} else {
-    //    if (role == erMixed)
-    //        out = *this;
-    //    else {
-    //        for (const ExtrusionEntity *ee : this->entities()) {
-    //            if (role != erMixed) {
-    //                // The caller wants only paths with a specific extrusion role.
-    //                auto role2 = ee->role();
-    //                if (role != role2) {
-    //                    // This extrusion entity does not match the role asked.
-    //                    assert(role2 != erMixed);
-    //                    continue;
-    //                }
-    //            }
-    //            out.entities().emplace_back(ee->clone());
-    //        }
-    //    }
-    //    chain_and_reorder_extrusion_entities(out.entities(), &start_near);
-    //}
-    //return out;
-    // Return a filtered copy of the collection.
-    ExtrusionEntityCollection out;
-    out.m_entities = filter_by_extrusion_role(extrusion_entities, role);
-    // Clone the extrusion entities.
-    for (ExtrusionEntity* &ptr : out.m_entities)
-        ptr = ptr->clone();
-    chain_and_reorder_extrusion_entities(out.m_entities, &start_near);
-    return out;
+    if (this->m_no_sort) {
+        if (this->m_can_reverse) {
+            if (m_entities.size() > 1) {
+                //can't sort myself, ask first and last thign to sort itself so the first point of each are the best ones
+                if (m_entities.front()->is_collection()) {
+                    assert(dynamic_cast<ExtrusionEntityCollection*>(m_entities.front()) != nullptr);
+                    static_cast<ExtrusionEntityCollection*>(m_entities.front())->chained_path_from(start_near);
+                } else if (m_entities.front()->can_reverse() &&
+                           m_entities.front()->first_point().distance_to_square(start_near) >
+                               m_entities.front()->first_point().distance_to_square(start_near)) {
+                    m_entities.front()->reverse();
+                }
+                if (m_entities.back()->is_collection()) {
+                    assert(dynamic_cast<ExtrusionEntityCollection*>(m_entities.front()) != nullptr);
+                    static_cast<ExtrusionEntityCollection*>(m_entities.back())->chained_path_from(start_near);
+                } else if (m_entities.back()->can_reverse() &&
+                           m_entities.back()->first_point().distance_to_square(start_near) >
+                               m_entities.back()->first_point().distance_to_square(start_near)) {
+                    m_entities.back()->reverse();
+                }
+                //now check if it's better for us to reverse
+                if (start_near.distance_to_square(this->m_entities.front()->first_point()) >
+                    start_near.distance_to_square(this->m_entities.back()->first_point())) {
+                    // switch entities
+                    this->reverse();
+                }
+            }
+            // now we are in our good order, update the internals
+            Point last_point = start_near;
+            for (ExtrusionEntity *entity : m_entities) {
+                if (entity->is_collection()) {
+                    assert(dynamic_cast<ExtrusionEntityCollection*>(entity) != nullptr);
+                    static_cast<ExtrusionEntityCollection*>(entity)->chained_path_from(last_point);
+                } else if (entity->can_reverse() && entity->first_point().distance_to_square(last_point) >
+                                                        entity->first_point().distance_to_square(last_point)) {
+                    entity->reverse();
+                }
+                last_point = entity->last_point();
+            }
+        }
+    } else {
+        chain_and_reorder_extrusion_entities(this->m_entities, &start_near);
+    }
 }
 
 void ExtrusionEntityCollection::polygons_covered_by_width(Polygons &out, const float scaled_epsilon) const

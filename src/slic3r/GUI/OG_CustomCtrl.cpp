@@ -582,9 +582,11 @@ void OG_CustomCtrl::CtrlLine::update_visibility(ConfigOptionMode mode)
 {
     if (og_line.is_separator())
         return;
-    const std::vector<Option>& option_set = og_line.get_options();
+    const std::vector<Option> &option_set = og_line.get_options();
+    if (option_set.empty() && og_line.tags_override != comNone)
+        return;
 
-    ConfigOptionMode line_mode = option_set.front().opt.mode;
+    ConfigOptionMode line_mode = option_set.empty() ? og_line.tags_override : option_set.front().opt.mode;
     for (const Option& opt : option_set)
         line_mode |= opt.opt.mode;
     is_line_visible = line_mode == comNone || (line_mode & mode) == mode;
@@ -639,6 +641,9 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord v_pos)
         render_separator(dc, v_pos);
         return;
     }
+    if (og_line.get_options().empty())
+        return;
+
     rects_tooltip.clear(); // reset the tooltip detection area, they are re-created by draw_text
 
     Field* front_field = og_line.get_options().empty() ? nullptr : ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
@@ -781,7 +786,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord v_pos)
 
 wxCoord OG_CustomCtrl::CtrlLine::draw_mode_bmp(wxDC& dc, wxCoord v_pos)
 {
-    if (!m_has_icon)
+    if (!m_has_icon || og_line.is_separator() || og_line.get_options().empty())
         return 0;
     if (!draw_mode_bitmap)
         return ctrl->m_h_gap;

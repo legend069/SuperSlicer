@@ -264,7 +264,7 @@ bool Bed3D::contains(const Point& point) const
 
 Point Bed3D::point_projection(const Point& point) const
 {
-    return m_polygon.point_projection(point);
+    return m_polygon.point_projection(point).first;
 }
 
 void Bed3D::render(GLCanvas3D& canvas, bool bottom, float scale_factor, bool show_axes, bool show_texture)
@@ -382,16 +382,20 @@ void Bed3D::calc_gridlines(const ExPolygon& poly, const BoundingBox& bed_bbox)
 // return the print bed model.
 std::tuple<Bed3D::Type, std::string, std::string, bool> Bed3D::detect_type(const Pointfs& shape)
 {
-    auto bundle = wxGetApp().preset_bundle;
+    auto bundle = wxGetApp().preset_bundle.get();
     if (bundle != nullptr && bundle->printers.size() > bundle->printers.get_selected_idx()) {
         const Preset* curr = &bundle->printers.get_selected_preset();
         while (curr != nullptr) {
             if (curr->config.has("bed_shape")) {
-                if (shape == dynamic_cast<const ConfigOptionPoints*>(curr->config.option("bed_shape"))->values) {
+                if (shape == dynamic_cast<const ConfigOptionPoints*>(curr->config.option("bed_shape"))->get_values()) {
                     std::string model_filename = PresetUtils::system_printer_bed_model(*curr);
                     std::string texture_filename = PresetUtils::system_printer_bed_texture(*curr);
                     if (!model_filename.empty() && !texture_filename.empty())
                         return { Type::System, model_filename, texture_filename, PresetUtils::system_printer_model(*curr)->bed_with_grid };
+                    else if(!model_filename.empty())
+                        return { Type::System, model_filename, {}, true };
+                    else if(!texture_filename.empty())
+                        return { Type::System, {}, texture_filename, PresetUtils::system_printer_model(*curr)->bed_with_grid};
                 }
             }
 
@@ -452,7 +456,7 @@ void Bed3D::render_texture(bool bottom, GLCanvas3D& canvas) const
         } 
         else if (boost::algorithm::iends_with(texture_absolute_filename, ".png")) {
             // generate a temporary lower resolution texture to show while no main texture levels have been compressed
-            if (temp_texture->get_id() == 0 || temp_texture->get_source() != texture_absolute_filename) {
+            if (wxGetApp().app_config->get("compress_png_texture") == "1" && (temp_texture->get_id() == 0 || temp_texture->get_source() != texture_absolute_filename)) {
                 if (!temp_texture->load_from_file(texture_absolute_filename, false, GLTexture::None, false)) {
                     render_default(bottom, false);
                     return;
@@ -461,7 +465,8 @@ void Bed3D::render_texture(bool bottom, GLCanvas3D& canvas) const
             }
 
             // starts generating the main texture, compression will run asynchronously
-            if (!texture->load_from_file(texture_absolute_filename, true, GLTexture::MultiThreaded, true)) {
+            if (!texture->load_from_file(texture_absolute_filename, true, 
+                wxGetApp().app_config->get("compress_png_texture") == "1" ? GLTexture::MultiThreaded : GLTexture::ECompressionType::None, true)) {
                 render_default(bottom, false);
                 return;
             }

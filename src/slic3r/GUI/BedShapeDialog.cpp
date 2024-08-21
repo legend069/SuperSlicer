@@ -23,8 +23,8 @@ namespace GUI {
 
 BedShape::BedShape(const ConfigOptionPoints& points)
 {
-    m_build_volume = { points.values, 0. };
-            }
+    m_build_volume = { points.get_values(), 0. };
+}
 
 static std::string get_option_label(BedShape::Parameter param)
 {
@@ -42,7 +42,7 @@ void BedShape::append_option_line(ConfigOptionsGroupShp optgroup, Parameter para
     t_config_option_key key;
     switch (param) {
     case Parameter::RectSize:
-        def.type = coPoints;
+        def.type = coPoint;
         def.set_default_value(new ConfigOptionPoints{ Vec2d(200, 200) });
         def.min = 0;
         def.max = 100000;
@@ -51,7 +51,7 @@ void BedShape::append_option_line(ConfigOptionsGroupShp optgroup, Parameter para
         key = "rect_size";
         break;
     case Parameter::RectOrigin:
-        def.type = coPoints;
+        def.type = coPoint;
         def.set_default_value(new ConfigOptionPoints{ Vec2d(0, 0) });
         def.min = -100000;
         def.max = 100000;
@@ -120,12 +120,14 @@ void BedShape::apply_optgroup_values(ConfigOptionsGroupShp optgroup)
 {
     switch (m_build_volume.type()) {
     case BuildVolume::Type::Circle:
-        optgroup->set_value("diameter", double_to_string(2. * unscaled<double>(m_build_volume.circle().radius)));
+        optgroup->set_value("diameter", 2. * unscaled<double>(m_build_volume.circle().radius));
         break;
     default:
         // rectangle, convex, concave...
-        optgroup->set_value("rect_size"     , new ConfigOptionPoints{ to_2d(m_build_volume.bounding_volume().size()) });
-        optgroup->set_value("rect_origin"   , new ConfigOptionPoints{ - to_2d(m_build_volume.bounding_volume().min) });
+        optgroup->set_value("rect_size", Vec2d(m_build_volume.bounding_volume().size().x(),
+                                               m_build_volume.bounding_volume().size().y()));
+        optgroup->set_value("rect_origin", Vec2d(-m_build_volume.bounding_volume().min.x(),
+                                                 -m_build_volume.bounding_volume().min.y()));
     }
 }
 
@@ -173,7 +175,7 @@ const std::string BedShapePanel::EMPTY_STRING = "";
 void BedShapePanel::build_panel(const ConfigOptionPoints& default_pt, const ConfigOptionString& custom_texture, const ConfigOptionString& custom_model)
 {
     wxGetApp().UpdateDarkUI(this);
-    m_shape = default_pt.values;
+    m_shape = default_pt.get_values();
     m_custom_texture = custom_texture.value.empty() ? NONE : custom_texture.value;
     m_custom_model = custom_model.value.empty() ? NONE : custom_model.value;
 
@@ -438,7 +440,7 @@ void BedShapePanel::set_shape(const ConfigOptionPoints& points)
 
     // Copy the polygon to the canvas, make a copy of the array, if custom shape is selected
     if (shape.is_custom())
-        m_loaded_shape = points.values;
+        m_loaded_shape = points.get_values();
 
     update_shape();
 

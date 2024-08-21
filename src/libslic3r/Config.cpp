@@ -54,15 +54,15 @@ std::string toString(OptionCategory opt) {
     case OptionCategory::filoverride: return L("Filament overrides");
     case OptionCategory::customgcode: return L("Custom G-code");
     case OptionCategory::general: return L("General");
-    case OptionCategory::limits: return "Machine limits"; // if not used, no need ot ask for translation
-    case OptionCategory::mmsetup: return "Single Extruder MM Setup";
-    case OptionCategory::firmware: return "Firmware";
-    case OptionCategory::pad: return "Pad";
-    case OptionCategory::padSupp: return "Pad and Support";
+    case OptionCategory::limits: return L("Machine limits"); // if not used, no need ot ask for translation
+    case OptionCategory::mmsetup: return L("Single Extruder MM Setup");
+    case OptionCategory::firmware: return L("Firmware");
+    case OptionCategory::pad: return L("Pad");
+    case OptionCategory::padSupp: return L("Pad and Support");
     case OptionCategory::wipe: return L("Wipe Options");
     case OptionCategory::milling: return L("Milling");
     case OptionCategory::hollowing: return "Hollowing";
-    case OptionCategory::milling_extruders: return "Milling tools";
+    case OptionCategory::milling_extruders: return L("Milling tools");
     case OptionCategory::fuzzy_skin : return L("Fuzzy skin");
     }
     return "error";
@@ -96,11 +96,17 @@ std::string escape_string_cstyle(const std::string &str)
 
 std::string escape_strings_cstyle(const std::vector<std::string> &strs)
 {
+    return escape_strings_cstyle(strs, {});
+}
+
+std::string escape_strings_cstyle(const std::vector<std::string> &strs, const std::vector<bool> &enables)
+{
+    assert(strs.size() == enables.size() || enables.empty());
     // 1) Estimate the output buffer size to avoid buffer reallocation.
     size_t outbuflen = 0;
     for (size_t i = 0; i < strs.size(); ++ i)
-        // Reserve space for every character escaped + quotes + semicolon.
-        outbuflen += strs[i].size() * 2 + 3;
+        // Reserve space for every character escaped + quotes + semicolon + enable.
+        outbuflen += strs[i].size() * 2 + ((enables.empty() || enables[i]) ? 3 : 4);
     // 2) Fill in the buffer.
     std::vector<char> out(outbuflen, 0);
     char *outptr = out.data();
@@ -108,13 +114,15 @@ std::string escape_strings_cstyle(const std::vector<std::string> &strs)
         if (j > 0)
             // Separate the strings.
             (*outptr ++) = ';';
+        if (!(enables.empty() || enables[j]))
+            (*outptr ++) = '!';
         const std::string &str = strs[j];
         // Is the string simple or complex? Complex string contains spaces, tabs, new lines and other
         // escapable characters. Empty string shall be quoted as well, if it is the only string in strs.
         bool should_quote = strs.size() == 1 && str.empty();
         for (size_t i = 0; i < str.size(); ++ i) {
             char c = str[i];
-            if (c == ' ' || c == ';' || c == '\t' || c == '\\' || c == '"' || c == '\r' || c == '\n') {
+            if (c == ' ' || c == ';' || c == ',' || c == '\t' || c == '\\' || c == '"' || c == '\r' || c == '\n') {
                 should_quote = true;
                 break;
             }
@@ -168,7 +176,12 @@ bool unescape_string_cstyle(const std::string &str, std::string &str_out)
     return true;
 }
 
-bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &out)
+bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &out_values)
+{
+    std::vector<bool> useless;
+    return unescape_strings_cstyle(str, out_values, useless);
+}
+bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &out_values, std::vector<bool> &out_enables)
 {
     if (str.empty())
         return true;
@@ -181,6 +194,11 @@ bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &o
             if (++ i == str.size())
                 return true;
             c = str[i];
+        }
+        bool enable = true;
+        if (c == '!') {
+            enable = false;
+            c = str[++i];
         }
         // Start of a word.
         std::vector<char> buf;
@@ -212,13 +230,14 @@ bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &o
         } else {
             for (; i < str.size(); ++ i) {
                 c = str[i];
-                if (c == ';')
+                if (c == ';' || c == ',')
                     break;
                 buf.push_back(c);
             }
         }
         // Store the string into the output vector.
-        out.push_back(std::string(buf.data(), buf.size()));
+        out_values.push_back(std::string(buf.data(), buf.size()));
+        out_enables.push_back(enable);
         if (i == str.size())
             return true;
         // Skip white spaces.
@@ -229,11 +248,12 @@ bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &o
                 return true;
             c = str[i];
         }
-        if (c != ';')
+        if (c != ';' && c != ',')
             return false;
         if (++ i == str.size()) {
             // Emit one additional empty string.
-            out.push_back(std::string());
+            out_values.push_back(std::string());
+            out_enables.push_back(true);
             return true;
         }
     }
@@ -254,6 +274,288 @@ std::string escape_ampersand(const std::string& str)
             (*outptr++) = c;
     }
     return std::string(out.data(), outptr - out.data());
+}
+
+bool GraphData::operator<(const GraphData &rhs) const
+{
+    if (this->data_size() == rhs.data_size()) {
+        const Pointfs my_data = this->data();
+        const Pointfs other_data = rhs.data();
+        assert(my_data.size() == other_data.size());
+        auto it_this = my_data.begin();
+        auto it_other = other_data.begin();
+        while (it_this != my_data.end()) {
+            if(it_this->x() != it_other->x())
+                return it_this->x() < it_other->x();
+            if(it_this->y() != it_other->y())
+                return it_this->y() < it_other->y();
+            ++it_this;
+            ++it_other;
+        }
+        return this->type < rhs.type;
+    }
+    return this->data_size() < rhs.data_size();
+}
+
+bool GraphData::operator>(const GraphData &rhs) const
+{
+    if (this->data_size() == rhs.data_size()) {
+        const Pointfs my_data = this->data();
+        const Pointfs other_data = rhs.data();
+        assert(my_data.size() == other_data.size());
+        auto it_this = my_data.begin();
+        auto it_other = other_data.begin();
+        while (it_this != my_data.end()) {
+            if(it_this->x() != it_other->x())
+                return it_this->x() > it_other->x();
+            if(it_this->y() != it_other->y())
+                return it_this->y() > it_other->y();
+            ++it_this;
+            ++it_other;
+        }
+        return this->type > rhs.type;
+    }
+    return this->data_size() > rhs.data_size();
+}
+
+Pointfs GraphData::data() const
+{
+    assert(validate());
+    return Pointfs(this->graph_points.begin() + this->begin_idx, this->graph_points.begin() + this->end_idx);
+}
+
+size_t GraphData::data_size() const
+{
+    assert(validate());
+    return this->end_idx - this->begin_idx;
+}
+
+double GraphData::interpolate(double x_value) const{
+    double y_value = 0.;
+    if (this->data_size() < 1) {
+        // nothing
+    } else if (this->graph_points.size() == 1 || this->graph_points.front().x() >= x_value) {
+        y_value = this->graph_points.front().y();
+    } else if (this->graph_points.back().x() <= x_value) {
+        y_value = this->graph_points.back().y();
+    } else {
+        // find first and second datapoint
+        for (size_t idx = this->begin_idx; idx < this->end_idx; ++idx) {
+            const auto &data_point = this->graph_points[idx];
+            if (data_point.x() == x_value) {
+                // lucky point
+                y_value = data_point.y();
+                break;
+            } else if (data_point.x() < x_value) {
+                // not yet, iterate
+            } else if (idx == 0) {
+                y_value = data_point.y();
+                break;
+            } else {
+                // interpolate
+                const auto &data_point_before = this->graph_points[idx - 1];
+                assert(data_point.x() > data_point_before.x());
+                assert(data_point_before.x() < x_value);
+                assert(data_point.x() > x_value);
+                if (this->type == GraphData::GraphType::SQUARE) {
+                    y_value = data_point_before.y();
+                } else if (this->type == GraphData::GraphType::LINEAR) {
+                    const double interval     = data_point.x() - data_point_before.x();
+                    const double ratio_before = (x_value - data_point_before.x()) / interval;
+                    double mult = data_point_before.y() * (1 - ratio_before) + data_point.y() * ratio_before;
+                    y_value = mult;
+                } else if (this->type == GraphData::GraphType::SPLINE) {
+                    // Cubic spline interpolation: see https://en.wikiversity.org/wiki/Cubic_Spline_Interpolation#Methods
+                    const bool boundary_first_derivative = true; // true - first derivative is 0 at the leftmost and
+                                                                 // rightmost point false - second ---- || -------
+                    // TODO: cache (if the caller use my cache).
+                    const int N = end_idx - begin_idx - 1; // last point can be accessed as N, we have N+1 total points
+                    std::vector<float> diag(N + 1);
+                    std::vector<float> mu(N + 1);
+                    std::vector<float> lambda(N + 1);
+                    std::vector<float> h(N + 1);
+                    std::vector<float> rhs(N + 1);
+
+                    // let's fill in inner equations
+                    for (int i = 1 + begin_idx; i <= N + begin_idx; ++i) h[i] = this->graph_points[i].x() - this->graph_points[i - 1].x();
+                    std::fill(diag.begin(), diag.end(), 2.f);
+                    for (int i = 1 + begin_idx; i <= N + begin_idx - 1; ++i) {
+                        mu[i]     = h[i] / (h[i] + h[i + 1]);
+                        lambda[i] = 1.f - mu[i];
+                        rhs[i]    = 6 * (float(this->graph_points[i + 1].y() - this->graph_points[i].y()) /
+                                          (h[i + 1] * (this->graph_points[i + 1].x() - this->graph_points[i - 1].x())) -
+                                      float(this->graph_points[i].y() - this->graph_points[i - 1].y()) /
+                                          (h[i] * (this->graph_points[i + 1].x() - this->graph_points[i - 1].x())));
+                    }
+
+                    // now fill in the first and last equations, according to boundary conditions:
+                    if (boundary_first_derivative) {
+                        const float endpoints_derivative = 0;
+                        lambda[0]                        = 1;
+                        mu[N]                            = 1;
+                        rhs[0] = (6.f / h[1]) * (float(this->graph_points[begin_idx].y() - this->graph_points[1 + begin_idx].y()) /
+                                                     (this->graph_points[begin_idx].x() - this->graph_points[1 + begin_idx].x()) - endpoints_derivative);
+                        rhs[N] = (6.f / h[N]) * (endpoints_derivative - float(this->graph_points[N + begin_idx - 1].y() - this->graph_points[N + begin_idx].y()) /
+                                                                            (this->graph_points[N + begin_idx - 1].x() - this->graph_points[N + begin_idx].x()));
+                    } else {
+                        lambda[0] = 0;
+                        mu[N]     = 0;
+                        rhs[0]    = 0;
+                        rhs[N]    = 0;
+                    }
+
+                    // the trilinear system is ready to be solved:
+                    for (int i = 1; i <= N; ++i) {
+                        float multiple = mu[i] / diag[i - 1]; // let's subtract proper multiple of above equation
+                        diag[i] -= multiple * lambda[i - 1];
+                        rhs[i] -= multiple * rhs[i - 1];
+                    }
+                    // now the back substitution (vector mu contains invalid values from now on):
+                    rhs[N] = rhs[N] / diag[N];
+                    for (int i = N - 1; i >= 0; --i) rhs[i] = (rhs[i] - lambda[i] * rhs[i + 1]) / diag[i];
+
+                    //now interpolate at our point
+                    size_t curr_idx = idx - begin_idx;
+                    y_value = (rhs[curr_idx - 1] * pow(this->graph_points[idx].x() - x_value, 3) +
+                            rhs[curr_idx] * pow(x_value - this->graph_points[idx - 1].x(), 3)) /
+                            (6 * h[curr_idx]) +
+                        (this->graph_points[idx - 1].y() - rhs[curr_idx - 1] * h[curr_idx] * h[curr_idx] / 6.f) *
+                            (this->graph_points[idx].x() - x_value) / h[curr_idx] +
+                        (this->graph_points[idx].y() - rhs[curr_idx] * h[curr_idx] * h[curr_idx] / 6.f) *
+                            (x_value - this->graph_points[idx - 1].x()) / h[curr_idx];
+                } else {
+                    assert(false);
+                }
+                break;
+            }
+        }
+    }
+    return y_value;
+}
+
+bool GraphData::validate() const
+{
+    if (this->begin_idx < 0 || this->end_idx < 0 || this->end_idx < this->begin_idx)
+        return false;
+    if (this->end_idx > this->graph_points.size() && !this->graph_points.empty())
+        return false;
+    if(this->graph_points.empty())
+        return this->end_idx == 0 && this->begin_idx == 0;
+    for (size_t i = 1; i < this->graph_points.size(); ++i)
+        if (this->graph_points[i - 1].x() > this->graph_points[i].x())
+            return false;
+    return true;
+}
+
+std::string GraphData::serialize() const
+{
+    std::ostringstream ss;
+    ss << this->begin_idx;
+    ss << ":";
+    ss << this->end_idx;
+    ss << ":";
+    ss << uint16_t(this->type);
+    for (const Vec2d &graph_point : this->graph_points) {
+        ss << ":";
+        ss << graph_point.x();
+        ss << "x";
+        ss << graph_point.y();
+    }
+    return ss.str();
+}
+    
+bool GraphData::deserialize(const std::string &str)
+{
+    if (size_t pos = str.find('|'); pos != std::string::npos) {
+        // old format
+        assert(str.size() > pos + 2);
+        assert(str[pos+1] == ' ');
+        assert(str[pos+2] != ' ');
+        if (str.size() > pos + 1) {
+            std::string buttons = str.substr(pos + 2);
+            size_t start = 0;
+            size_t end_x = buttons.find(' ', start);
+            size_t end_y= buttons.find(' ', end_x + 1);
+            while (end_x != std::string::npos && end_y != std::string::npos) {
+                this->graph_points.emplace_back();
+                Vec2d &data_point = this->graph_points.back();
+                data_point.x() = std::stod(buttons.substr(start, end_x));
+                data_point.y() = std::stod(buttons.substr(end_x + 1, end_y));
+                start = end_y + 1;
+                end_x = buttons.find(' ', start);
+                end_y= buttons.find(' ', end_x + 1);
+            }
+            if (end_x != std::string::npos && end_x + 1 < buttons.size()) {
+                this->graph_points.emplace_back();
+                Vec2d &data_point = this->graph_points.back();
+                data_point.x() = std::stod(buttons.substr(start, end_x));
+                data_point.y() = std::stod(buttons.substr(end_x + 1, buttons.size()));
+            }
+        }
+        this->begin_idx = 0;
+        this->end_idx = this->graph_points.size();
+        this->type = GraphType::SPLINE;
+    } else if (size_t pos = str.find(','); pos != std::string::npos) {
+        //maybe a coStrings with 0,0 values inside, like a coPoints but worse (used by orca's small_area_infill_flow_compensation_model)
+        std::vector<std::string> args;
+        boost::split(args, str, boost::is_any_of(","));
+        if (args.size() % 2 == 0) {
+            for (size_t i = 0; i < args.size(); i += 2) {
+                this->graph_points.emplace_back();
+                Vec2d &data_point = this->graph_points.back();
+                args[i].erase(std::remove(args[i].begin(), args[i].end(), '\n'), args[i].end());
+                args[i].erase(std::remove(args[i].begin(), args[i].end(), '"'), args[i].end());
+                data_point.x() = std::stod(args[i]);
+                args[i+1].erase(std::remove(args[i+1].begin(), args[i+1].end(), '\n'), args[i+1].end());
+                args[i+1].erase(std::remove(args[i+1].begin(), args[i+1].end(), '"'), args[i+1].end());
+                data_point.y() = std::stod(args[i+1]);
+            }
+        }
+        this->begin_idx = 0;
+        this->end_idx = this->graph_points.size();
+        this->type = GraphType::SPLINE;
+    } else {
+        std::istringstream iss(str);
+        std::string              item;
+        char                     sep_point = 'x';
+        char                     sep       = ':';
+        std::vector<std::string> values_str;
+        // get begin_idx
+        if (std::getline(iss, item, sep)) {
+            std::istringstream(item) >> this->begin_idx;
+        } else
+            return false;
+        // get end_idx
+        if (std::getline(iss, item, sep)) {
+            std::istringstream(item) >> this->end_idx;
+        } else
+            return false;
+        // get type
+        if (std::getline(iss, item, sep)) {
+            uint16_t int_type;
+            std::istringstream(item) >> int_type;
+            this->type = GraphType(int_type);
+        } else
+            return false;
+        // get points
+        while (std::getline(iss, item, sep)) {
+            this->graph_points.emplace_back();
+            Vec2d &data_point = this->graph_points.back();
+            std::string                s_point;
+            std::istringstream         isspoint(item);
+            if (std::getline(isspoint, s_point, sep_point)) {
+                std::istringstream(s_point) >> data_point.x();
+            } else
+                return false;
+            if (std::getline(isspoint, s_point, sep_point)) {
+                std::istringstream(s_point) >> data_point.y();
+            } else
+                return false;
+        }
+    }
+    //check if data is okay
+    if (!this->validate()) return false;
+    return true;
 }
 
 void ConfigOptionDeleter::operator()(ConfigOption* p) {
@@ -307,6 +609,8 @@ ConfigOption* ConfigOptionDef::create_empty_option() const
 	    case coPoints:          return new ConfigOptionPoints();
 	    case coPoint3:          return new ConfigOptionPoint3();
 	//    case coPoint3s:         return new ConfigOptionPoint3s();
+	    case coGraph:           return new ConfigOptionGraph();
+	    case coGraphs:          return new ConfigOptionGraphs();
 	    case coBool:            return new ConfigOptionBool();
 	    case coBools:           return new ConfigOptionBools();
 	    case coEnum:            return new ConfigOptionEnumGeneric(this->enum_keys_map);
@@ -320,7 +624,7 @@ ConfigOption* ConfigOptionDef::create_default_option() const
     if (this->default_value)
         return (this->default_value->type() == coEnum) ?
             // Special case: For a DynamicConfig, convert a templated enum to a generic enum.
-            new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt()) :
+            new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->get_int()) :
             this->default_value->clone();
     return this->create_empty_option();
 }
@@ -565,12 +869,17 @@ bool ConfigBase::set_deserialize_nothrow(const t_config_option_key &opt_key_src,
 {
     t_config_option_key opt_key = opt_key_src;
     std::string         value   = value_src;
+    //note: should be done BEFORE calling set_deserialize
     // Both opt_key and value may be modified by handle_legacy().
     // If the opt_key is no more valid in this version of Slic3r, opt_key is cleared by handle_legacy().
     this->handle_legacy(opt_key, value);
-    if (opt_key.empty())
+    if (opt_key.empty()) {
+        assert(false);
         // Ignore the option.
         return true;
+    }
+    assert(opt_key == opt_key_src);
+    assert(value == value_src);
     return this->set_deserialize_raw(opt_key, value, substitutions_ctxt, append);
 }
 
@@ -601,7 +910,7 @@ void ConfigBase::set_deserialize(const t_config_option_key &opt_key_src, const s
                 if (optdef == nullptr)
                     throw UnknownOptionException(opt_key_src);
             }
-            substitutions_ctxt.substitutions.push_back(ConfigSubstitution{ optdef, value_src, ConfigOptionUniquePtr(optdef->default_value->clone()) });
+            substitutions_ctxt.add(ConfigSubstitution{ optdef, value_src, ConfigOptionUniquePtr(optdef->default_value->clone()) });
         }
     }
 }
@@ -661,7 +970,7 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
             if (optdef->default_value) {
                 // Default value for vectors of booleans used in a "per extruder" context, thus the default contains just a single value.
                 assert(dynamic_cast<const ConfigOptionVector<unsigned char>*>(optdef->default_value.get()));
-                auto &values = static_cast<const ConfigOptionVector<unsigned char>*>(optdef->default_value.get())->values;
+                const auto &values = static_cast<const ConfigOptionVector<unsigned char>*>(optdef->default_value.get())->get_values();
                 if (values.size() == 1 && values.front() == 1)
                     default_value = ConfigHelpers::DeserializationSubstitution::DefaultsToTrue;
             }
@@ -694,12 +1003,7 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
 
         if (substituted && (substitutions_ctxt.rule == ForwardCompatibilitySubstitutionRule::Enable ||
                             substitutions_ctxt.rule == ForwardCompatibilitySubstitutionRule::EnableSystemSilent)) {
-            // Log the substitution.
-            ConfigSubstitution config_substitution;
-            config_substitution.opt_def   = optdef;
-            config_substitution.old_value = value;
-            config_substitution.new_value = ConfigOptionUniquePtr(opt->clone());
-            substitutions_ctxt.substitutions.emplace_back(std::move(config_substitution));
+            substitutions_ctxt.emplace(optdef, std::string(value), ConfigOptionUniquePtr(opt->clone()));
         }
     }
     //set phony status
@@ -782,11 +1086,11 @@ double ConfigBase::get_computed_value(const t_config_option_key &opt_key, int ex
                 const ConfigOption* opt_extruder_id = nullptr;
                 if ((opt_extruder_id = this->option("extruder")) == nullptr)
                     if ((opt_extruder_id = this->option("current_extruder")) == nullptr
-                        || opt_extruder_id->getInt() < 0 || opt_extruder_id->getInt() >= vector_opt->size()) {
+                        || opt_extruder_id->get_int() < 0 || opt_extruder_id->get_int() >= vector_opt->size()) {
                         std::stringstream ss; ss << "ConfigBase::get_abs_value(): " << opt_key << " need to has the extuder id to get the right value, but it's not available";
                         throw ConfigurationError(ss.str());
                     }
-                extruder_id = opt_extruder_id->getInt();
+                extruder_id = opt_extruder_id->get_int();
                 idx = extruder_id;
             }
         } else {
@@ -797,11 +1101,11 @@ double ConfigBase::get_computed_value(const t_config_option_key &opt_key, int ex
         }
         if (idx >= 0) {
             if (raw_opt->type() == coFloats || raw_opt->type() == coInts || raw_opt->type() == coBools)
-                return vector_opt->getFloat(idx);
+                return vector_opt->get_float(idx);
             if (raw_opt->type() == coFloatsOrPercents) {
                 const ConfigOptionFloatsOrPercents* opt_fl_per = static_cast<const ConfigOptionFloatsOrPercents*>(raw_opt);
-                if (!opt_fl_per->values[idx].percent)
-                    return opt_fl_per->values[idx].value;
+                if (!opt_fl_per->get_at(idx).percent)
+                    return opt_fl_per->get_at(idx).value;
 
                 const ConfigOptionDef* opt_def = this->get_option_def(opt_key);
                 if (opt_def == nullptr) // maybe a placeholder?
@@ -937,9 +1241,20 @@ ConfigSubstitutions ConfigBase::load(const boost::property_tree::ptree &tree, Fo
     for (const boost::property_tree::ptree::value_type &v : tree) {
         t_config_option_key opt_key = v.first;
         try {
-            this->set_deserialize(opt_key, v.second.get_value<std::string>(), substitutions_ctxt);
+            std::string value = v.second.get_value<std::string>();
+            PrintConfigDef::handle_legacy(opt_key, value, false);
+            if (!opt_key.empty()) {
+                if (!PrintConfigDef::is_defined(opt_key)) {
+                    if (substitutions_ctxt.rule != ForwardCompatibilitySubstitutionRule::Disable) {
+                        substitutions_ctxt.add(ConfigSubstitution(v.first, value));
+                    }
+                } else {
+                    this->set_deserialize(opt_key, value, substitutions_ctxt);
+                }
+            }
         } catch (UnknownOptionException & /* e */) {
             // ignore
+            assert(false);
         } catch (BadOptionValueException & e) {
             if (compatibility_rule == ForwardCompatibilitySubstitutionRule::Disable)
                 throw e;
@@ -947,13 +1262,67 @@ ConfigSubstitutions ConfigBase::load(const boost::property_tree::ptree &tree, Fo
             const ConfigDef* def = this->def();
             if (def == nullptr) throw e;
             const ConfigOptionDef* optdef = def->get(opt_key);
-            substitutions_ctxt.substitutions.emplace_back(optdef, v.second.get_value<std::string>(), ConfigOptionUniquePtr(optdef->default_value->clone()));
+            substitutions_ctxt.emplace(optdef, v.second.get_value<std::string>(), ConfigOptionUniquePtr(optdef->default_value->clone()));
         }
     }
-    return std::move(substitutions_ctxt.substitutions);
+    return std::move(substitutions_ctxt).data();
 }
 
 // Load the config keys from the given string.
+std::map<t_config_option_key, std::string> ConfigBase::load_gcode_string_legacy(const char* str)
+{
+    std::map<t_config_option_key, std::string> opt_key_values;
+    if (str == nullptr)
+        return opt_key_values;
+
+    // Walk line by line in reverse until a non-configuration key appears.
+    const char *data_start = str;
+    // boost::nowide::ifstream seems to cook the text data somehow, so less then the 64k of characters may be retrieved.
+    const char *end                 = data_start + strlen(str);
+    for (;;) {
+        // Extract next line.
+        for (--end; end > data_start && (*end == '\r' || *end == '\n'); --end)
+            ;
+        if (end == data_start)
+            break;
+        const char *start = end++;
+        for (; start > data_start && *start != '\r' && *start != '\n'; --start)
+            ;
+        if (start == data_start)
+            break;
+        // Extracted a line from start to end. Extract the key = value pair.
+        if (end - (++start) < 10 || start[0] != ';' || start[1] != ' ')
+            break;
+        const char *key = start + 2;
+        if (!((*key >= 'a' && *key <= 'z') || (*key >= 'A' && *key <= 'Z')))
+            // A key must start with a letter.
+            break;
+        const char *sep = key;
+        for (; sep != end && *sep != '='; ++sep)
+            ;
+        if (sep == end || sep[-1] != ' ' || sep[1] != ' ')
+            break;
+        const char *value = sep + 2;
+        if (value > end)
+            break;
+        const char *key_end = sep - 1;
+        if (key_end - key < 3)
+            break;
+        // The key may contain letters, digits and underscores.
+        for (const char *c = key; c != key_end; ++c)
+            if (!((*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || (*c >= '0' && *c <= '9') || *c == '_')) {
+                key = nullptr;
+                break;
+            }
+        if (key == nullptr)
+            break;
+        opt_key_values.emplace(std::string(key, key_end), std::string(value, end));
+        end = start;
+    }
+    return opt_key_values;
+}
+
+    
 size_t ConfigBase::load_from_gcode_string_legacy(ConfigBase& config, const char* str, ConfigSubstitutionContext& substitutions)
 {
     if (str == nullptr)
@@ -964,56 +1333,34 @@ size_t ConfigBase::load_from_gcode_string_legacy(ConfigBase& config, const char*
     // boost::nowide::ifstream seems to cook the text data somehow, so less then the 64k of characters may be retrieved.
     const char *end = data_start + strlen(str);
     size_t num_key_value_pairs = 0;
-    for (;;) {
-        // Extract next line.
-        for (--end; end > data_start && (*end == '\r' || *end == '\n'); --end);
-        if (end == data_start)
-            break;
-        const char *start = end ++;
-        for (; start > data_start && *start != '\r' && *start != '\n'; --start);
-        if (start == data_start)
-            break;
-        // Extracted a line from start to end. Extract the key = value pair.
-        if (end - (++ start) < 10 || start[0] != ';' || start[1] != ' ')
-            break;
-        const char *key = start + 2;
-        if (!((*key >= 'a' && *key <= 'z') || (*key >= 'A' && *key <= 'Z')))
-            // A key must start with a letter.
-            break;
-        const char *sep = key;
-        for (; sep != end && *sep != '='; ++ sep) ;
-        if (sep == end || sep[-1] != ' ' || sep[1] != ' ')
-            break;
-        const char *value = sep + 2;
-        if (value > end)
-            break;
-        const char *key_end = sep - 1;
-        if (key_end - key < 3)
-            break;
-        // The key may contain letters, digits and underscores.
-        for (const char *c = key; c != key_end; ++ c)
-            if (!((*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || (*c >= '0' && *c <= '9') || *c == '_')) {
-                key = nullptr;
-                break;
-            }
-        if (key == nullptr)
-            break;
+    for (auto [key, value] : load_gcode_string_legacy(str)) {
         try {
-            config.set_deserialize(std::string(key, key_end), std::string(value, end), substitutions);
-            ++num_key_value_pairs;
+            std::string opt_key = key;
+            PrintConfigDef::handle_legacy(opt_key, value, false);
+            if (!opt_key.empty()) {
+                if (!PrintConfigDef::is_defined(opt_key)) {
+                    if (substitutions.rule != ForwardCompatibilitySubstitutionRule::Disable) {
+                        substitutions.add(ConfigSubstitution(key, value));
+                    }
+                } else {
+                    config.set_deserialize(opt_key, value, substitutions);
+                    ++num_key_value_pairs;
+                }
+            }
         }
         catch (UnknownOptionException & /* e */) {
-            // ignore
+            // log & ignore
+            if (substitutions.rule != ForwardCompatibilitySubstitutionRule::Disable)
+                substitutions.add(ConfigSubstitution(key, value));
         } catch (BadOptionValueException & e) {
             if (substitutions.rule == ForwardCompatibilitySubstitutionRule::Disable)
                 throw e;
             // log the error
             const ConfigDef* def = config.def();
             if (def == nullptr) throw e;
-            const ConfigOptionDef* optdef = def->get(std::string(key, key_end));
-            substitutions.substitutions.emplace_back(optdef, std::string(value, end), ConfigOptionUniquePtr(optdef->default_value->clone()));
+            const ConfigOptionDef* optdef = def->get(key);
+            substitutions.emplace(optdef, std::move(value), ConfigOptionUniquePtr(optdef->default_value->clone()));
         }
-        end = start;
     }
 
     return num_key_value_pairs;
@@ -1166,10 +1513,21 @@ ConfigSubstitutions ConfigBase::load_from_gcode_file(const std::string &file, Fo
                 boost::trim(key);
                 boost::trim(value);
                 try {
-                    this->set_deserialize(key, value, substitutions_ctxt);
-                    ++ key_value_pairs;
+                    std::string opt_key = key;
+                    PrintConfigDef::handle_legacy(opt_key, value, false);
+                    if (!opt_key.empty()) {
+                        if (!PrintConfigDef::is_defined(opt_key)) {
+                            if (substitutions_ctxt.rule != ForwardCompatibilitySubstitutionRule::Disable) {
+                                substitutions_ctxt.add(ConfigSubstitution(key, value));
+                            }
+                        } else {
+                            this->set_deserialize(opt_key, value, substitutions_ctxt);
+                            ++key_value_pairs;
+                        }
+                    }
                 } catch (UnknownOptionException & /* e */) {
                     // ignore
+                    assert(false);
                 }
             }
         }
@@ -1192,7 +1550,7 @@ ConfigSubstitutions ConfigBase::load_from_gcode_file(const std::string &file, Fo
 
     if (key_value_pairs < 80)
         throw Slic3r::RuntimeError(format("Suspiciously low number of configuration values extracted from %1%: %2%", file, key_value_pairs));
-    return std::move(substitutions_ctxt.substitutions);
+    return std::move(substitutions_ctxt).data();
 }
 
 void ConfigBase::save(const std::string &file, bool to_prusa) const
@@ -1385,7 +1743,7 @@ bool DynamicConfig::read_cli(int argc, const char* const argv[], t_config_option
             // Vector values will be chained. Repeated use of a parameter will append the parameter or parameters
             // to the end of the value.
             if (opt_base->type() == coBools && value.empty())
-                static_cast<ConfigOptionBools*>(opt_base)->values.push_back(!no);
+                static_cast<ConfigOptionBools*>(opt_base)->set_at(!no, opt_vector->size());
             else
                 // Deserialize any other vector value (ConfigOptionInts, Floats, Percents, Points) the same way
                 // they get deserialized from an .ini file. For ConfigOptionStrings, that means that the C-style unescape
@@ -1404,10 +1762,11 @@ bool DynamicConfig::read_cli(int argc, const char* const argv[], t_config_option
             // Just bail out if the configuration value is not understood.
             ConfigSubstitutionContext context(ForwardCompatibilitySubstitutionRule::Disable);
             // Any scalar value of a type different from Bool and String.
-            if (! this->set_deserialize_nothrow(opt_key, value, context, false)) {
-				boost::nowide::cerr << "Invalid value supplied for --" << token.c_str() << std::endl;
-				return false;
-			}
+            // here goes int options, like loglevel.
+            if (!this->set_deserialize_nothrow(opt_key, value, context, false)) {
+                boost::nowide::cerr << "Invalid value supplied for --" << token.c_str() << std::endl;
+                return false;
+            }
         }
     }
     return true;
@@ -1545,6 +1904,8 @@ CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloatsOrPercentsNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoint)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoints)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoint3)
+CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionGraph)
+CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionGraphs)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBool)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBools)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBoolsNullable)
@@ -1557,12 +1918,14 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionS
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<std::string>) 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<Slic3r::Vec2d>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<Slic3r::Vec3d>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<Slic3r::GraphData>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<bool>) 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionVectorBase) 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<double>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<int32_t>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<std::string>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<Slic3r::Vec2d>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<Slic3r::GraphData>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<unsigned char>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<double>, Slic3r::ConfigOptionFloat)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<double>, Slic3r::ConfigOptionFloats)
@@ -1581,6 +1944,8 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::FloatOrP
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<Slic3r::Vec2d>, Slic3r::ConfigOptionPoint)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::Vec2d>, Slic3r::ConfigOptionPoints)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<Slic3r::Vec3d>, Slic3r::ConfigOptionPoint3)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<Slic3r::GraphData>, Slic3r::ConfigOptionGraph)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::GraphData>, Slic3r::ConfigOptionGraphs)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<bool>, Slic3r::ConfigOptionBool)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<unsigned char>, Slic3r::ConfigOptionBools)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<unsigned char>, Slic3r::ConfigOptionBoolsNullable)

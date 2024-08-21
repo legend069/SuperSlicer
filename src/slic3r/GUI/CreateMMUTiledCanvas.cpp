@@ -33,12 +33,17 @@
 #include <wx/file.h>
 #include <wx/mimetype.h>
 #include <wx/odcombo.h>
+#include <wx/rawbmp.h>
 #include <wx/textctrl.h>
 #include <wx/wrapsizer.h>
 #include "wxExtensions.hpp"
 
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 
 #if ENABLE_SCROLLABLE
 static wxSize get_screen_size(wxWindow* window)
@@ -1113,31 +1118,31 @@ void CreateMMUTiledCanvas::create_main_tab(wxPanel* tab)
     //group_size->append_single_option_line(option);
 
     //line = { L("Size"), "" };
-    group_size->append_single_option_line(group_size->get_option("size"));
+    group_size->append_single_option_line(group_size->create_option_from_def("size"));
     //line.append_option(Option(def, "size"));
 
-    group_size->append_single_option_line(group_size->get_option("size_px"));
+    group_size->append_single_option_line(group_size->create_option_from_def("size_px"));
     //line.append_option(Option(def, "size_px"));
 
     //group_size->append_line(line);
 
-    group_size->append_single_option_line(group_size->get_option("height"));
+    group_size->append_single_option_line(group_size->create_option_from_def("height"));
 
-    group_size->append_single_option_line(group_size->get_option("offset"));
+    group_size->append_single_option_line(group_size->create_option_from_def("offset"));
 
     line = { L("Gap"), "" };
 
-    line.append_option(group_size->get_option("separation_xy"));
+    line.append_option(group_size->create_option_from_def("separation_xy"));
 
-    line.append_option(group_size->get_option("separation_z"));
+    line.append_option(group_size->create_option_from_def("separation_z"));
 
     group_size->append_line(line);
 
-    group_size->append_single_option_line(group_size->get_option("bezel"));
-    group_size->append_single_option_line(group_size->get_option("border"));
+    group_size->append_single_option_line(group_size->create_option_from_def("bezel"));
+    group_size->append_single_option_line(group_size->create_option_from_def("border"));
     
 
-    //group_size->append_single_option_line(group_size->get_option("bump"));
+    //group_size->append_single_option_line(group_size->create_option_from_def("bump"));
 
     group_size->activate([]() {}, wxALIGN_RIGHT);
     group_size->reload_config();
@@ -1156,23 +1161,23 @@ void CreateMMUTiledCanvas::create_main_tab(wxPanel* tab)
     };
     group_colors->title_width = 15;
 
-    group_colors->append_single_option_line(group_colors->get_option("spool_colors"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("spool_colors"));
 
     //line = { L("Separation"), "" };
-    //line.append_option(group_colors->get_option("near_color"));
-    //line.append_option(group_colors->get_option("color_comp"));
+    //line.append_option(group_colors->create_option_from_def("near_color"));
+    //line.append_option(group_colors->create_option_from_def("color_comp"));
     //group_colors->append_line(line);
-    group_colors->append_single_option_line(group_colors->get_option("near_color"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("near_color"));
 
-    group_colors->append_single_option_line(group_colors->get_option("color_comp"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("color_comp"));
 
-    group_colors->append_single_option_line(group_colors->get_option("order_dark"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("order_dark"));
 
-    group_colors->append_single_option_line(group_colors->get_option("original"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("original"));
 
-    group_colors->append_single_option_line(group_colors->get_option("extruders"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("extruders"));
 
-    group_colors->append_single_option_line(group_colors->get_option("background_color"));
+    group_colors->append_single_option_line(group_colors->create_option_from_def("background_color"));
 
     //line = { "", "" };
     //line.full_width = 1;
@@ -1471,8 +1476,8 @@ void CreateMMUTiledCanvas::create_color_tab(wxPanel* tab)
     //row of available colors
     //group_colors->append_single_option_line(group_colors->get_option("available_colors"));
     ConfigOptionStrings* available_colors = m_config.option<ConfigOptionStrings>("available_colors");
-    for (int i = 0; i < available_colors->values.size(); i++) {
-        MywxColourPickerCtrl::add_color_bt(available_colors->values[i], color_row_sizer);
+    for (int i = 0; i < available_colors->size(); i++) {
+        MywxColourPickerCtrl::add_color_bt(available_colors->get_at(i), color_row_sizer);
     }
     tab->Refresh();
     color_sizer->Add(color_row_sizer, wxGBPosition(2, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 2);
@@ -1748,8 +1753,8 @@ void CreateMMUTiledCanvas::create_geometry(wxCommandEvent& event_args) {
     ///// --- translate ---
     //const DynamicPrintConfig* printerConfig = this->m_gui_app->get_tab(Preset::TYPE_PRINTER)->get_config();
     //const ConfigOptionPoints* bed_shape = printerConfig->option<ConfigOptionPoints>("bed_shape");
-    //Vec2d bed_size = BoundingBoxf(bed_shape->values).size();
-    //Vec2d bed_min = BoundingBoxf(bed_shape->values).min;
+    //Vec2d bed_size = BoundingBoxf(bed_shape->get_values()).size();
+    //Vec2d bed_min = BoundingBoxf(bed_shape->get_values()).min;
     //model.objects[objs_idx[0]]->translate({ bed_min.x() + bed_size.x() / 2, bed_min.y() + bed_size.y() / 2, 0 });
 
     //update colors
@@ -1758,9 +1763,9 @@ void CreateMMUTiledCanvas::create_geometry(wxCommandEvent& event_args) {
         //{m_impl=L"#800040" m_convertedToChar={m_str=0x0000000000000000 <NULL> m_len=0 } }
         const ConfigOptionStrings* color_conf = printer_config->option<ConfigOptionStrings>("extruder_colour");
         ConfigOptionStrings* new_color_conf = static_cast<ConfigOptionStrings*>(color_conf->clone());
-        for(int idx_col = 0; idx_col < this->m_used_colors.size() && idx_col < new_color_conf->values.size(); idx_col++){
+        for(int idx_col = 0; idx_col < this->m_used_colors.size() && idx_col < new_color_conf->size(); idx_col++){
             wxColour col = this->m_used_colors[idx_col]->get_printed_color(use_spool_colors);
-            new_color_conf->values[idx_col] = "#" + AppConfig::int2hex(col.GetRGB());
+            new_color_conf->get_at(idx_col) = "#" + AppConfig::int2hex(col.GetRGB());
         }
         new_Printer_config.set_key_value("extruder_colour", new_color_conf);
 
