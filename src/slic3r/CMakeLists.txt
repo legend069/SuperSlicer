@@ -7,7 +7,7 @@
 #/|/
 #/|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
 #/|/
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.12)
 project(libslic3r_gui)
 
 if(NOT WIN32)

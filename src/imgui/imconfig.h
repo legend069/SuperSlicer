@@ -167,12 +167,6 @@ namespace ImGui
     const wchar_t SliderFloatEditBtnIcon   = 0x2604;
     const wchar_t SliderFloatEditBtnPressedIcon = 0x2605;
     const wchar_t ClipboardBtnIcon         = 0x2606;
-    const wchar_t PlayButton               = 0x2618;
-    const wchar_t PlayHoverButton          = 0x2619;
-    const wchar_t PauseButton              = 0x261A;
-    const wchar_t PauseHoverButton         = 0x261B;
-    const wchar_t OpenButton               = 0x261C;
-    const wchar_t OpenHoverButton          = 0x261D;
     const wchar_t SlaViewOriginal          = 0x261E;
     const wchar_t SlaViewProcessed         = 0x261F;
 

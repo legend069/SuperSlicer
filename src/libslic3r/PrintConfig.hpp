@@ -108,7 +108,6 @@ enum PrintHostType {
     htMPMDv2,
     htMKS,
     htMiniDeltaLCD,
-    htPrusaConnect
 };
 
 enum AuthorizationType {
