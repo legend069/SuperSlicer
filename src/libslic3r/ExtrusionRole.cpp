@@ -20,7 +20,7 @@ GCodeExtrusionRole extrusion_role_to_gcode_extrusion_role(ExtrusionRole role)
     if (role == ExtrusionRole::None)                return GCodeExtrusionRole::None;
     if (role.is_perimeter()) {
         return role.is_bridge() ? GCodeExtrusionRole::OverhangPerimeter :
-               role.is_external() ? GCodeExtrusionRole::ExternalPerimeter : 
+               role.is_external() ? GCodeExtrusionRole::ExternalPerimeter :
                                     GCodeExtrusionRole::Perimeter;
     }
     if (role == ExtrusionRole::InternalInfill)      return GCodeExtrusionRole::InternalInfill;

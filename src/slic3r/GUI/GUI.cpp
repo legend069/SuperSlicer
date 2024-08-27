@@ -391,26 +391,6 @@ void combochecklist_set_flags(wxComboCtrl* comboCtrl, unsigned int flags)
 	}
 }
 
-
-void desktop_open_folder(const boost::filesystem::path& path)
-{
-    if (!boost::filesystem::is_directory(path))
-        return;
-
-    // Execute command to open a file explorer, platform dependent.
-#ifdef _WIN32
-    const wxString widepath = path.wstring();
-    const wchar_t* argv[] = { L"explorer", widepath.GetData(), nullptr };
-    ::wxExecute(const_cast<wchar_t**>(argv), wxEXEC_ASYNC, nullptr);
-#elif __APPLE__
-    const char* argv[] = { "open", path.string().c_str(), nullptr };
-    ::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr);
-#else
-    const char* argv[] = { "xdg-open", path.string().c_str(), nullptr };
-    desktop_execute(argv);
-#endif
-}
-
 AppConfig* get_app_config()
 {
     return wxGetApp().app_config.get();

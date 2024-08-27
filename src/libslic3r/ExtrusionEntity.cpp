@@ -427,7 +427,7 @@ void ExtrusionPrinter::use(const ExtrusionMultiPath3D &multipath3D)
     ss << "}";
 }
 void ExtrusionPrinter::use(const ExtrusionLoop &loop)
-{ 
+{
     ss << (json?"\"":"") << "ExtrusionLoop" << (json?"_":":") << role_to_code(loop.role())<<"_" << looprole_to_code(loop.loop_role()) << (json?"\":":"") << "{";
     if(!loop.can_reverse()) ss << (json?"\"":"") << "oriented" << (json?"\":":"=") << "true,";
     for (int i = 0; i < loop.paths.size(); i++) {
@@ -458,14 +458,12 @@ void ExtrusionLength::use(const ExtrusionEntityCollection &collection)
     }
 }
 
-double ExtrusionVolume::get(const ExtrusionEntityCollection &coll)
-{
+double ExtrusionVolume::get(const ExtrusionEntityCollection &coll) {
     for (const ExtrusionEntity *entity : coll.entities()) entity->visit(*this);
     return volume;
 }
 
-void ExtrusionModifyFlow::set(ExtrusionEntityCollection &coll)
-{
+void ExtrusionModifyFlow::set(ExtrusionEntityCollection &coll) {
     for (ExtrusionEntity *entity : coll.entities()) entity->visit(*this);
 }
 
@@ -517,49 +515,38 @@ void ExtrusionVisitorRecursive::use(ExtrusionEntityCollection &collection)
     }
 }
 
-void HasRoleVisitor::use(const ExtrusionMultiPath &multipath)
-{
-    for (const ExtrusionPath &path : multipath.paths) {
+void HasRoleVisitor::use(const ExtrusionMultiPath& multipath) {
+    for (const ExtrusionPath& path : multipath.paths) {
         path.visit(*this);
-        if (found)
-            return;
+        if(found) return;
     }
 }
-void HasRoleVisitor::use(const ExtrusionMultiPath3D &multipath3D)
-{
-    for (const ExtrusionPath3D &path3D : multipath3D.paths) {
+void HasRoleVisitor::use(const ExtrusionMultiPath3D& multipath3D) {
+    for (const ExtrusionPath3D& path3D : multipath3D.paths) {
         path3D.visit(*this);
-        if (found)
-            return;
+        if(found) return;
     }
 }
-void HasRoleVisitor::use(const ExtrusionLoop &loop)
-{
-    for (const ExtrusionPath &path : loop.paths) {
+void HasRoleVisitor::use(const ExtrusionLoop& loop) {
+    for (const ExtrusionPath& path : loop.paths) {
         path.visit(*this);
-        if (found)
-            return;
+        if(found) return;
     }
 }
-void HasRoleVisitor::use(const ExtrusionEntityCollection &collection)
-{
-    for (const ExtrusionEntity *entity : collection.entities()) {
+void HasRoleVisitor::use(const ExtrusionEntityCollection& collection) {
+    for (const ExtrusionEntity* entity : collection.entities()) {
         entity->visit(*this);
-        if (found)
-            return;
+        if(found) return;
     }
 }
-bool HasRoleVisitor::search(const ExtrusionEntity &entity, HasRoleVisitor &&visitor)
-{
+bool HasRoleVisitor::search(const ExtrusionEntity &entity, HasRoleVisitor&& visitor) {
     entity.visit(visitor);
     return visitor.found;
 }
-bool HasRoleVisitor::search(const ExtrusionEntitiesPtr &entities, HasRoleVisitor &&visitor)
-{
+bool HasRoleVisitor::search(const ExtrusionEntitiesPtr &entities, HasRoleVisitor&& visitor) {
     for (ExtrusionEntity *ptr : entities) {
         ptr->visit(visitor);
-        if (visitor.found)
-            return true;
+        if (visitor.found) return true;
     }
     return visitor.found;
 }

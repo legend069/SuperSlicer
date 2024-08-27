@@ -866,7 +866,7 @@ void GUI_App::post_init()
             // preset_updater->sync downloads profile updates on background so it must begin after config wizard finished.
             bool cw_showed = this->config_wizard_startup();
             this->app_version_check(true);
-            this->preset_updater->sync(preset_bundle.get());
+            this->preset_updater->sync(preset_bundle.get(), this);
             if (! cw_showed) {
                 // The CallAfter is needed as well, without it, GL extensions did not show.
                 // Also, we only want to show this when the wizard does not, so the new user
@@ -1422,7 +1422,8 @@ bool GUI_App::on_init_inner()
               associate_gcode_files();
   #endif // __WXMSW__
       }
-
+    
+    std::string delayed_error_load_presets;
     wxImage::AddHandler(new wxJPEGHandler());
     // Suppress the '- default -' presets.
     preset_bundle->set_default_suppressed(app_config->get_bool("no_defaults"));

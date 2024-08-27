@@ -44,18 +44,19 @@ namespace Slic3r::GUI {
 // Format input mixing UTF8 encoded strings (const char*, std::string) and wxStrings, return a wxString.
 template<typename... TArgs>
 inline wxString format_wxstr(const char* fmt, TArgs&&... args) {
-	boost::format message(fmt);
-	return wxString::FromUTF8(Slic3r::internal::format::format_recursive(message, std::forward<TArgs>(args)...).c_str());
+    boost::format message(fmt);
+    return wxString::FromUTF8(Slic3r::internal::format::format_recursive(message, std::forward<TArgs>(args)...).c_str());
 }
 template<typename... TArgs>
 inline wxString format_wxstr(const std::string& fmt, TArgs&&... args) {
-	boost::format message(fmt);
-	return wxString::FromUTF8(Slic3r::internal::format::format_recursive(message, std::forward<TArgs>(args)...).c_str());
+    boost::format message(fmt);
+    return wxString::FromUTF8(Slic3r::internal::format::format_recursive(message, std::forward<TArgs>(args)...).c_str());
 }
 template<typename... TArgs>
 inline wxString format_wxstr(const wxString& fmt, TArgs&&... args) {
-	return format_wxstr(fmt.ToUTF8().data(), std::forward<TArgs>(args)...);
+    return format_wxstr(fmt.ToUTF8().data(), std::forward<TArgs>(args)...);
 }
+
 template<typename... TArgs>
 inline std::string format(const char* fmt, TArgs&&... args) {
     return Slic3r::format(fmt, std::forward<TArgs>(args)...);

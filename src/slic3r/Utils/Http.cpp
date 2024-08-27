@@ -490,12 +490,6 @@ Http& Http::size_limit(size_t sizeLimit)
 	return *this;
 }
 
-Http& Http::set_range(const std::string& range)
-{
-	if (p) { p->set_range(range); }
-	return *this;
-}
-
 Http& Http::header(std::string name, const std::string &value)
 {
 	if (!p) { return * this; }
@@ -609,11 +603,6 @@ Http& Http::set_put_body(const fs::path &path)
 {
 	if (p) { p->set_put_body(path);}
 	return *this;
-}
-
-void Http::priv::set_range(const std::string& range)
-{
-    ::curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
 }
 
 Http& Http::on_complete(CompleteFn fn)

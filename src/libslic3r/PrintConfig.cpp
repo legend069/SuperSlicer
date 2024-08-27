@@ -2496,29 +2496,21 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("%");
     def->min = 0;
     def->max = 100;
-
-    def->enum_values.push_back("0");
-    def->enum_values.push_back("5");
-    def->enum_values.push_back("10");
-    def->enum_values.push_back("15");
-    def->enum_values.push_back("20");
-    def->enum_values.push_back("25");
-    def->enum_values.push_back("30");
-    def->enum_values.push_back("35");
-    def->enum_values.push_back("40");
-    def->enum_values.push_back("45");
-    def->enum_values.push_back("50");
-    def->enum_values.push_back("55");
-    def->enum_values.push_back("60");
-    def->enum_values.push_back("65");
-    def->enum_values.push_back("70");
-    def->enum_values.push_back("75");
-    def->enum_values.push_back("80");
-    def->enum_values.push_back("85");
-    def->enum_values.push_back("90");
-    def->enum_values.push_back("95");
-    def->enum_values.push_back("100");
-
+    def->set_enum_values(ConfigOptionDef::GUIType::f_enum_open, {
+        { "0", "0%" },
+        { "5", "5%" },
+        { "10", "10%" },
+        { "15", "15%" },
+        { "20", "20%" },
+        { "25", "25%" },
+        { "30", "30%" },
+        { "45", "45%" },
+        { "50", "50%" },
+        { "55", "55%" },
+        { "60", "60%" },
+        { "65", "65%" },
+        //{ "100", "100%" } // can still be entered, but not showing it may make people increase solid layer count instead (which is the proper way).
+    });
     def->mode = comSimpleAE | comPrusa;
     def->set_default_value(new ConfigOptionPercent(20));
 

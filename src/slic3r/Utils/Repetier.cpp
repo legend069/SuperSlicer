@@ -292,11 +292,6 @@ std::vector<json> Repetier::get_all_json_values(const json &j, const std::string
     return results;
 }
 
-bool Repetier::validate_version_text(const boost::optional<std::string> &version_text) const
-{
-    return version_text ? boost::starts_with(*version_text, "Repetier") : true;
-}
-
 void Repetier::set_auth(Http &http) const
 {
     http.header("X-Api-Key", apikey);

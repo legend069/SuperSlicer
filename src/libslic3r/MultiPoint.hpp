@@ -58,7 +58,7 @@ inline OutputIterator douglas_peucker(InputIterator begin, InputIterator end, Ou
                     if (const SquareLengthType l2 = v.squaredNorm(); l2 == 0) {
                         // Zero length segment, find the furthest point between anchor and floater.
                         for (auto it = std::next(anchor); it != floater; ++ it)
-                            if (SquareLengthType dist_sq = (point_getter(*it) - a).template cast<SquareLengthType>().squaredNorm(); 
+                            if (SquareLengthType dist_sq = (point_getter(*it) - a).template cast<SquareLengthType>().squaredNorm();
                                 dist_sq > max_dist_sq) {
                                 max_dist_sq  = dist_sq;
                                 furthest = it;
@@ -88,7 +88,7 @@ inline OutputIterator douglas_peucker(InputIterator begin, InputIterator end, Ou
                                 max_dist_sq  = dist_sq;
                                 furthest     = it;
                             }
-                        }                        
+                        }
                     }
                     // remove point if less than tolerance
                     take_floater = max_dist_sq <= tolerance_sq;
@@ -106,7 +106,7 @@ inline OutputIterator douglas_peucker(InputIterator begin, InputIterator end, Ou
                     floater = dpStack.back();
                     f = point_getter(*floater);
                 } else {
-                    // The furthest point is too far from the segment <anchor, floater>. 
+                    // The furthest point is too far from the segment <anchor, floater>.
                     // Divide recursively.
                     floater = furthest;
                     f = point_getter(*floater);
@@ -126,7 +126,7 @@ inline OutputIterator douglas_peucker(Points::const_iterator begin, Points::cons
     return douglas_peucker<int64_t>(begin, end, out, tolerance, [](const Point &p) { return p; });
 }
 
-inline Points douglas_peucker(const Points &src, const double tolerance) 
+inline Points douglas_peucker(const Points &src, const double tolerance)
 {
     Points out;
     out.reserve(src.size());
@@ -263,7 +263,7 @@ inline double length(const Points &pts) {
 inline double area(const Points &polygon) {
     double area = 0.;
     for (size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i ++)
-		area += double(polygon[i](0) + polygon[j](0)) * double(polygon[i](1) - polygon[j](1));
+        area += double(polygon[i](0) + polygon[j](0)) * double(polygon[i](1) - polygon[j](1));
     return area;
 }
 

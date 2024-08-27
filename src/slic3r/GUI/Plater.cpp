@@ -533,9 +533,10 @@ void FreqChangedParams::init()
             "Please be aware that the preheating feature is only effective when a physical printer is selected. If "
             "you are using a virtual or non-physical printer, preheating will not activate.");
 
-        wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 9 );
+        ScalableBitmap preheat_off = ScalableBitmap(m_parent, "preheat_off", 9 );
+        wxBitmap preheat_off_bmp = preheat_off.get_bitmap();
         m_preheat_button->Disable();
-        m_preheat_button->SetBitmap(preheat_off);
+        m_preheat_button->SetBitmap(preheat_off_bmp);
     
         static bool isOn = false;
     
@@ -546,9 +547,9 @@ void FreqChangedParams::init()
                 this->m_rep = new Repetier(selected_printer_config);
 
                 if (isOn) {
-                    wxBitmap preheat_off = create_scaled_bitmap("preheat_off", m_parent, 9);
+                    ScalableBitmap preheat_off = ScalableBitmap(m_parent, "preheat_off", 9);
                 
-                    m_preheat_button->SetBitmap(preheat_off);
+                    m_preheat_button->SetBitmap(preheat_off.get_bitmap());
                     m_preheat_button->SetLabel("Preheat");
                     if (this->m_rep->cooldown_printer()) {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Cooldowning Printer."));
@@ -558,8 +559,10 @@ void FreqChangedParams::init()
                     
                     isOn = false;
                 } else {
-                    wxBitmap preheat_on = create_scaled_bitmap("preheat_on", m_parent, 9);
-                    m_preheat_button->SetBitmap(preheat_on);
+                    ScalableBitmap preheat_on = ScalableBitmap(m_parent,
+                                                               "preheat_on",
+                                                               9);
+                    m_preheat_button->SetBitmap(preheat_on.get_bitmap());
                     m_preheat_button->SetLabel("Cooldown");
                     
                     if (this->m_rep->preheat_printer()) {
@@ -577,9 +580,9 @@ void FreqChangedParams::init()
     m_refresh_button = new wxButton(m_parent, wxID_ANY, "Refresh", wxDefaultPosition, wxDefaultSize);
     m_refresh_button->SetToolTip("Refresh the physical printer settings.");
     
-    wxBitmap refresh_bmp = create_scaled_bitmap("revert_all_", m_parent, 9 );
+    ScalableBitmap refresh_bmp = ScalableBitmap(m_parent, "revert_all_", 9 );
     m_refresh_button->Disable();
-    m_refresh_button->SetBitmap(refresh_bmp);
+    m_refresh_button->SetBitmap(refresh_bmp.get_bitmap());
 
     m_refresh_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
@@ -873,8 +876,6 @@ Sidebar::Sidebar(Plater *parent)
     init_combo(&p->combo_sla_print, _L("SLA print settings"), Preset::TYPE_SLA_PRINT, false);
     init_combo(&p->combo_sla_material, _L("SLA material"), Preset::TYPE_SLA_MATERIAL, false);
     init_combo(&p->combo_printer, _L("Printer"), Preset::TYPE_PRINTER, false);
-
-    const int margin_5 = int(0.7 * wxGetApp().em_unit()); // 5;
 
     p->sizer_params = new wxBoxSizer(wxVERTICAL);
 
@@ -1827,7 +1828,7 @@ bool PlaterDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString &fi
 #endif // WIN32
 
     m_mainframe.Raise();
-    m_mainframe.select_tab(MainFrame::ETabType::Plater3D);
+    m_mainframe.select_tab(MainFrame::TabPosition::tpPlater);
     if (wxGetApp().is_editor())
         m_plater.select_view_3D("3D");
 
@@ -4213,7 +4214,7 @@ void Plater::priv::reload_from_disk()
                             break;
                         }
                     }
-                }
+                
 
                 if (new_object_idx < 0 || int(new_model.objects.size()) <= new_object_idx) {
                     fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));

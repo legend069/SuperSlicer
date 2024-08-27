@@ -103,8 +103,6 @@ enum ConfigMenuIDs {
     ConfigMenuLanguage,
     ConfigMenuFlashFirmware,
     ConfigMenuCnt,
-    ConfigMenuUpdateConf,
-    ConfigMenuUpdateApp,
     ConfigMenuWifiConfigFile
     //ConfigMenuModeSimple,
     //ConfigMenuModeAdvanced,
@@ -182,7 +180,6 @@ private:
     std::unique_ptr <Downloader> m_downloader;
     std::unique_ptr <OtherInstanceMessageHandler> m_other_instance_message_handler;
     std::unique_ptr <wxSingleInstanceChecker> m_single_instance_checker;
-    std::unique_ptr <Downloader> m_downloader;
     std::string m_instance_hash_string;
     size_t m_instance_hash_int;
 

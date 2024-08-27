@@ -18,8 +18,12 @@
 
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI.hpp"
-#include "Http.hpp"
+#include "../GUI/GUI_App.hpp"
 
+#include "Http.hpp"
+#include "slic3r/GUI/format.hpp"
+
+using Slic3r::GUI::format_wxstr;
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -67,7 +71,7 @@ bool MPMDv2::test(wxString &msg) const
                 const auto text = ptree.get_optional<std::string>("text");
                 res = validate_version_text(text);
                 if (! res) {
-                    msg = GUI::format_wxstr(_L("Mismatched type of print host: %s"), (text ? *text : "MiniDeltaLCD"));
+                    msg = Slic3r::GUI::format_wxstr(_L("Mismatched type of print host: %s"), (text ? *text : "MiniDeltaLCD"));
                 }
             }
             catch (const std::exception &) {
@@ -136,7 +140,7 @@ bool MPMDv2::validate_version_text(const boost::optional<std::string> &version_t
 }
 wxString MPMDv2::get_test_ok_msg () const
 {
-    return GUI::format_wxstr(_L("Connection to %1% works correctly."), get_name());
+    return Slic3r::GUI::format_wxstr(_L("Connection to %1% works correctly."), get_name());
 }
 
 wxString MPMDv2::get_test_failed_msg (wxString &msg) const

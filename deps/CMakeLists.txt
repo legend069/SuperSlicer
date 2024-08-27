@@ -23,7 +23,7 @@
 # WARNING: On UNIX platforms wxWidgets hardcode the destdir path into its `wx-conffig` utility,
 # therefore, unfortunatelly, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
 #
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 project(Slic3r-deps)
 
 # Redefine BUILD_SHARED_LIBS with default being OFF

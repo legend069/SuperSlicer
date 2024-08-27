@@ -118,7 +118,7 @@ inline double total_length(const Polylines &polylines) {
     return total;
 }
 
-inline Lines to_lines(const Polyline &poly) 
+inline Lines to_lines(const Polyline &poly)
 {
     Lines lines;
     if (poly.points.size() >= 2) {
@@ -129,7 +129,7 @@ inline Lines to_lines(const Polyline &poly)
     return lines;
 }
 
-inline Lines to_lines(const Polylines &polys) 
+inline Lines to_lines(const Polylines &polys)
 {
     size_t n_lines = 0;
     for (size_t i = 0; i < polys.size(); ++ i)
@@ -163,12 +163,12 @@ inline Polylines to_polylines(std::vector<Points> &&paths)
     return out;
 }
 
-inline void polylines_append(Polylines &dst, const Polylines &src) 
-{ 
+inline void polylines_append(Polylines &dst, const Polylines &src)
+{
     dst.insert(dst.end(), src.begin(), src.end());
 }
 
-inline void polylines_append(Polylines &dst, Polylines &&src) 
+inline void polylines_append(Polylines &dst, Polylines &&src)
 {
     if (dst.empty()) {
         dst = std::move(src);
@@ -207,7 +207,7 @@ bool remove_degenerate(Polylines &polylines);
 /// ThickPolyline : a polyline with a width for each point
 /// This class has a vector of coordf_t, it must be the same size as points.
 /// it's used to store the size of the line at this point.
-/// Also, the endpoint let us know if the front() and back() of the polyline 
+/// Also, the endpoint let us know if the front() and back() of the polyline
 /// join something or is a dead-end.
 class ThickPolyline {
 public:

@@ -659,7 +659,7 @@ DevicePresetComboBox::DevicePresetComboBox(wxWindow *parent, Preset::Type preset
     if (m_type == Preset::TYPE_FFF_FILAMENT)
     {
         Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &event) {
-            const Preset* selected_preset = m_collection->find_preset(m_preset_bundle->filament_presets[m_extruder_idx]);
+            const Preset* selected_preset = m_preset_bundle->extruders_filaments[m_extruder_idx].get_selected_preset();
             // Wide icons are shown if the currently selected preset is not compatible with the current printer,
             // and red flag is drown in front of the selected preset.
             bool          wide_icons = selected_preset && !selected_preset->is_compatible;
@@ -851,7 +851,7 @@ void DevicePresetComboBox::update()
 {
     if (m_type == Preset::TYPE_FFF_FILAMENT &&
         (m_preset_bundle->printers.get_edited_preset().printer_technology() == ptSLA ||
-         m_preset_bundle->filament_presets.size() <= (size_t) m_extruder_idx))
+        m_preset_bundle->extruders_filaments.size() <= (size_t)m_extruder_idx) )
         return;
 
     // Otherwise fill in the list from scratch.
@@ -859,16 +859,20 @@ void DevicePresetComboBox::update()
     this->Clear();
     invalidate_selection();
 
+    const ExtruderFilaments& extruder_filaments  = m_preset_bundle->extruders_filaments[m_extruder_idx >= 0 ? m_extruder_idx : 0];
+    
     const Preset *selected_filament_preset = nullptr;
     std::string   extruder_color;
     if (m_type == Preset::TYPE_FFF_FILAMENT) {
         unsigned char rgb[3];
-        extruder_color = m_preset_bundle->printers.get_edited_preset()
-                             .config.opt_string("extruder_colour", (unsigned int) m_extruder_idx);
-        if (!bitmap_cache().parse_color(extruder_color, rgb))
+        extruder_color = m_preset_bundle->printers.get_edited_preset().config.opt_string("extruder_colour", size_t(m_extruder_idx));
+        if (!can_decode_color(extruder_color))
             // Extruder color is not defined.
             extruder_color.clear();
-        selected_filament_preset = m_collection->find_preset(m_preset_bundle->filament_presets[m_extruder_idx]);
+        
+        selected_filament_preset = extruder_filaments.get_selected_preset();
+        if (selected_filament_preset->is_dirty)
+            selected_filament_preset = &m_preset_bundle->filaments.get_edited_preset();
         assert(selected_filament_preset);
     }
 
@@ -900,7 +904,7 @@ void DevicePresetComboBox::update()
                     std::string main_icon_name, bitmap_key = main_icon_name = preset->printer_technology() == ptSLA ?
                                                                                   "sla_printer" :
                                                                                   m_main_bitmap_name;
-                    wxBitmap *  bmp = get_bmp(main_icon_name, wide_icons, main_icon_name);
+                    auto bmp = get_bmp(main_icon_name, main_icon_name, "", true, true, false);
                     assert(bmp);
 
                     set_label_marker(Append(from_u8(it->get_full_name(preset_name) + suffix(preset)), *bmp),
@@ -934,12 +938,6 @@ void DevicePresetComboBox::update()
 #endif //__WXMSW__
 }
 
-    
-void DevicePresetComboBox::msw_rescale()
-    {
-        PresetComboBox::msw_rescale();
-        edit_btn->msw_rescale();
-    }
 // ---------------------------------
 // ***  PlaterPresetComboBox  ***
 // ---------------------------------
@@ -989,11 +987,6 @@ PlaterPresetComboBox::~PlaterPresetComboBox()
 {
     if (edit_btn)
         edit_btn->Destroy();
-}
-
-static void run_wizard(ConfigWizard::StartPage sp)
-{
-    wxGetApp().run_wizard(ConfigWizard::RR_USER, sp);
 }
 
 void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)

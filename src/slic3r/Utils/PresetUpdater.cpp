@@ -287,8 +287,6 @@ Semver get_version(const std::string &str, const std::regex &regexp) {
 
 // Get Slic3rPE version available online, save in AppConfig.
 
-wxDEFINE_EVENT(EVT_CONFIG_UPDATER_SYNC_DONE, wxCommandEvent);
-
 void PresetUpdater::priv::get_missing_resource(const std::string& vendor, const std::string& filename, const std::string& url) const
 {
 	if (filename.empty() || vendor.empty())

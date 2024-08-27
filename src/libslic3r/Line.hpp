@@ -218,7 +218,7 @@ public:
     Vector normal() const { return Vector((this->b(1) - this->a(1)), -(this->b(0) - this->a(0))); }
     bool   intersection(const Line& line, Point* intersection) const;
     // Clip a line with a bounding box. Returns false if the line is completely outside of the bounding box.
-	bool   clip_with_bbox(const BoundingBox &bbox);
+    bool   clip_with_bbox(const BoundingBox &bbox);
     // Extend the line from both sides by an offset.
     void   extend(coordf_t offset);
 

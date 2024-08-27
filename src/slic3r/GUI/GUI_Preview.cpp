@@ -878,7 +878,7 @@ void Preview::load_print_as_fff(bool keep_z_range)
 
     GCodeViewer::EViewType gcode_view_type = m_canvas->get_gcode_view_preview_type();
     bool gcode_preview_data_valid = !m_gcode_result.moves.empty();
-    gcode_preview_data_valid = gcode_preview_data_valid && current_force_state != ForceState::ForceExtrusions;
+    gcode_preview_data_valid = gcode_preview_data_valid && current_force_state != ForceState::ForceGcode;
     // Collect colors per extruder.
     std::vector<std::string> colors;
     std::vector<CustomGCode::Item> color_print_values = {};

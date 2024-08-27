@@ -146,6 +146,7 @@ public:
     bool want_text_input() const;
     bool want_any_input() const;
 
+
     // Optional inputs are used for set up value inside of an optional, with default value
     // 
     // Extended function ImGui::InputInt to work with std::optional<int>, when value == def_val optional is released.

@@ -7,7 +7,7 @@
 #/|/
 #/|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
 #/|/
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 project(libslic3r_gui)
 
 if(NOT WIN32)
@@ -55,24 +55,19 @@ set(SLIC3R_GUI_SOURCES
     GUI/CalibrationCr3dDialog.hpp
     GUI/CR3DWebView.cpp
     GUI/CR3DWebView.hpp
-    GUI/Widgets/AxisCtrlButton.cpp
-    GUI/Widgets/AxisCtrlButton.hpp
+
     GUI/Widgets/Button.cpp
     GUI/Widgets/Button.hpp
     GUI/Widgets/CheckBox.cpp
     GUI/Widgets/CheckBox.hpp
-    GUI/Widgets/RadioBox.hpp
-    GUI/Widgets/RadioBox.cpp
+
     GUI/Widgets/ProgressDialog.hpp
     GUI/Widgets/ProgressDialog.cpp
     GUI/Widgets/RoundedRectangle.hpp
     GUI/Widgets/RoundedRectangle.cpp
     GUI/Widgets/ComboBox.cpp
     GUI/Widgets/ComboBox.hpp
-    GUI/Widgets/SideButton.hpp
-    GUI/Widgets/SideButton.cpp
-    GUI/Widgets/SideMenuPopup.hpp
-    GUI/Widgets/SideMenuPopup.cpp
+
     GUI/Widgets/DropDown.cpp
     GUI/Widgets/DropDown.hpp
     GUI/Widgets/PopupWindow.cpp
@@ -85,14 +80,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/ScrolledWindow.hpp
     GUI/Widgets/StaticBox.cpp
     GUI/Widgets/StaticBox.hpp
-    GUI/Widgets/ImageSwitchButton.cpp
-    GUI/Widgets/ImageSwitchButton.hpp
     GUI/Widgets/SwitchButton.cpp
     GUI/Widgets/SwitchButton.hpp
     GUI/Widgets/SpinInput.cpp
     GUI/Widgets/SpinInput.hpp
-    GUI/Widgets/StaticLine.cpp
-    GUI/Widgets/StaticLine.hpp
+
     GUI/Widgets/StateColor.cpp
     GUI/Widgets/StateColor.hpp
     GUI/Widgets/StateHandler.cpp
@@ -101,14 +93,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/TabCtrl.hpp
     GUI/Widgets/TextInput.cpp
     GUI/Widgets/TextInput.hpp
-    GUI/Widgets/TempInput.cpp
-    GUI/Widgets/TempInput.hpp
+
     GUI/Widgets/Scrollbar.cpp
     GUI/Widgets/Scrollbar.hpp
     GUI/Widgets/ScrolledWindow.cpp
     GUI/Widgets/ScrolledWindow.hpp
-    GUI/Widgets/StepCtrl.cpp
-    GUI/Widgets/StepCtrl.hpp
+
     GUI/Widgets/ProgressBar.cpp
     GUI/Widgets/ProgressBar.hpp
     GUI/Widgets/ErrorMsgStaticText.cpp

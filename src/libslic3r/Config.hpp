@@ -601,7 +601,7 @@ template<class T>
 struct NilValueTempl<T, std::enable_if_t<std::is_enum_v<T>, void>>
 {
     using NilType = T;
-    static constexpr auto value = static_cast<T>(std::numeric_limits<std::underlying_type_t<T>>::max());
+
 };
 
 // For Graph the nil is an empty array (there are no nil usage anyway)

@@ -69,6 +69,9 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/Config/Version.hpp"
 
+#include <boost/locale.hpp>
+#include <boost/locale/encoding.hpp>
+
 #if defined(__linux__) && defined(__WXGTK3__)
 #define wxLinux_gtk3 true
 #else
@@ -708,7 +711,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
         sizer->Add(shop_hyperlink, 0, wxALIGN_CENTER_VERTICAL);
         append(sizer);
         
-        const auto picker_title = family.empty() ? wxString() : from_u8((boost::format(_utf8(L("%s Family"))) % family).str());
+        const auto picker_title = family.empty() ? wxString() : format_wxstr(_L("%s Family"), family);
         uint8_t max_cols = MAX_COLS;
         
         if (vendor.family_2_line_size.find(family) != vendor.family_2_line_size.end())
@@ -928,7 +931,7 @@ void PageMaterials::set_compatible_printers_html_window(const std::vector<std::s
     const auto bgr_clr_str = wxString::Format(wxT("#%02X%02X%02X"), bgr_clr.Red(), bgr_clr.Green(), bgr_clr.Blue());
     const auto text_clr = wxGetApp().get_label_clr_default();
     const auto text_clr_str = encode_color(ColorRGB(text_clr.Red(), text_clr.Green(), text_clr.Blue()));
-    const auto bgr_clr_str = wxGetApp().get_html_bg_color(parent);
+
     wxString text;
     if (materials->technology == T_FFF && template_shown) {
         // TRN ConfigWizard: Materials : "%1%" = "Filaments"/"SLA materials"
@@ -1754,25 +1757,6 @@ PageMode::PageMode(ConfigWizard *parent)
     append(check_inch);
 }
 
-void PageMode::on_activate() {
-    std::string mode { "simple" };
-    wxGetApp().app_config->get("", "view_mode", mode);
-
-    if (mode == "advanced") { radio_advanced->SetValue(true); }
-    else if (mode == "expert") { radio_expert->SetValue(true); }
-    else { radio_simple->SetValue(true); }
-
-    append(radio_simple);
-    append(radio_advanced);
-    append(radio_expert);
-
-    append_text("\n" + _L("The size of the object can be specified in inches"));
-    check_inch = new wxCheckBox(this, wxID_ANY, _L("Use inches"));
-    check_inch->SetValue(wxGetApp().app_config->get_bool("use_inches"));
-    append(check_inch);
-
-    on_activate();
-}
 
 void PageMode::serialize_mode(AppConfig *app_config) const {
     std::string mode = "";
@@ -1932,10 +1916,6 @@ void PageBedShape::apply_custom_config(DynamicPrintConfig &config) {
     config.set_key_value("bed_custom_model", new ConfigOptionString(custom_model));
 }
 
-static void focus_event(wxFocusEvent& e, wxTextCtrl* ctrl, double def_value) {
-    e.Skip();
-    wxString str = ctrl->GetValue();
-}
 
 PageBuildVolume::PageBuildVolume(ConfigWizard* parent)
     // TRN ConfigWizard : Size of possible print, related on printer size

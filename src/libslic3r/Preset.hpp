@@ -135,6 +135,7 @@ public:
         // This type is here to support PresetConfigSubstitutions for physical printers, however it does not belong to the Preset class,
         // PhysicalPrinter class is used instead.
         TYPE_PHYSICAL_PRINTER = 1 << 5,
+        TYPE_PREFERENCES
     };
     static inline PrinterTechnology get_tech(Type type)
     {

@@ -88,7 +88,6 @@ enum class NotificationType
 	// Progress bar with info from Print Host Upload Queue dialog.
 	PrintHostUpload,
 	// Progress bar of download next version app.
-	AppDownload,
 	// Progress bar with cancel button, cannot be closed
 	// On end of slicing and G-code processing (the full G-code preview is available),
 	// contains a hyperlink to export the G-code to a removable media or hdd.
@@ -286,21 +285,9 @@ public:
 	// returns number of all notifications shown
 	size_t get_notification_count() const;
     
-    void push_version_notification(NotificationType type, NotificationLevel level, const std::string& text, const std::string& hypertext,
-        std::function<bool(wxEvtHandler*)> callback);
-    
     // Recommendation
     void push_recommendation_notification(const std::string& text);
     
-    // Download App progress
-    void push_download_progress_notification(const std::string& text, std::function<bool()>    cancel_callback);
-    void set_download_progress_percentage(float percentage);
-    
-    void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
-    void set_download_URL_progress(size_t id, float percentage);
-    void set_download_URL_paused(size_t id);
-    void set_download_URL_canceled(size_t id);
-    void set_download_URL_error(size_t id, const std::string& text);
     
 private:
 	// duration 0 means not disapearing

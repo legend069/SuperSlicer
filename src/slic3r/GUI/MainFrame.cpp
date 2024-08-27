@@ -223,7 +223,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_S
     sizer->SetSizeHints(this);
     Fit();
 
-    const wxSize min_size = wxGetApp().get_min_size(); //wxSize(76*wxGetApp().em_unit(), 49*wxGetApp().em_unit());
+    const wxSize min_size = wxSize(85 * em_unit(), 50 * em_unit());
     SetMinSize(min_size/*wxSize(760, 490)*/);
     SetSize(GetMinSize());
 
@@ -637,7 +637,9 @@ void MainFrame::update_layout()
             get_app_config()->get_bool("dlg_settings_layout_mode") ? ESettingsLayout::Dlg :
 #ifdef __WXMSW__
                 ESettingsLayout::Tabs);
-
+#else
+                ESettingsLayout::Old);
+#endif
 
     if (m_layout == layout)
         return;
@@ -1079,7 +1081,6 @@ void MainFrame::init_tabpanel()
     wxGetApp().UpdateDarkUI(m_tabpanel);
 
     m_tabpanel->SetFont(Slic3r::GUI::wxGetApp().normal_font());
-#endif
     
     
     m_tabpanel->Hide();
@@ -2787,7 +2788,7 @@ void MainFrame::select_tab(TabPosition tab /* = Any*/, bool keep_tab_type)
     else {
         select(false);
 #ifdef _USE_CUSTOM_NOTEBOOK
-        if (wxGetApp().tabs_as_menu() && tab == ETabType::Plater3D)
+        if (wxGetApp().tabs_as_menu() && tab == TabPosition::tpPlater)
             m_plater->SetFocus();
 #endif
     }

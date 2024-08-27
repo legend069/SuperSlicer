@@ -1474,6 +1474,7 @@ void GCodeGenerator::_do_export(Print& print_mod, GCodeOutputStream &file, Thumb
 
     // Get optimal tool ordering to minimize tool switches of a multi-exruder print.
     // For a print by objects, find the 1st printing object.
+    ToolOrdering tool_ordering;
     uint16_t initial_extruder_id     = (uint16_t)-1;
     uint16_t final_extruder_id       = (uint16_t)-1;
     bool         has_wipe_tower      = false;

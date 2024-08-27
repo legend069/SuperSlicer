@@ -197,6 +197,7 @@ wxColour color_from_int(uint32_t color)
     return wxColour{ uint8_t(color & 0xFF), uint8_t((color & 0xFF00) >> 8) , uint8_t((color & 0xFF0000) >> 16) , uint8_t(255) };
 }
 
+
 std::string color_to_hex(uint32_t color)
 {
     uint32_t color_bad_endian = 0;
