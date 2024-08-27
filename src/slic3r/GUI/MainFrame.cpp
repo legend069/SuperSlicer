@@ -1158,12 +1158,12 @@ void MainFrame::init_tabpanel()
     if (m_plater) {
         // load initial config
         auto full_config = wxGetApp().preset_bundle->full_config();
-       // m_plater->on_config_change(full_config);
+        m_plater->on_config_change(full_config);
 
         // Show a correct number of filament fields.
         // nozzle_diameter is undefined when SLA printer is selected
         if (full_config.has("nozzle_diameter")) {
-            //m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->size());
+            m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->size());
         }
     }
         m_plater->Hide();
