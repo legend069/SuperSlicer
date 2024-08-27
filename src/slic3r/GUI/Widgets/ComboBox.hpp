@@ -4,13 +4,13 @@
 #include "TextInput.hpp"
 #include "DropDown.hpp"
 
-#define CB_NO_DROP_ICON DD_NO_CHECK_ICON
+#define CB_NO_DROP_ICON DD_NO_DROP_ICON
 #define CB_NO_TEXT DD_NO_TEXT
 
 class ComboBox : public wxWindowWithItems<TextInput, wxItemContainer>
 {
     std::vector<wxString>         texts;
-    std::vector<wxBitmap>         icons;
+    std::vector<wxBitmapBundle>   icons;
     std::vector<void *>           datas;
     std::vector<wxClientDataType> types;
 
@@ -30,20 +30,25 @@ public:
 
     DropDown & GetDropDown() { return drop; }
 
-    virtual bool SetFont(wxFont const & font) override;
+    bool SetFont(wxFont const & font) override;
 
-public:
-    int Append(const wxString &item, const wxBitmap &bitmap = wxNullBitmap);
+    bool SetBackgroundColour(const wxColour& colour) override;
+    bool SetForegroundColour(const wxColour& colour) override;
 
-    int Append(const wxString &item, const wxBitmap &bitmap, void *clientData);
+    void SetBorderColor(StateColor const& color);
+
+    int Append(const wxString &item, const wxBitmapBundle &bitmap = wxNullBitmap);
+    int Append(const wxString &item, const wxBitmapBundle &bitmap, void *clientData);
+
+    int Insert(const wxString& item, const wxBitmapBundle& bitmap, unsigned int pos);
+    int Insert(const wxString& item, const wxBitmapBundle& bitmap,
+        unsigned int pos, void* clientData);
 
     unsigned int GetCount() const override;
 
     int  GetSelection() const override;
 
     void SetSelection(int n) override;
-
-    void SelectAndNotify(int n);
 
     virtual void Rescale() override;
 
@@ -60,14 +65,15 @@ public:
     void     SetString(unsigned int n, wxString const &value) override;
 
     wxBitmap GetItemBitmap(unsigned int n);
-    void     SetItemBitmap(unsigned int n, wxBitmap const &bitmap);
-    bool     is_drop_down(){return drop_down;}
+
+    void     OnKeyDown(wxKeyEvent& event);
+
 protected:
     virtual int  DoInsertItems(const wxArrayStringsAdapter &items,
                                unsigned int                 pos,
                                void **                      clientData,
                                wxClientDataType             type) override;
-    virtual void DoClear() override;
+    void DoClear() override;
 
     void DoDeleteOneItem(unsigned int pos) override;
 
@@ -75,8 +81,6 @@ protected:
     void  DoSetItemClientData(unsigned int n, void *data) override;
     
     void OnEdit() override;
-
-    void sendComboBoxEvent();
 
 #ifdef __WIN32__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
@@ -88,7 +92,8 @@ private:
     void mouseDown(wxMouseEvent &event);
     void mouseWheelMoved(wxMouseEvent &event);
     void keyDown(wxKeyEvent &event);
-    void onMove(wxMoveEvent &event);
+
+    void sendComboBoxEvent();
 
     DECLARE_EVENT_TABLE()
 };

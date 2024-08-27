@@ -11,16 +11,17 @@ set(SLIC3R_APP_KEY "SliCR-3D")
 set(SLIC3R_APP_CMD "SliCR-3D")
 
 # versions
-set(SLIC3R_VERSION "2.6.0.3")
-set(SLIC3R_VERSION_FULL "2.6.0.3")
+set(SLIC3R_VERSION "2.7.0.0")
+set(SLIC3R_VERSION_FULL "2.7.0.0")
 set(SLIC3R_BUILD_ID "${SLIC3R_APP_KEY}_${SLIC3R_VERSION_FULL}_2024-07-02")
-set(SLIC3R_RC_VERSION "2,6,0,3")
+set(SLIC3R_RC_VERSION "2,7,0,0")
 set(SLIC3R_RC_VERSION_DOTS "${SLIC3R_VERSION_FULL}")
 
 # Same as the slicer name but for gcodeviewer
 set(GCODEVIEWER_APP_NAME "${SLIC3R_APP_NAME} G-code Viewer")
 set(GCODEVIEWER_APP_KEY "${SLIC3R_APP_KEY}-gcodeviewer")
 set(GCODEVIEWER_APP_CMD "${SLIC3R_APP_CMD}-gcodeviewer")
+set(GCODEVIEWER_APP_PROG_ID "${SLIC3R_APP_NAME}.GCodeViewer.1")
 
 # string to be added after the SLIC3R_APP_NAME on some places
 set(SLIC3R_BASED_ON " based on PrusaSlicer and SuperSlicer")

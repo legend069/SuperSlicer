@@ -1,5 +1,4 @@
-#if __APPLE__
-#import <slic3r/GUI/AppUpdater.hpp>
+#import "AppUpdater.hpp"
 
 #import <Foundation/Foundation.h>
 
@@ -17,4 +16,3 @@ std::string get_downloads_path_mac()
 	//return std::string();
 }
 }
-#endif

@@ -14,7 +14,7 @@
 #include <wx/display.h>
 #include <wx/file.h>
 #include "wxExtensions.hpp"
-#include "Jobs/ArrangeJob.hpp"
+//#include "Jobs/ArrangeJob2.hpp"
 #include <unordered_map>
 
 #pragma optimize("", off)
@@ -269,22 +269,81 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent &event_args)
         std::string speed;
     };
 
-        std::unordered_map<std::string, ExtrusionSettings> extrusionRoleToOptionKey = {
-            {"InternalInfill", {"infill_extrusion_width", "infill_acceleration", "placeholder"}},
-            //{"BridgeInfill", {"placeholder", "bridge_acceleration", "placeholder"}},//special calc required
-            {"ExternalPerimeter", {"external_perimeter_extrusion_width", "external_perimeter_acceleration"}},
-            //{"GapFill", {"placeholder", "gap_fill_acceleration"}},//special calc required
-            //{"InternalBridgeInfill", {"placeholder", "bridge_internal_acceleration"}},//special calc required
-            {"Ironing", {"top_infill_extrusion_width", "ironing_acceleration"}},
-            {"OverhangPerimeter", {"overhangs_width", "overhangs_acceleration"}},
-            {"Perimeter", {"perimeter_extrusion_width", "perimeter_acceleration"}},
-            {"SolidInfill", {"solid_infill_extrusion_width", "solid_infill_acceleration"}},
-            {"SupportMaterial", {"support_material_extrusion_width", "support_material_acceleration"}},
-            {"SupportMaterialInterface", {"support_material_extrusion_width", "support_material_interface_acceleration"}},
-            {"ThinWall", {"external_perimeter_extrusion_width", "thin_walls_acceleration"}},
-            {"TopSolidInfill", {"top_infill_extrusion_width", "top_solid_infill_acceleration"}}
-        };*/
+    std::unordered_map<std::string, std::string> er_accel_ToOptionKey = {
+    {"InternalInfill", "infill_acceleration"},
+    {"BridgeInfill", "bridge_acceleration"},
+    {"ExternalPerimeter", "external_perimeter_acceleration"},
+    {"GapFill", "gap_fill_acceleration"},
+    {"InternalBridgeInfill", "internal_bridge_acceleration"},
+    {"Ironing", "ironing_acceleration"},
+    {"OverhangPerimeter", "overhangs_acceleration"},
+    {"Perimeter", "perimeter_acceleration"},
+    {"SolidInfill", "solid_infill_acceleration"},
+    {"SupportMaterial", "support_material_acceleration"},
+    {"SupportMaterialInterface", "support_material_interface_acceleration"},
+    {"ThinWall", "top_solid_infill_acceleration"},
+    {"TopSolidInfill", "top_solid_infill_acceleration"},
+    {"FirstLayer", "first_layer_acceleration"}
+    };
 
+    std::unordered_map<std::string, std::string> er_spacing_ToOptionKey = {
+    {"InternalInfill", "infill_extrusion_spacing"},
+    //{"BridgeInfill", "placeholder"},
+    {"ExternalPerimeter", "external_perimeter_extrusion_spacing"},
+    //{"GapFill", "placeholder"},//special calc required for commented ones
+    //{"InternalBridgeInfill", "placeholder"},
+    //{"Ironing", "ironing_spacing"}, TOFIX? TYPE: coFloat
+    {"Ironing", "top_infill_extrusion_spacing"},
+    {"OverhangPerimeter", "external_perimeter_extrusion_spacing"},
+    {"Perimeter", "perimeter_extrusion_spacing"},
+    {"SolidInfill", "solid_infill_extrusion_spacing"},
+    {"SupportMaterial", "external_perimeter_extrusion_spacing"}, //TOFIX? TYPE: coFloat
+    {"SupportMaterialInterface", "external_perimeter_extrusion_spacing"}, //TOFIX? TYPE: coFloat
+    {"ThinWall", "external_perimeter_extrusion_spacing"},
+    {"TopSolidInfill", "top_infill_extrusion_spacing"},
+    {"FirstLayer", "first_layer_extrusion_spacing"}
+    };
+
+    std::unordered_map<std::string, std::string> er_speed_ToOptionKey = {
+    {"InternalInfill", "infill_speed"},
+    {"BridgeInfill", "bridge_speed"},
+    {"ExternalPerimeter", "external_perimeter_speed"},
+    {"GapFill", "gap_fill_speed"},
+    {"InternalBridgeInfill", "bridge_speed_internal"},
+    {"Ironing", "ironing_speed"},
+    {"OverhangPerimeter", "overhangs_speed"},
+    {"Perimeter", "perimeter_speed"},
+    {"SolidInfill", "solid_infill_speed"},
+    {"SupportMaterial", "support_material_speed"},
+    {"SupportMaterialInterface", "support_material_interface_speed"},
+    {"ThinWall", "thin_walls_speed"},
+    {"TopSolidInfill", "top_solid_infill_speed"},
+    {"FirstLayer", "first_layer_speed"}
+    };
+
+/*
+struct ExtrusionSettings {// think a struct is better instead of all the maps ?
+    std::string extrusionWidth;
+    std::string acceleration;
+    std::string speed;
+};
+
+    std::unordered_map<std::string, ExtrusionSettings> extrusionRoleToOptionKey = {
+        {"InternalInfill", {"infill_extrusion_width", "infill_acceleration", "placeholder"}},
+        //{"BridgeInfill", {"placeholder", "bridge_acceleration", "placeholder"}},//special calc required
+        {"ExternalPerimeter", {"external_perimeter_extrusion_width", "external_perimeter_acceleration"}},
+        //{"GapFill", {"placeholder", "gap_fill_acceleration"}},//special calc required
+        //{"InternalBridgeInfill", {"placeholder", "internal_bridge_acceleration"}},//special calc required
+        {"Ironing", {"top_infill_extrusion_width", "ironing_acceleration"}},
+        {"OverhangPerimeter", {"overhangs_width", "overhangs_acceleration"}},
+        {"Perimeter", {"perimeter_extrusion_width", "perimeter_acceleration"}},
+        {"SolidInfill", {"solid_infill_extrusion_width", "solid_infill_acceleration"}},
+        {"SupportMaterial", {"support_material_extrusion_width", "support_material_acceleration"}},
+        {"SupportMaterialInterface", {"support_material_extrusion_width", "support_material_interface_acceleration"}},
+        {"ThinWall", {"external_perimeter_extrusion_width", "thin_walls_acceleration"}},
+        {"TopSolidInfill", {"top_infill_extrusion_width", "top_solid_infill_acceleration"}}
+    };*/
+    
     int countincrements = 0;
     int sizeofarray     = static_cast<int>((end_pa - start_pa) / pa_increment) + 2; //'+2' needed for odd/even numbers
     std::vector<double>      pa_values(sizeofarray);
@@ -849,11 +908,12 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent &event_args)
         // update print config (done at reslice but we need it here)
         if (plat->printer_technology() == ptFFF)
             plat->fff_print().apply(plat->model(), *plat->config());
-        std::shared_ptr<ProgressIndicatorStub> fake_statusbar = std::make_shared<ProgressIndicatorStub>();
-        ArrangeJob arranger(std::dynamic_pointer_cast<ProgressIndicator>(fake_statusbar), plat);
-        arranger.prepare_all();
-        arranger.process();
-        arranger.finalize();
+        plat->arrange();
+        //std::shared_ptr<ProgressIndicatorStub> fake_statusbar = std::make_shared<ProgressIndicatorStub>();
+        //ArrangeJob arranger(std::dynamic_pointer_cast<ProgressIndicator>(fake_statusbar), plat);
+        //arranger.prepare_all();
+        //arranger.process();
+        //arranger.finalize();
     }
 
     if (extrusion_role != "Verify") { // don't auto slice so user can manual add PA values

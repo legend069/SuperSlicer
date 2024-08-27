@@ -1,8 +1,8 @@
 #ifndef slic3r_GUI_StateHandler_hpp_
 #define slic3r_GUI_StateHandler_hpp_
 
-#include <memory>
 #include <wx/event.h>
+#include <memory>
 
 #include "StateColor.hpp"
 
@@ -41,8 +41,6 @@ public:
     void update_binds();
 
     int states() const { return states_ | states2_; }
-
-    void set_state(int state, int mask);
 
 private:
     StateHandler(StateHandler * parent, wxWindow *owner);

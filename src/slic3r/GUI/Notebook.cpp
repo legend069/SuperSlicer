@@ -1,3 +1,7 @@
+///|/ Copyright (c) Prusa Research 2021 - 2022 Oleksandra Iushchenko @YuSanka, Lukáš Hejl @hejllukas
+///|/
+///|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
+///|/
 #include "Notebook.hpp"
 
 
@@ -94,10 +98,6 @@ void ButtonsListCtrl::UpdateMode()
 
 void ButtonsListCtrl::Rescale()
 {
-    m_mode_sizer->msw_rescale();
-    for (ScalableButton* btn : m_pageButtons)
-        btn->msw_rescale();
-
     int em = em_unit(this);
 
 #if __WXMAC__
@@ -113,6 +113,21 @@ void ButtonsListCtrl::Rescale()
     m_buttons_sizer->SetHGap(m_btn_margin);  // Adjust horizontal gap here
 
     m_sizer->Layout();
+}
+
+void ButtonsListCtrl::OnColorsChanged()
+{
+    for (ScalableButton* btn : m_pageButtons)
+        btn->sys_color_changed();
+
+    m_mode_sizer->sys_color_changed();
+
+    m_sizer->Layout();
+}
+
+void ButtonsListCtrl::UpdateModeMarkers()
+{
+    m_mode_sizer->update_mode_markers();
 }
 
 void ButtonsListCtrl::SetSelection(int sel)

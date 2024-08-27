@@ -67,11 +67,11 @@ void open_folder(const std::string& path)
 
 std::string filename_from_url(const std::string& url)
 {
-	std::string url_plain = std::string(url.begin(), std::find(url.begin(), url.end(), '?'));
-	size_t slash = url_plain.find_last_of("/");
-	if (slash == std::string::npos)
+	// TODO: can it be done with curl?
+	size_t slash = url.find_last_of("/");
+	if (slash == std::string::npos && slash != url.size() - 1)
 		return std::string();
-	return std::string(url_plain.begin() + slash + 1, url_plain.end());
+	return url.substr(slash + 1, url.size() - slash + 1);
 }
 }
 
@@ -183,10 +183,8 @@ void Downloader::on_error(wxCommandEvent& event)
     BOOST_LOG_TRIVIAL(error) << "Download error: " << event.GetString();
 	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
 	ntf_mngr->set_download_URL_error(id, boost::nowide::narrow(event.GetString()));
-	//GUI::show_error(nullptr, format_wxstr(L"%1%\n%2%", _L("The download has failed") + ":", event.GetString()));
-    std::cout << format_wxstr(L"%1%\n%2%", _L("The download has failed") + ":", event.GetString());
+	show_error(nullptr, format_wxstr(L"%1%\n%2%", _L("The download has failed") + ":", event.GetString()));
 }
-    
 void Downloader::on_complete(wxCommandEvent& event)
 {
 	// TODO: is this always true? :
