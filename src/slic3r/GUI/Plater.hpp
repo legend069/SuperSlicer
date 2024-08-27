@@ -510,8 +510,6 @@ public:
     bool inside_snapshot_capture();
 
     void toggle_render_statistic_dialog();
-    bool is_render_statistic_dialog_visible() const;
-
     void set_keep_current_preview_type(bool value);
 
 	// Wrapper around wxWindow::PopupMenu to suppress error messages popping out while tracking the popup menu.

@@ -45,6 +45,7 @@ set(CMAKE_CXX_STANDARD 17)
     include_directories(exif/include)
     add_subdirectory(angelscript)
     # include_directories(angelscript/include)
+
     if(WIN32)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")
     elseif(UNIX)
@@ -62,7 +63,7 @@ set(CMAKE_CXX_STANDARD 17)
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
             endif ()
-    find_package(wxWidgets 3.1 MODULE REQUIRED COMPONENTS base core adv html gl stc)
+    find_package(wxWidgets 3.1 MODULE REQUIRED COMPONENTS base core adv html gl stc webview)
 
     include(${wxWidgets_USE_FILE})
 

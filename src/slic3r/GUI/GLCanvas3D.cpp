@@ -2070,21 +2070,6 @@ void GLCanvas3D::render()
     // draw overlays
     _render_overlays();
 
-    if (wxGetApp().plater()->is_render_statistic_dialog_visible()) {
-        ImGuiWrapper& imgui = *wxGetApp().imgui();
-        imgui.begin(std::string("Render statistics"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-        imgui.text("FPS (SwapBuffers() calls per second):");
-        ImGui::SameLine();
-        imgui.text(std::to_string(m_render_stats.get_fps_and_reset_if_needed()));
-        ImGui::Separator();
-        imgui.text("Compressed textures:");
-        ImGui::SameLine();
-        imgui.text(OpenGLManager::are_compressed_textures_supported() ? "supported" : "not supported");
-        imgui.text("Max texture size:");
-        ImGui::SameLine();
-        imgui.text(std::to_string(OpenGLManager::get_gl_info().get_max_tex_size()));
-        imgui.end();
-    }
 
 #if ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW
     if (wxGetApp().is_editor() && wxGetApp().plater()->is_view3D_shown())
