@@ -1941,7 +1941,8 @@ static void increase_areas_one_layer(
                              "Parent " << &parent << ": Radius: " << support_element_collision_radius(config, parent.state) << " at layer: " << layer_idx << " NextTarget: " << parent.state.layer_idx <<
                              " Distance to top: " << parent.state.distance_to_top << " Elephant foot increases " << parent.state.elephant_foot_increases << "  use_min_xy_dist " << parent.state.use_min_xy_dist <<
                              " to buildplate " << parent.state.to_buildplate << " gracious " << parent.state.to_model_gracious << " safe " << parent.state.can_use_safe_radius << " until move " << parent.state.dont_move_until;
-                    tree_supports_show_error("Potentially lost branch!"sv, true);
+                            tree_supports_show_error("Potentially lost branch!"sv, true);
+                    
 #ifdef TREE_SUPPORTS_TRACK_LOST
                     if (result)
                         result->lost = true;

@@ -11,10 +11,9 @@ group:Size and coordinates
 		setting:lift_min
 		setting:z_offset
 	end_line
-
 group:extruders_count_event:milling_count_event:Capabilities
-	setting:single_extruder_multi_material
 	extruders_count
+	setting:single_extruder_multi_material
 	milling_count
 group:Print Host upload
 	print_host_upload_description
@@ -53,25 +52,23 @@ group:Cooling fan
 		setting:label$:fan_speedup_time
 		setting:label$Only for overhangs:fan_speedup_overhangs
 	end_line
-
+	setting:label$Kickstart duration:fan_kickstart
+	setting:fan_percentage
 group:Thumbnails
-	line:Color override
-		setting:label$:sidetext_width$1:thumbnails_custom_color
-		setting:label$:label_width$1:thumbnails_color
-	end_line
-
 	line:Size for Gcode
 		setting:id$0:label$Small:thumbnails
 		setting:id$1:label$Big:thumbnails
 	end_line
-
+	line:Color override
+		setting:label$:sidetext_width$1:thumbnails_custom_color
+		setting:label$:label_width$1:thumbnails_color
+	end_line
 	line:Thumbnail options
 		setting:thumbnails_format
 		setting:thumbnails_with_bed
 		setting:thumbnails_tag_format
 		setting:thumbnails_end_file
 	end_line
-
 group:Advanced
 	setting:use_relative_e_distances
 	setting:use_firmware_retraction

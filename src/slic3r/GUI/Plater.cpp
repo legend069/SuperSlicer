@@ -8928,6 +8928,11 @@ bool Plater::can_mirror() const { return p->can_mirror(); }
 bool Plater::can_split(bool to_objects) const { return p->can_split(to_objects); }
 bool Plater::can_scale_to_print_volume() const { return p->can_scale_to_print_volume(); }
 
+bool Plater::is_render_statistic_dialog_visible() const
+{
+    return p->show_render_statistic_dialog;
+}
+
 const UndoRedo::Stack &Plater::undo_redo_stack_main() const { return p->undo_redo_stack_main(); }
 void                   Plater::clear_undo_redo_stack_main() { p->undo_redo_stack_main().clear(); }
 void                   Plater::enter_gizmos_stack() { p->enter_gizmos_stack(); }

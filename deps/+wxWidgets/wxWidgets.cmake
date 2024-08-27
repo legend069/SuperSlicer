@@ -9,6 +9,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(_wx_toolkit "-DwxBUILD_TOOLKIT=gtk${_gtk_ver}")
 endif()
 
+if (MSVC)
+    set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=ON")
+else ()
+    set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=OFF")
+endif ()
+
 set(_unicode_utf8 OFF)
 if (UNIX AND NOT APPLE) # wxWidgets will not use char as the underlying type for wxString unless its forced to.
     set (_unicode_utf8 ON)
@@ -22,6 +28,12 @@ add_cmake_project(wxWidgets
         -DwxBUILD_PRECOMP=ON
         ${_wx_toolkit}
         -DwxUSE_MEDIACTRL=OFF
+        -DwxUSE_OPENGL=ON
+        -DwxUSE_WEBVIEW=ON
+        ${_wx_edge}
+        -DwxUSE_WEBVIEW_IE=OFF
+        -DwxUSE_SCINTILLA=ON
+        -DwxUSE_WEBVIEW_WEBKIT=ON
         -DwxUSE_DETECT_SM=OFF
         -DwxUSE_UNICODE=ON
         -DwxUSE_UNICODE_UTF8=${_unicode_utf8}
