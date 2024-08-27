@@ -485,27 +485,27 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
                 add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
                         Vec3d{ left_border_x_pos , bend_pos_mid.y(), z_others_pos },
-                        /*scale*/Vec3d{ scaled_l_border_x_percentage, scaled_lr_border_y_percentage, z_scale_others });         //Left border
+                        /*scale*/Vec3d{ scaled_l_border_x_percentage, scaled_lr_border_y_percentage, z_scale_others }, false);         //Left border
                 
                 add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
                     Vec3d{ right_border_x_pos , bend_pos_mid.y(), z_others_pos },
-                        /*scale*/Vec3d{ scaled_r_border_x_percentage , scaled_lr_border_y_percentage , z_scale_others});        //right border
+                        /*scale*/Vec3d{ scaled_r_border_x_percentage , scaled_lr_border_y_percentage , z_scale_others}, false);        //right border
                 
 
                 add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),//on odd number of count_increments the bottom border is not joined to the side borders. fixing this bug will require
                     Vec3d{ tb_border_x_pos , bend_pos_first.y() - (xy_scaled_90_bend_y / 2) - (xy_scaled_border_y / 2) - nozzle_diameter, z_others_pos },                      // adding more if/else statements to add the extra offset and apply this to all other calculations for the border scale and position.
-                        /*scale*/Vec3d{ scaled_tb_border_x_percentage , scaled_tb_border_y_percentage, z_scale_others });       //bottom border
+                        /*scale*/Vec3d{ scaled_tb_border_x_percentage , scaled_tb_border_y_percentage, z_scale_others }, false);       //bottom border
                 //----------
                 add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
                     Vec3d{ tb_border_x_pos , bend_pos_last.y() + (xy_scaled_90_bend_y / 2) + (xy_scaled_border_y / 2) + nozzle_diameter, z_others_pos },
-                        /*scale*/Vec3d{ scaled_tb_border_x_percentage, scaled_tb_border_y_percentage, z_scale_others});         //top border
+                        /*scale*/Vec3d{ scaled_tb_border_x_percentage, scaled_tb_border_y_percentage, z_scale_others}, false);         //top border
                 //  scale model in percentage from original models xy values!
 
 
                 if (id_item < 10){ //will break if max test count goes higher.
                     add_part(model.objects[objs_idx[id_item]],(boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / (std::to_string(id_item) + std::string(".3mf"))).string(),
                         Vec3d{ number_pos_mid.x(), bend_pos_first.y() - (xy_scaled_90_bend_y / 2) + (xy_scaled_number_y / 2), z_scaled_model_height },
-                            /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_others * 2 });      // currentTestCount identifer
+                            /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_others * 2 }, false);      // currentTestCount identifer
                 }
             }
 
@@ -530,13 +530,13 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                     if (pa_values_string[j] == '.') {
                         add_part(model.objects[objs_idx[id_item]],(boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "point.3mf").string(),
                             Vec3d{ xpos - (xy_scaled_number_x / 2), ypos /* - xy_scaled_point_xy - xyzScale*/, z_scaled_model_height },// point gets moved to wrong position on all nozzle_sizes, guessing it's exported offset position doesn't get scaled with the model.
-                                /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale + (xyzScale / 2), z_scale_others * 2 });
+                                /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale + (xyzScale / 2), z_scale_others * 2 }, false);
                         xpos -= (xy_scaled_number_x / 2);
 
                     } else if (std::isdigit(pa_values_string[j])) {
                         add_part(model.objects[objs_idx[id_item]],(boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / (pa_values_string[j] + std::string(".3mf"))).string(),
                             Vec3d{ xpos, ypos, z_scaled_model_height },// might need to re size the numbers a touch. they get marked as "thin walls"
-                                /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_others * 2 });//TOCHECK: if any numbers get gapfill
+                                /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_others * 2 }, false);//TOCHECK: if any numbers get gapfill
                     }
 
                     Eigen::Vector3d modelPosition(xpos + (xy_scaled_number_x / 2) + nozzle_diameter + (xy_scaled_number_x / 2), ypos, z_scaled_model_height);
@@ -551,6 +551,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     // => settings that are for object or region should be added to the model (see below, in the for loop), not here
     DynamicPrintConfig new_print_config = *print_config;
     DynamicPrintConfig new_printer_config = *printer_config;
+    //check if setting any config values to 45° breaks it. or it might be the default value for rotation adding part?
     new_print_config.set_key_value("avoid_crossing_perimeters", new ConfigOptionBool(false));
     new_print_config.set_key_value("complete_objects", new ConfigOptionBool(false)); //true is required for multi tests on single plate?
     new_print_config.set_key_value("first_layer_flow_ratio", new ConfigOptionPercent(100));
@@ -701,7 +702,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + " ; " + er_role ));
                 //new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 0} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));// TOFIX:  if multi tests need to adjust this to add syntax for volumes.
             }
-            new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 0} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));// TOFIX:  if multi tests need to adjust this to add syntax for volumes.
+            new_printer_config.set_key_value("before_layer_gcode", new ConfigOptionString(std::string("{if layer_num == 1} ") + set_advance_prefix + std::to_string(first_pa) + " {endif}"));// TOFIX:  if multi tests need to adjust this to add syntax for volumes so each test can have seperate first layer value. or to remove extra rows of "dynamicFirstPa"?
             num_part++;
             //model.objects[objs_idx[id_item]]->ensure_on_bed(); // put at the correct z (kind of arrange-z))
             //model.objects[objs_idx[id_item]]->center_around_origin();
@@ -713,7 +714,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     plat->on_config_change(new_print_config);
     this->gui_app->get_tab(Preset::TYPE_PRINTER)->load_config(new_printer_config);
     plat->on_config_change(new_printer_config);
-    //enable it later as a safeguard, shouldn't be needed though.
+    //enable it later as a safeguard?, shouldn't be needed though.
     //for (size_t obj_idx : objs_idx) { model.objects[obj_idx]->ensure_on_bed(); } // put at the correct z (kind of arrange-z))
     //for (size_t obj_idx : objs_idx) { model.objects[obj_idx]->center_around_origin();}
     plat->changed_objects(objs_idx);
