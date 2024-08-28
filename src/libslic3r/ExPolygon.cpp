@@ -93,7 +93,12 @@ bool ExPolygon::contains(const Line &line) const
 
 bool ExPolygon::contains(const Polyline &polyline) const
 {
+#if _DEBUG
+    auto diff = diff_pl(polyline, *this);
+    return diff.empty();
+#else
     return diff_pl(polyline, *this).empty();
+#endif
 }
 
 bool ExPolygon::contains(const Polylines &polylines) const
