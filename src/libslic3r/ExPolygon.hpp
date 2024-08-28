@@ -76,7 +76,8 @@ public:
     // Namely expolygons touching at a vertical boundary are considered overlapping, while expolygons touching
     // at a horizontal boundary are NOT considered overlapping.
     bool overlaps(const ExPolygon &other) const;
-
+    
+    void douglas_peucker(coord_t tolerance);
     void simplify_p(double tolerance, Polygons* polygons) const;
     Polygons simplify_p(double tolerance) const;
     ExPolygons simplify(double tolerance) const;
@@ -90,6 +91,18 @@ public:
     size_t   		num_contours() const { return this->holes.size() + 1; }
     Polygon& 		contour_or_hole(size_t idx) 		{ return (idx == 0) ? this->contour : this->holes[idx - 1]; }
     const Polygon& 	contour_or_hole(size_t idx) const 	{ return (idx == 0) ? this->contour : this->holes[idx - 1]; }
+
+#ifdef _DEBUGINFO
+    void assert_point_distance() const {
+        contour.assert_point_distance();
+        for (const Polygon& hole : holes)
+            hole.assert_point_distance();
+    }
+    // to create a cpp multipoint to create test units.
+    std::string to_debug_string();
+#else
+    void assert_point_distance() const {}
+#endif
 };
 
 inline bool operator==(const ExPolygon &lhs, const ExPolygon &rhs) { return lhs.contour == rhs.contour && lhs.holes == rhs.holes; }

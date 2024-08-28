@@ -153,11 +153,13 @@ public:
             return Vec2d(unscaled<double>(point.x()), unscaled<double>(point.y())) + m_origin
                 - m_writer.current_tool_offset();
         } else {
+            assert(false);
             const Vec2d gcode_point_xy{this->point_to_gcode(point.template head<2>())};
             return to_3d(gcode_point_xy, unscaled(point.z()));
         }
     }
-
+    Vec2d point2d_to_gcode(const Point &point) const;
+    Vec3d point3d_to_gcode(const Vec3crd &point) const;
     // Convert coordinates of the active object to G-code coordinates, possibly adjusted for extruder offset and quantized to G-code resolution.
     template<typename Derived>
     Vec2d           point_to_gcode_quantized(const Eigen::MatrixBase<Derived> &point) const {
@@ -165,7 +167,7 @@ public:
         Vec2d p = this->point_to_gcode(point);
         return m_writer.get_default_gcode_formatter().quantize(p);
     }
-    Vec3d           point_to_gcode(const Point &point, coord_t z_offset) const;
+    Vec3d           point_to_gcode(const Point &point, coord_t z_pos) const;
     Point           gcode_to_point(const Vec2d &point) const;
     const FullPrintConfig &config() const { return m_config; }
     const Layer*    layer() const { return m_layer; }
@@ -243,8 +245,6 @@ private:
     static ObjectsLayerToPrint         		                     collect_layers_to_print(const PrintObject &object, Print::StatusMonitor &status_monitor);
     static std::vector<std::pair<coordf_t, ObjectsLayerToPrint>> collect_layers_to_print(const Print &print, Print::StatusMonitor &status_monitor);
 
-    /** @brief Generates ramping travel gcode for layer change. */
-    std::string get_layer_change_gcode(const Vec3d& from, const Vec3d& to, const unsigned extruder_id);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -284,11 +284,7 @@ private:
     
     void            set_extruders(const std::vector<uint16_t> &extruder_ids);
     std::string     preamble();
-    std::string change_layer(
-        double previous_layer_z,
-        double print_z,
-        bool vase_mode
-    );
+    std::string change_layer(double print_z);
 
     std::string      visitor_gcode;
     bool             visitor_flipped; //TODO use instead of reverse() at extrude_entity
@@ -383,8 +379,9 @@ private:
          bool& could_be_wipe_disabled
      );
     Polyline        travel_to(std::string& gcode, const Point &end_point, ExtrusionRole role);
-    void            write_travel_to(std::string& gcode, const Polyline& travel, std::string comment);
-    std::string     travel_to_first_position(const Vec3crd& point);
+    void            write_travel_to(std::string& gcode, Polyline& travel, std::string comment);
+    std::vector<coord_t> get_travel_elevation(Polyline& travel);
+    //std::string     travel_to_first_position(const Vec3crd& point);
     bool            can_cross_perimeter(const Polyline& travel, bool offset);
     bool            needs_retraction(const Polyline &travel, ExtrusionRole role = ExtrusionRole::None, coordf_t max_min_dist = 0);
 
@@ -456,6 +453,7 @@ private:
     // Markers for the Pressure Equalizer to recognize the extrusion type.
     // The Pressure Equalizer removes the markers from the final G-code.
     bool                                m_enable_extrusion_role_markers;
+    int                                 m_check_markers = 0;
     // HACK to avoid multiple Z move.
     std::string                         m_delayed_layer_change;
     // Keeps track of the last extrusion role passed to the processor
@@ -487,14 +485,14 @@ private:
     // Support for the extrusion role markers. Which marker is active?
     GCodeExtrusionRole                  m_last_extrusion_role;
     // Not know the gapfill role for retract_lift_top
-    GCodeExtrusionRole                  m_last_notgapfill_extrusion_role;
+    GCodeExtrusionRole                  m_last_not_gapfill_extrusion_role;
     // Support for G-Code Processor
     double                              m_last_height{ 0.0 };
     double                              m_last_layer_z{ 0.0 };
     double                              m_max_layer_z{ 0.0 };
     double                              m_last_width{ 0.0 };
     // to pass between before_xtrude and after_extrude.
-    double                              m_last_fan_override{ -1.0 };
+    double                              m_overhang_fan_override{ -1.0 };
 #if ENABLE_GCODE_VIEWER_DATA_CHECKING
     double                              m_last_mm3_per_mm;
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
@@ -502,10 +500,8 @@ private:
     const PrintInstance*                m_last_instance {nullptr};
     std::optional<Point>                m_last_pos;
 
-    std::optional<Vec3d>                m_previous_layer_last_position;
-    std::optional<Vec3d>                m_previous_layer_last_position_before_wipe;
-    // This needs to be populated during the layer processing!
-    std::optional<Vec3d>                m_current_layer_first_position;
+    bool                                m_new_layer = false;
+
     double                              m_current_perimeter_extrusion_width = 0.4;
     std::optional<unsigned>             m_layer_change_extruder_id;
     // bool                                m_already_unretracted{false};
@@ -543,6 +539,7 @@ private:
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;
     bool m_gcode_label_objects_in_session = false;
+    ObjectID m_gcode_label_objects_last_object_id = -1;
     void _add_object_change_labels(std::string &gcode);
     void ensure_end_object_change_labels(std::string &gcode);
 
@@ -561,7 +558,7 @@ private:
     void                      _extrude_line(std::string& gcode_str, const Line& line, const double e_per_mm, const std::string_view comment, ExtrusionRole role);
     void                      _extrude_line_cut_corner(std::string& gcode_str, const Line& line, const double e_per_mm, const std::string_view comment, Point& last_pos, const double path_width);
     std::string               _before_extrude(const ExtrusionPath &path, const std::string_view description, double speed = -1);
-    double_t                  _compute_speed_mm_per_sec(const ExtrusionPath &path_attrs, double speed, double &fan_speed, std::string *comment);
+    double_t                  _compute_speed_mm_per_sec(const ExtrusionPath &path_attrs, const double speed, double &fan_speed, std::string *comment);
     std::pair<double, double> _compute_acceleration(const ExtrusionPath &path);
     std::string               _after_extrude(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream &file, const Print &print);

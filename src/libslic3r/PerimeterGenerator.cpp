@@ -63,26 +63,31 @@
 
 
 namespace Slic3r::PerimeterGenerator {
+
+
+void assert_check_polygon(const Polygon &polygon) {
 #if _DEBUG
-struct LoopAssertVisitor : public ExtrusionVisitorRecursiveConst {
-    virtual void default_use(const ExtrusionEntity& entity) override {};
-    virtual void use(const ExtrusionPath &path) override {
-        for (size_t idx = 1; idx < path.size(); ++idx)
-            assert(!path.polyline.get_point(idx - 1).coincides_with_epsilon(path.polyline.get_point(idx)));
-    }
-    virtual void use(const ExtrusionLoop& loop) override {
-        Point last_pt = loop.last_point();
-        for (const ExtrusionPath &path : loop.paths) {
-            assert(path.polyline.size() >= 2);
-            assert(path.first_point() == last_pt);
-            for (size_t idx = 1; idx < path.size(); ++idx)
-                assert(!path.polyline.get_point(idx - 1).coincides_with_epsilon(path.polyline.get_point(idx)));
-            last_pt = path.last_point();
-        }
-        assert(loop.paths.front().first_point() == loop.paths.back().last_point());
-    }
-};
+    for (size_t i_pt = 1; i_pt < polygon.size(); ++i_pt)
+        assert(!polygon.points[i_pt - 1].coincides_with_epsilon(polygon.points[i_pt]));
+    assert(!polygon.points.front().coincides_with_epsilon(polygon.points.back()));
 #endif
+}
+
+void assert_check_polygons(const Polygons &polygons) {
+#if _DEBUG
+    for (const Polygon &polygon : polygons)
+        assert_check_polygon(polygon);
+#endif
+}
+void assert_check_loops(const std::vector<PerimeterGeneratorLoops> &loops) {
+#if _DEBUG
+    for (const PerimeterGeneratorLoops &pgls : loops) {
+        for (const PerimeterGeneratorLoop &pgl : pgls) {
+            assert_check_polygon(pgl.polygon);
+        }
+    }
+#endif
+}
 
 PerimeterGeneratorLoops get_all_Childs(PerimeterGeneratorLoop loop) {
     PerimeterGeneratorLoops ret;
@@ -396,7 +401,7 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
         // detect overhanging/bridging perimeters
         ExtrusionPaths paths;
 
-        bool can_overhang = params.config.overhangs_width_speed.value > 0
+        bool can_overhang = params.config.overhangs_width_speed.is_enabled()
             && params.layer->id() > params.object_config.raft_layers;
         if(params.object_config.support_material && params.object_config.support_material_contact_distance_type.value == zdNone)
             can_overhang = false;
@@ -500,9 +505,8 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
     const bool CCW_hole = params.config.perimeter_direction.value == PerimeterDirection::pdCW_CCW ||  params.config.perimeter_direction.value == PerimeterDirection::pdCCW_CCW;
 
 #if _DEBUG
-    LoopAssertVisitor visitor;
     for(auto ee : coll)
-        ee->visit(visitor);
+        DEBUG_VISIT(*ee, LoopAssertVisitor())
 #endif
     //move from coll to coll_out and getting children of each in the same time. (deep first)
     for (const std::pair<size_t, bool> &idx : better_chain) {
@@ -525,16 +529,14 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
 #if _DEBUG
             for(auto ee : coll)
                 if(ee)
-                    ee->visit(visitor);
-            for (size_t i_pt = 1; i_pt < loop.polygon.size(); ++i_pt)
-                assert(!loop.polygon.points[i_pt - 1].coincides_with_epsilon(loop.polygon.points[i_pt]));
-            assert(!loop.polygon.points.front().coincides_with_epsilon(loop.polygon.points.back()));
+                    ee->visit(LoopAssertVisitor());
+            loop.polygon.assert_point_distance();
 #endif
             ExtrusionLoop* eloop = static_cast<ExtrusionLoop*>(coll[idx.first]);
             bool has_overhang = false;
             if (params.config.overhangs_speed_enforce.value > 0) {
                 for (const ExtrusionPath& path : eloop->paths) {
-                    if (path.role().has(ExtrusionRole::OverhangPerimeter)) {
+                    if (path.role().is_overhang()) {
                         has_overhang = true;
                         break;
                     }
@@ -554,7 +556,7 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
 #if _DEBUG
             for(auto ee : coll)
                 if(ee)
-                    ee->visit(visitor);
+                    ee->visit(LoopAssertVisitor());
 #endif
             assert(thin_walls.empty());
             ExtrusionEntityCollection children = this->_traverse_loops_classic(params, loop.children, thin_walls, has_overhang ? 1 : (count_since_overhang+1));
@@ -619,7 +621,7 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
         }
     }
 #if _DEBUG
-    coll_out.visit(visitor);
+    coll_out.visit(LoopAssertVisitor());
 #endif
     return coll_out;
 }
@@ -634,9 +636,12 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
         assert(!loop_polygons.points[idx - 1].coincides_with_epsilon(loop_polygons.points[idx]));
 #endif
     ExtrusionPaths paths;
-    const double overhangs_width = params.config.overhangs_width.get_abs_value(params.overhang_flow.nozzle_diameter());
-    const double overhangs_width_speed = params.config.overhangs_width_speed.get_abs_value(params.overhang_flow.nozzle_diameter());
-    if ( 0 == overhangs_width && 0 == overhangs_width_speed) {
+    bool speed_enabled = params.config.overhangs_width_speed.is_enabled();
+    bool flow_enabled = speed_enabled && params.config.overhangs_width.is_enabled();
+    bool dynamic_enabled = params.config.overhangs_dynamic_speed.is_enabled();
+    const double overhangs_width = !flow_enabled ? 0 : params.config.overhangs_width.get_abs_value(params.overhang_flow.nozzle_diameter());
+    const double overhangs_width_speed = !speed_enabled ? (dynamic_enabled ? params.overhang_flow.nozzle_diameter() : 0) : params.config.overhangs_width_speed.get_abs_value(params.overhang_flow.nozzle_diameter());
+    if ( !flow_enabled && !speed_enabled) {
         //error
         paths.emplace_back(
             loop_polygons,
@@ -664,8 +669,10 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     //set the fan & speed before the flow
     Polylines ok_polylines = { loop_polygons };
 
+    Polylines dynamic_speed;
     Polylines small_speed;
     Polylines big_speed;
+    bool no_small_speed = dynamic_enabled && params.lower_slices_bridge_dynamic == params.lower_slices_bridge_speed_small;
     bool no_small_flow = params.lower_slices_bridge_speed_big == params.lower_slices_bridge_flow_small;
     Polylines small_flow;
     Polylines big_flow;
@@ -679,8 +686,31 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     bbox.offset(SCALED_EPSILON);
     // detect each overhang area
     Polylines* previous = &ok_polylines;
-    if (overhangs_width_speed > 0 && (overhangs_width_speed < overhangs_width || overhangs_width == 0)) {
-        if (!params.lower_slices_bridge_speed_small.empty()) {
+    if (dynamic_enabled) {
+        if (!params.lower_slices_bridge_dynamic.empty()) {
+            Polygons lower_slices_bridge_clipped = 
+                ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_dynamic, bbox);
+            if (!lower_slices_bridge_clipped.empty()) {
+                dynamic_speed = diff_pl(*previous, lower_slices_bridge_clipped);
+#ifdef _DEBUG
+                for (Polyline& poly : dynamic_speed) //                       assert dynamic_speed
+                    for (int i = 0; i < poly.points.size() - 1; i++) //     assert dynamic_speed
+                        assert(!poly.points[i].coincides_with_epsilon(poly.points[i + 1])); //    assert dynamic_speed
+#endif
+                if (!dynamic_speed.empty()) {
+                    *previous = intersection_pl(*previous, lower_slices_bridge_clipped);
+#ifdef _DEBUG
+                    for (Polyline& poly : *previous) //                         assert previous
+                        for (int i = 0; i < poly.points.size() - 1; i++) //     assert previous
+                            assert(!poly.points[i].coincides_with_epsilon(poly.points[i + 1])); //    assert previous
+#endif
+                    previous = &dynamic_speed;
+                } 
+            }
+        }
+    }
+    if (dynamic_enabled || (speed_enabled && (overhangs_width_speed < overhangs_width || !flow_enabled))) {
+        if ( !params.lower_slices_bridge_speed_small.empty()) {
             Polygons lower_slices_bridge_speed_small_clipped = 
                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_speed_small, bbox);
             if (!lower_slices_bridge_speed_small_clipped.empty()) {
@@ -723,8 +753,8 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
             }
         }
     }
-    if (overhangs_width > 0) {
-        if (!params.lower_slices_bridge_flow_small.empty()) {
+    if (flow_enabled) {
+        if ( !params.lower_slices_bridge_flow_small.empty()) {
             Polygons lower_slices_bridge_flow_small_clipped = 
                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_flow_small, bbox);
             if (!lower_slices_bridge_flow_small_clipped.empty()) {
@@ -769,9 +799,10 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     }
 
     //note: layer height is used to identify the path type
+    int idx_lh_size = 0;
     if (!ok_polylines.empty()) {
         //fast track
-        if (small_speed.empty() && big_speed.empty() && small_flow.empty() && big_flow.empty()) {
+        if (dynamic_speed.empty() && small_speed.empty() && big_speed.empty() && small_flow.empty() && big_flow.empty()) {
             return { ExtrusionPath{
                 loop_polygons,
                 ExtrusionAttributes{
@@ -791,11 +822,26 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 role,
                 ExtrusionFlow(is_external ? params.ext_mm3_per_mm() : params.mm3_per_mm(),
                     is_external ? params.ext_perimeter_flow.width() : params.perimeter_flow.width(),
-                    0 // layer height is used as id, temporarly
+                    idx_lh_size // layer height is used as id, temporarly
             )}
         );
     }
+    idx_lh_size++;
+    if (!dynamic_speed.empty()) {
+        extrusion_paths_append(
+            paths,
+            dynamic_speed,
+            ExtrusionAttributes{
+                role | ExtrusionRole::Bridge,
+                ExtrusionFlow(is_external ? params.ext_mm3_per_mm() : params.mm3_per_mm(),
+                    is_external ? params.ext_perimeter_flow.width() : params.perimeter_flow.width(),
+                    idx_lh_size // layer height is used as id, temporarly
+            )}
+        );
+        idx_lh_size++;
+    }
     if (!small_speed.empty()) {
+        assert(!no_small_speed);
         extrusion_paths_append(
             paths,
             small_speed,
@@ -803,10 +849,14 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 role | ExtrusionRole::Bridge,
                 ExtrusionFlow(is_external ? params.ext_mm3_per_mm() : params.mm3_per_mm(),
                     is_external ? params.ext_perimeter_flow.width() : params.perimeter_flow.width(),
-                    no_small_flow ? 2 : 1 // layer height is used as id, temporarly
+                    idx_lh_size // layer height is used as id, temporarly
             )}
         );
     }
+    //if (!no_small_speed)
+        idx_lh_size++;
+    //else
+        //assert(small_speed.empty());
     if (!big_speed.empty()) {
         extrusion_paths_append(
             paths,
@@ -815,11 +865,13 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 role | ExtrusionRole::Bridge,
                 ExtrusionFlow(is_external ? params.ext_mm3_per_mm() : params.mm3_per_mm(),
                     is_external ? params.ext_perimeter_flow.width() : params.perimeter_flow.width(),
-                    no_small_flow ? 3 : 2 // layer height is used as id, temporarly
+                    idx_lh_size // layer height is used as id, temporarly
             )}
         );
     }
+    idx_lh_size++;
     if (!small_flow.empty()) {
+        assert(!no_small_flow);
         extrusion_paths_append(
             paths,
             small_flow,
@@ -827,10 +879,14 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 role | ExtrusionRole::Bridge,
                 ExtrusionFlow(params.m_mm3_per_mm_overhang,
                     params.overhang_flow.width(),
-                    3 // layer height is used as id, temporarly
+                    idx_lh_size // layer height is used as id, temporarly
             )}
         );
     }
+    if(!no_small_flow)
+        idx_lh_size++;
+    else
+        assert(small_flow.empty());
     if (!big_flow.empty()) {
         extrusion_paths_append(
             paths,
@@ -839,19 +895,20 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 role | ExtrusionRole::Bridge,
                 ExtrusionFlow(params.m_mm3_per_mm_overhang,
                     params.overhang_flow.width(),
-                    4 // layer height is used as id, temporarly
+                    idx_lh_size // layer height is used as id, temporarly
             )}
         );
     }
-
+    idx_lh_size++;
+    assert(idx_lh_size > 3 && idx_lh_size < 7);
     // reapply the nearest point search for starting point
     // We allow polyline reversal because Clipper may have randomly reversed polylines during clipping.
     if(!paths.empty())
         chain_and_reorder_extrusion_paths(paths, &paths.front().first_point());
 
-    bool has_normal = !ok_polylines.empty();
-    bool has_speed = !small_speed.empty() || !big_speed.empty();
-    bool has_flow = !small_flow.empty() || !big_flow.empty();
+    //bool has_normal = !ok_polylines.empty();
+    //bool has_speed = !small_speed.empty() || !big_speed.empty();
+    //bool has_flow = !small_flow.empty() || !big_flow.empty();
 
     // now, we are going to remove very small overhangs by merging them into one of their neighbor.
     // big speed should go into a normal perimeter or speed overhang.
@@ -893,6 +950,9 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     if (paths.size() > 2) {
         double min_length = params.perimeter_flow.scaled_width() * 2;
         double ok_length = params.perimeter_flow.scaled_width() * 20;
+        if (dynamic_enabled) {
+            min_length = params.perimeter_flow.scaled_width() / 2;
+        }
         
         // merge too small paths into neighbor
         //curr will be deleted by 'foreach' (our caller, see above) if the return value is true. So its points need to be merged in prev or next.
@@ -900,7 +960,9 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
             if (curr.length() < min_length) {
                 float diff_height = std::abs(prev.height() - curr.height()) - std::abs(next.height() - curr.height());
                 //have to choose the rigth path
-                if (diff_height < 0 || (diff_height == 0 && prev.length() > next.length())) {
+                if (diff_height < 0
+                    || (diff_height == 0 && prev.height() > next.height())
+                    || (diff_height == 0 && prev.height() == next.height() && prev.length() < next.length())) {
                     //merge to previous
                     assert(prev.last_point() == curr.first_point());
                     assert(curr.polyline.size() > 1);
@@ -913,7 +975,7 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                     next.polyline.swap(curr.polyline);
                 }
                 return true;
-            } else if(((int)curr.height()) % 2 == 1 && curr.length() > ok_length){
+            } else if(curr.length() > ok_length){
                 curr.attributes_mutable().height++;
                 if (prev.height() == curr.height()) {
                     prev.polyline.append(curr.polyline);
@@ -929,50 +991,63 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 return false;
             }
         });
-
-        // small flow => big flow unless there is none, then merge into big speed
-        foreach(paths, [](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
-            if (curr.height() == 3) {
-                //have to choose the rigth path
-                if (prev.height() == 4 || (prev.height() == 2 && next.height() < 2)) {
-                    //merge to previous
-                    assert(prev.last_point() == curr.first_point());
-                    assert(curr.polyline.size() > 1);
-                    prev.polyline.append(curr.polyline);
-                } else {
-                    //merge to next
-                    assert(curr.last_point() == next.first_point());
-                    assert(curr.polyline.size() > 1);
-                    curr.polyline.append(next.polyline);
-                    next.polyline.swap(curr.polyline);
+        
+        if (idx_lh_size >= (dynamic_enabled ? 4 : 3) ) {
+            size_t idx_to_merge = idx_lh_size - 2;
+            // small flow => big flow unless there is none, then merge into big speed
+            foreach (paths, [idx_to_merge](ExtrusionPath &prev, ExtrusionPath &curr, ExtrusionPath &next) {
+                if (curr.height() == idx_to_merge) {
+                    // have to choose the rigth path
+                    if (prev.height() == idx_to_merge + 1 ||
+                        (prev.height() == idx_to_merge - 1 && next.height() < idx_to_merge - 1)) {
+                        // merge to previous
+                        assert(prev.last_point() == curr.first_point());
+                        assert(curr.polyline.size() > 1);
+                        prev.polyline.append(curr.polyline);
+                    } else {
+                        // merge to next
+                        assert(curr.last_point() == next.first_point());
+                        assert(curr.polyline.size() > 1);
+                        curr.polyline.append(next.polyline);
+                        next.polyline.swap(curr.polyline);
+                    }
+                    return true;
                 }
-                return true;
+                return false;
+            })
+                ;
+            // small speed => big speed unless there is none, then merge into normal (or dynamic)
+            if (idx_lh_size >= (dynamic_enabled ? 6 : 5)) {
+                idx_to_merge = idx_lh_size - 4;
+                foreach (paths, [idx_to_merge](ExtrusionPath &prev, ExtrusionPath &curr, ExtrusionPath &next) {
+                    if (curr.height() == idx_to_merge) {
+                        // have to choose the rigth path
+                        if (prev.height() == idx_to_merge + 1 ||
+                            (prev.height() == idx_to_merge - 1 && next.height() > idx_to_merge + 1)) {
+                            // merge to previous
+                            assert(prev.last_point() == curr.first_point());
+                            assert(curr.polyline.size() > 1);
+                            prev.polyline.append(curr.polyline);
+                        } else {
+                            // merge to next
+                            assert(curr.last_point() == next.first_point());
+                            assert(curr.polyline.size() > 1);
+                            curr.polyline.append(next.polyline);
+                            next.polyline.swap(curr.polyline);
+                        }
+                        return true;
+                    }
+                    return false;
+                })
+                    ;
             }
-            return false;
-        });
-        // small speed => big speed unless there is none, then merge into normal
-        foreach(paths, [](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
-            if (curr.height() == 1) {
-                //have to choose the rigth path
-                if (prev.height() == 2 || (prev.height() == 0 && next.height() > 2)) {
-                    //merge to previous
-                    assert(prev.last_point() == curr.first_point());
-                    assert(curr.polyline.size() > 1);
-                    prev.polyline.append(curr.polyline);
-                } else {
-                    //merge to next
-                    assert(curr.last_point() == next.first_point());
-                    assert(curr.polyline.size() > 1);
-                    curr.polyline.append(next.polyline);
-                    next.polyline.swap(curr.polyline);
-                }
-                return true;
-            }
-            return false;
-        });
+        }
     }
     if(paths.size() == 2){
         double min_length = params.perimeter_flow.scaled_width() * 2;
+        if (dynamic_enabled) {
+            min_length = params.perimeter_flow.scaled_width() / 2;
+        }
         if (paths.front().length() < min_length) {
             paths.front().polyline.append(paths.back().polyline);
             paths.back().polyline.swap(paths.front().polyline);
@@ -988,34 +1063,67 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     // maybe not a loop?
     Point last_pt = loop_polygons.first_point() == loop_polygons.last_point() ? paths.back().last_point() : paths.front().first_point();
 #endif
+    int last_type_fh = -1;
     for (size_t idx_path = 0; idx_path < paths.size(); ++idx_path) {
         ExtrusionPath& path = paths[idx_path];
-        path.attributes_mutable().height = path.height() < 3 ? (float)params.layer->height : params.overhang_flow.height();
-        
-        if (!path.polyline.normalize()) {
-            //remove this path, change the other ones to be in line.
-            if (paths.size() > 0) {
-                if (idx_path + 1 < paths.size()) {
-                    paths[idx_path + 1].polyline.append_before(path.first_point());
-                } else if (idx_path > 0) {
-                    if (paths[idx_path - 1].last_point().coincides_with_epsilon(path.last_point())) {
-                        paths[idx_path - 1].polyline.set_back(path.last_point());
-                    } else {
-                        paths[idx_path - 1].polyline.append(path.last_point());
-                    }
+        bool need_erase = !path.polyline.normalize() && paths.size() > 0;
+        if (need_erase) {
+            if (idx_path + 1 < paths.size()) {
+                paths[idx_path + 1].polyline.append_before(path.first_point());
+            } else if (idx_path > 0) {
+                if (paths[idx_path - 1].last_point().coincides_with_epsilon(path.last_point())) {
+                    paths[idx_path - 1].polyline.set_back(path.last_point());
+                } else {
+                    paths[idx_path - 1].polyline.append(path.last_point());
                 }
             }
+        }
+        if(!need_erase && last_type_fh == int(path.attributes_mutable().height)
+            && paths[idx_path-1].width() == path.width()) {
+            //merge
+            assert(idx_path > 0);
+            assert(paths[idx_path-1].width() == path.width());
+            assert(paths[idx_path-1].mm3_per_mm() == path.mm3_per_mm());
+            assert(paths[idx_path-1].role() == path.role());
+            need_erase = true;
+            paths[idx_path-1].polyline.append(path.polyline);
+#ifdef _DEBUG
+            for (size_t idx = 1; idx < paths[idx_path-1].size(); ++idx) {
+                assert(!is_approx(paths[idx_path-1].polyline.get_point(idx - 1), paths[idx_path-1].polyline.get_point(idx)));
+            }
+            last_pt = paths[idx_path-1].last_point();
+#endif
+        }
+        if(!need_erase){
+            last_type_fh = int(path.attributes_mutable().height);
+            path.attributes_mutable().height = path.height() < idx_lh_size - 2 ? (float)params.layer->height : params.overhang_flow.height();
+#ifdef _DEBUG
+            assert(last_pt == path.first_point());
+            for (size_t idx = 1; idx < path.size(); ++idx) {
+                assert(!is_approx(path.polyline.get_point(idx - 1), path.polyline.get_point(idx)));
+            }
+            last_pt = path.last_point();
+#endif
+        } else {
+            // remove this path, change the other ones to be in line.
             paths.erase(paths.begin() + idx_path);
             --idx_path;
-            continue;
         }
-#ifdef _DEBUG
-        assert(last_pt == path.first_point());
-        for (size_t idx = 1; idx < path.size(); ++idx)
-            assert(!path.polyline.get_point(idx-1).coincides_with_epsilon(path.polyline.get_point(idx)));
-        last_pt = path.last_point();
-#endif
     }
+
+#ifdef _DEBUG
+    {
+        Point last_pt = paths.front().last_point();
+        for (size_t idx = 1; idx < paths.size(); ++idx) {
+            const ExtrusionPath &path = paths[idx];
+            assert(path.polyline.size() >= 2);
+            assert(path.first_point() == last_pt);
+            for (size_t idx = 1; idx < path.size(); ++idx)
+                assert(!path.polyline.get_point(idx - 1).coincides_with_epsilon(path.polyline.get_point(idx)));
+            last_pt = path.last_point();
+        }
+    }
+#endif
 
     return paths;
 }
@@ -1060,7 +1168,7 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_extrusions(const Paramet
 
         ExtrusionPaths paths;
         // detect overhanging/bridging perimeters
-        if (params.config.overhangs_width_speed > 0 && params.layer->id() > params.object_config.raft_layers
+        if (params.config.overhangs_width_speed.is_enabled() && params.layer->id() > params.object_config.raft_layers
             && !((params.object_config.support_material || params.object_config.support_material_enforce_layers > 0) &&
                 params.object_config.support_material_contact_distance.value == 0)) {
 
@@ -1280,9 +1388,12 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
 {
     ExtrusionPaths paths;
     const bool is_loop = Point{ arachne_path.front().x(), arachne_path.front().y() }.coincides_with_epsilon(Point{ arachne_path.back().x(), arachne_path.back().y() });
-    const double overhangs_width = params.config.overhangs_width.get_abs_value(params.overhang_flow.nozzle_diameter());
-    const double overhangs_width_speed = params.config.overhangs_width_speed.get_abs_value(params.overhang_flow.nozzle_diameter());
-    if (0 == overhangs_width && 0 == overhangs_width_speed) {
+    bool speed_enabled = params.config.overhangs_width_speed.is_enabled();
+    bool flow_enabled = speed_enabled && params.config.overhangs_width.is_enabled();
+    bool dynamic_enabled = params.config.overhangs_dynamic_speed.is_enabled();
+    const double overhangs_width = !flow_enabled ? 0 : params.config.overhangs_width.get_abs_value(params.overhang_flow.nozzle_diameter());
+    const double overhangs_width_speed = !speed_enabled ? 0 : params.config.overhangs_width_speed.get_abs_value(params.overhang_flow.nozzle_diameter());
+    if (!speed_enabled && !flow_enabled) {
         //error
         //assert(path.mm3_per_mm == path.mm3_per_mm);
         //assert(path.width == path.width);
@@ -1303,8 +1414,10 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
     //set the fan & speed before the flow
     ClipperLib_Z::Paths ok_polylines = { arachne_path };
 
+    ClipperLib_Z::Paths dynamic_speed;
     ClipperLib_Z::Paths small_speed;
     ClipperLib_Z::Paths big_speed;
+    bool no_small_speed = dynamic_enabled && params.lower_slices_bridge_dynamic == params.lower_slices_bridge_speed_small;
     bool no_small_flow = params.lower_slices_bridge_speed_big == params.lower_slices_bridge_flow_small;
     ClipperLib_Z::Paths small_flow;
     ClipperLib_Z::Paths big_flow;
@@ -1316,8 +1429,31 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
     ClipperLib_Z::Paths clipped_zpaths;
 
     ClipperLib_Z::Paths* previous = &ok_polylines;
-    if (overhangs_width_speed > 0 && (overhangs_width_speed < overhangs_width || overhangs_width == 0)) {
-        if (!params.lower_slices_bridge_speed_small.empty()) {
+    if (dynamic_enabled && !params.lower_slices_bridge_dynamic.empty()) {
+        convert_to_clipperpath_with_bbox(params.lower_slices_bridge_dynamic, extrusion_path_bbox, clipped_zpaths);
+        if (!clipped_zpaths.empty()) {
+#ifdef _DEBUG
+            Points outer_points;
+            for(auto & line: *previous) for(auto &pt : line) outer_points.emplace_back(coord_t(pt.x()), coord_t(pt.y()));
+#endif
+            dynamic_speed = clip_extrusion(*previous, clipped_zpaths, ClipperLib_Z::ctDifference);
+#ifdef _DEBUG
+            for (ClipperLib_Z::Path& poly : dynamic_speed) //                       assert dynamic_speed
+                for (int i = 0; i < poly.size() - 1; i++) //     assert dynamic_speed
+                    assert(poly[i] != poly[i + 1]); //    assert dynamic_speed
+#endif
+            if (!dynamic_speed.empty()) {
+                *previous = clip_extrusion(*previous, clipped_zpaths, ClipperLib_Z::ctIntersection);
+#ifdef _DEBUG
+            test_overhangs(dynamic_speed, *previous, outer_points);
+            test_overhangs(*previous, dynamic_speed, outer_points);
+#endif
+                previous = &dynamic_speed;
+            }
+        }
+    }
+    if (dynamic_enabled || (speed_enabled && (overhangs_width_speed < overhangs_width || !flow_enabled))) {
+        if (!no_small_speed && !params.lower_slices_bridge_speed_small.empty()) {
             convert_to_clipperpath_with_bbox(params.lower_slices_bridge_speed_small, extrusion_path_bbox, clipped_zpaths);
             if (!clipped_zpaths.empty()) {
                 //small_speed = diff_pl(*previous, this->params.lower_slices_bridge_speed_small);
@@ -1365,8 +1501,8 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
             }
         }
     }
-    if (overhangs_width > 0) {
-        if (!params.lower_slices_bridge_flow_small.empty()) {
+    if (flow_enabled) {
+        if (!no_small_flow && !params.lower_slices_bridge_flow_small.empty()) {
 #ifdef _DEBUG
             Points outer_points;
             for(auto & line: *previous) for(auto &pt : line) outer_points.emplace_back(coord_t(pt.x()), coord_t(pt.y()));
@@ -1415,9 +1551,10 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
     }
 
     //note: layer height is used to identify the path type
+    int idx_lh_size = 0;
     if (!ok_polylines.empty()) {
         //fast track
-        if (small_speed.empty() && big_speed.empty() && small_flow.empty() && big_flow.empty()) {
+        if (dynamic_speed.empty() && small_speed.empty() && big_speed.empty() && small_flow.empty() && big_flow.empty()) {
             ExtrusionPaths thickpaths = Geometry::unsafe_variable_width(Arachne::to_thick_polyline(arachne_path),
                     role,
                     is_external ? params.ext_perimeter_flow : params.perimeter_flow,
@@ -1458,10 +1595,36 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
             assert(thickpaths.empty() || thickpaths.back().last_point().y() == extrusion_path.back().y());
             for (ExtrusionPath& path : thickpaths) {
                 path.set_can_reverse(!is_loop);
-                path.attributes_mutable().height = 0;
+                path.attributes_mutable().height = idx_lh_size;
                 paths.push_back(std::move(path));
             }
         }
+    }
+    idx_lh_size++;
+    if (!dynamic_speed.empty()) {
+        for (const ClipperLib_Z::Path& extrusion_path : dynamic_speed) {
+            ExtrusionPaths thickpaths = Geometry::unsafe_variable_width(Arachne::to_thick_polyline(extrusion_path),
+                    role | ExtrusionRole::Bridge,
+                    is_external ? params.ext_perimeter_flow : params.perimeter_flow,
+                    std::max(params.ext_perimeter_flow.scaled_width() / 4, scale_t(params.print_config.resolution)),
+                    (is_external ? params.ext_perimeter_flow : params.perimeter_flow).scaled_width() / 10);
+#ifdef _DEBUG
+            for (int i = 1; i < thickpaths.size(); i++) {
+                assert(thickpaths[i - 1].last_point() == thickpaths[i].first_point());
+            }
+#endif
+            // thickpaths can be empty if extrusion_path is too short
+            assert(thickpaths.empty() || thickpaths.front().first_point().x() == extrusion_path.front().x());
+            assert(thickpaths.empty() || thickpaths.front().first_point().y() == extrusion_path.front().y());
+            assert(thickpaths.empty() || thickpaths.back().last_point().x() == extrusion_path.back().x());
+            assert(thickpaths.empty() || thickpaths.back().last_point().y() == extrusion_path.back().y());
+            for (ExtrusionPath& path : thickpaths) {
+                path.set_can_reverse(!is_loop);
+                path.attributes_mutable().height = idx_lh_size;
+                paths.push_back(std::move(path));
+            }
+        }
+        idx_lh_size++;
     }
     if (!small_speed.empty()) {
         for (const ClipperLib_Z::Path& extrusion_path : small_speed) {
@@ -1482,11 +1645,12 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
             assert(thickpaths.empty() || thickpaths.back().last_point().y() == extrusion_path.back().y());
             for (ExtrusionPath& path : thickpaths) {
                 path.set_can_reverse(!is_loop);
-                path.attributes_mutable().height = no_small_flow ? 2 : 1;
+                path.attributes_mutable().height = idx_lh_size;
                 paths.push_back(std::move(path));
             }
         }
     }
+    idx_lh_size++;
     if (!big_speed.empty()) {
         for (const ClipperLib_Z::Path& extrusion_path : big_speed) {
             ExtrusionPaths thickpaths = Geometry::unsafe_variable_width(Arachne::to_thick_polyline(extrusion_path),
@@ -1506,11 +1670,12 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
             assert(thickpaths.empty() || thickpaths.back().last_point().y() == extrusion_path.back().y());
             for (ExtrusionPath& path : thickpaths) {
                 path.set_can_reverse(!is_loop);
-                path.attributes_mutable().height = no_small_flow ? 3 : 2;
+                path.attributes_mutable().height = idx_lh_size;
                 paths.push_back(std::move(path));
             }
         }
     }
+    idx_lh_size++;
     if (!small_flow.empty()) {
         for (const ClipperLib_Z::Path& extrusion_path : small_flow) {
             ExtrusionPaths thickpaths = Geometry::unsafe_variable_width(Arachne::to_thick_polyline(extrusion_path),
@@ -1536,11 +1701,15 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
                     path.attributes_mutable().width = params.overhang_flow.width();
                 }
                 path.set_can_reverse(!is_loop);
-                path.attributes_mutable().height = 3;
+                path.attributes_mutable().height = idx_lh_size;
                 paths.push_back(std::move(path));
             }
         }
     }
+    if(!no_small_flow)
+        idx_lh_size++;
+    else
+        assert(small_flow.empty());
     if (!big_flow.empty()) {
         for (const ClipperLib_Z::Path& extrusion_path : big_flow) {
             ExtrusionPaths thickpaths = Geometry::unsafe_variable_width(Arachne::to_thick_polyline(extrusion_path),
@@ -1572,12 +1741,13 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
                     path.attributes_mutable().width = params.overhang_flow.width();
                 }
                 path.set_can_reverse(!is_loop);
-                path.attributes_mutable().height = 4;
+                path.attributes_mutable().height = idx_lh_size;
                 paths.push_back(std::move(path));
             }
         }
     }
-
+    idx_lh_size++;
+    assert(idx_lh_size > 3 && idx_lh_size < 7);
     //FIXME from here, it's exactly the same as the other create_overhangs, please merge that into a function.
     
     //(or not)
@@ -1626,9 +1796,9 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
         }
     }
 
-    bool has_normal = !ok_polylines.empty();
-    bool has_speed = !small_speed.empty() || !big_speed.empty();
-    bool has_flow = !small_flow.empty() || !big_flow.empty();
+    //bool has_normal = !ok_polylines.empty();
+    //bool has_speed = !small_speed.empty() || !big_speed.empty();
+    //bool has_flow = !small_flow.empty() || !big_flow.empty();
 
     std::function<void(ExtrusionPaths&, const std::function<bool(ExtrusionPath&, ExtrusionPath&, ExtrusionPath&)>&)> foreach = [is_loop](ExtrusionPaths& paths, const std::function<bool(ExtrusionPath&, ExtrusionPath&, ExtrusionPath&)>& doforeach) {
         if (paths.size() > 2)
@@ -1669,12 +1839,17 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
     if (paths.size() > 2) {
         double min_length = params.perimeter_flow.scaled_width() * 2;
         double ok_length = params.perimeter_flow.scaled_width() * 20;
+        if (dynamic_enabled) {
+            min_length = params.perimeter_flow.scaled_width() / 2;
+        }
 
         foreach(paths, [min_length, ok_length](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
             if (curr.length() < min_length) {
                 float diff_height = std::abs(prev.height() - curr.height()) - std::abs(next.height() - curr.height());
                 //have to choose the rigth path
-                if (diff_height < 0 || (diff_height == 0 && prev.length() > next.length())) {
+                if (diff_height < 0
+                    || (diff_height == 0 && prev.height() > next.height())
+                    || (diff_height == 0 && prev.height() == next.height() && prev.length() < next.length())) {
                     //merge to previous
                     assert(prev.last_point() == curr.first_point());
                     assert(curr.polyline.size() > 1);
@@ -1699,48 +1874,61 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
             }
             return false;
             });
-
-        foreach(paths, [](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
-            if (curr.height() == 3) {
-                //have to choose the rigth path
-                if (prev.height() == 4 || (prev.height() == 2 && next.height() < 2)) {
-                    //merge to previous
-                    assert(prev.last_point() == curr.first_point());
-                    assert(curr.polyline.size() > 1);
-                    prev.polyline.append(curr.polyline);
-                } else {
-                    //merge to next
-                    assert(curr.last_point() == next.first_point());
-                    assert(curr.polyline.size() > 1);
-                    curr.polyline.append(next.polyline);
-                    next.polyline.swap(curr.polyline);
+        
+        if (idx_lh_size > (dynamic_enabled ? 4 : 3)) {
+            size_t idx_to_merge = idx_lh_size - 2;
+            foreach (paths, [idx_to_merge](ExtrusionPath &prev, ExtrusionPath &curr, ExtrusionPath &next) {
+                if (curr.height() == idx_to_merge) {
+                    // have to choose the rigth path
+                    if (prev.height() == idx_to_merge + 1 ||
+                        (prev.height() == idx_to_merge - 1 && next.height() < idx_to_merge - 1)) {
+                        // merge to previous
+                        assert(prev.last_point() == curr.first_point());
+                        assert(curr.polyline.size() > 1);
+                        prev.polyline.append(curr.polyline);
+                    } else {
+                        // merge to next
+                        assert(curr.last_point() == next.first_point());
+                        assert(curr.polyline.size() > 1);
+                        curr.polyline.append(next.polyline);
+                        next.polyline.swap(curr.polyline);
+                    }
+                    return true;
                 }
-                return true;
+                return false;
+            })
+                ;
+            
+            if (idx_lh_size > (dynamic_enabled ? 6 : 5)) {
+                idx_to_merge = idx_lh_size - 4;
+                foreach (paths, [idx_to_merge](ExtrusionPath &prev, ExtrusionPath &curr, ExtrusionPath &next) {
+                    if (curr.height() == idx_to_merge) {
+                        // have to choose the rigth path
+                        if (prev.height() == idx_to_merge + 1 || (prev.height() == idx_to_merge - 1 && next.height() > idx_to_merge + 1)) {
+                            // merge to previous
+                            assert(prev.last_point() == curr.first_point());
+                            assert(curr.polyline.size() > 1);
+                            prev.polyline.append(curr.polyline);
+                        } else {
+                            // merge to next
+                            assert(curr.last_point() == next.first_point());
+                            assert(curr.polyline.size() > 1);
+                            curr.polyline.append(next.polyline);
+                            next.polyline.swap(curr.polyline);
+                        }
+                        return true;
+                    }
+                    return false;
+                })
+                    ;
             }
-            return false;
-            });
-        foreach(paths, [](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
-            if (curr.height() == 1) {
-                //have to choose the rigth path
-                if (prev.height() == 2 || (prev.height() == 0 && next.height() > 2)) {
-                    //merge to previous
-                    assert(prev.last_point() == curr.first_point());
-                    assert(curr.polyline.size() > 1);
-                    prev.polyline.append(curr.polyline);
-                } else {
-                    //merge to next
-                    assert(curr.last_point() == next.first_point());
-                    assert(curr.polyline.size() > 1);
-                    curr.polyline.append(next.polyline);
-                    next.polyline.swap(curr.polyline);
-                }
-                return true;
-            }
-            return false;
-            });
+        }
     }
     if (paths.size() == 2) {
         double min_length = params.perimeter_flow.scaled_width() * 2;
+        if (dynamic_enabled) {
+            min_length = params.perimeter_flow.scaled_width() / 2;
+        }
         if (paths.front().length() < min_length) {
             paths.front().polyline.append(paths.back().polyline);
             paths.back().polyline.swap(paths.front().polyline);
@@ -1752,7 +1940,7 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_arachne(const Parameters &  
     }
     //set correct height
     for (ExtrusionPath& path : paths) {
-        path.attributes_mutable().height = path.height() < 3 ? (float)params.layer->height : params.overhang_flow.height();
+        path.attributes_mutable().height = path.height() < idx_lh_size - 2 ? (float)params.layer->height : params.overhang_flow.height();
     }
 
     return paths;
@@ -2564,8 +2752,8 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons *lower_slices,
                     Polygons holes = expoly_to_grow.holes;
                     for (Polygon &h : holes) h.reverse();
                     holes = offset(holes,
-                                   -min_width_top_surface -
-                                       ((this->mill_extra_size > SCALED_EPSILON) ? (double) mill_extra_size : 0));
+                                   - min_width_top_surface
+                        - ((this->mill_extra_size > SCALED_EPSILON) ? (double) mill_extra_size : 0));
                     for (ExPolygon p : diff_ex(contour, holes)) grown_accumulator.push_back(p);
                 }
             }
@@ -2681,14 +2869,17 @@ void PerimeterGenerator::process(// Input:
     // now the tolerance is built in thin_perimeter settings
 
     // prepare grown lower layer slices for overhang detection
-    if (this->lower_slices != NULL && (params.config.overhangs_width.value > 0 || params.config.overhangs_width_speed.value > 0)) {
+    //note: config.overhangs_width can't be enabled (has to be ignored) if config.overhangs_width_speed is disabled (for now)
+    if (this->lower_slices != NULL && (params.config.overhangs_width_speed.is_enabled())) {
         // We consider overhang any part where the entire nozzle diameter is not supported by the
         // lower layer, so we take lower slices and offset them by overhangs_width of the nozzle diameter used 
         // in the current layer
+        bool speed_enabled = params.config.overhangs_width_speed.is_enabled(); // note: useless now, but in the future, both can be available separatly
+        bool flow_enabled = params.config.overhangs_width.is_enabled();
 
         //we use a range to avoid threshold issues.
-        coord_t overhangs_width_flow = scale_t(params.config.overhangs_width.get_abs_value(this->params.overhang_flow.nozzle_diameter()));
-        coord_t overhangs_width_speed = scale_t(params.config.overhangs_width_speed.get_abs_value(this->params.overhang_flow.nozzle_diameter()));
+        coord_t overhangs_width_flow = !flow_enabled ? 0 : scale_t(params.config.overhangs_width.get_abs_value(this->params.overhang_flow.nozzle_diameter()));
+        coord_t overhangs_width_speed = !speed_enabled ? 0 : scale_t(params.config.overhangs_width_speed.get_abs_value(this->params.overhang_flow.nozzle_diameter()));
         coord_t min_feature = std::min(overhangs_width_flow, overhangs_width_speed) / 10;
         coord_t overhangs_width_flow_90 = coord_t(overhangs_width_flow * 0.99);
         coord_t overhangs_width_flow_110 = coord_t(overhangs_width_flow * 1.15);
@@ -2697,18 +2888,18 @@ void PerimeterGenerator::process(// Input:
 
         //flow offset should be greater than speed offset because the flow apply also the speed.
         //check if overhangs_width_speed is low enough to be relevant (if flow is activated)
-        if (overhangs_width_flow > 0 && overhangs_width_speed + this->params.overhang_flow.nozzle_diameter() * 0.01 > overhangs_width_flow) {
-            overhangs_width_speed = 0;
+        if (flow_enabled && overhangs_width_speed + this->params.overhang_flow.nozzle_diameter() * 0.01 > overhangs_width_flow) {
+            speed_enabled = false;
             overhangs_width_speed_90 = 0;
             overhangs_width_speed_110 = 0;
         }
-        if (overhangs_width_flow > 0) {
+        if (flow_enabled) {
             if (overhangs_width_flow_90 < overhangs_width_speed_110) {
                 overhangs_width_speed_110 = overhangs_width_flow_90 = (overhangs_width_flow + overhangs_width_speed) / 2;
             }
         }
 
-        if (overhangs_width_speed > 0 || overhangs_width_flow > 0) {
+        if (speed_enabled || flow_enabled) {
             ExPolygons simplified;
             //simplify the lower slices if too high (means low number) resolution (we can be very aggressive here)
             if (params.print_config.resolution < min_feature / 2) {
@@ -2716,21 +2907,30 @@ void PerimeterGenerator::process(// Input:
                     expoly.simplify(min_feature, &simplified);
                 }
             }
-            //for extra_perimeter_on_overhang
-            if (params.config.extra_perimeters_on_overhangs)
-                params.lower_slices_bridge = to_polygons(simplified);
             //for overhangs detection
-            if (overhangs_width_speed > 0 && (overhangs_width_speed < overhangs_width_flow || overhangs_width_flow == 0)) {
-                params.lower_slices_bridge_speed_small = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)overhangs_width_speed_90 - (coordf_t)(params.get_ext_perimeter_width() / 2));
-                params.lower_slices_bridge_speed_big = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)overhangs_width_speed_110 - (coordf_t)(params.get_ext_perimeter_width() / 2));
+            if (speed_enabled && (overhangs_width_speed < overhangs_width_flow || !flow_enabled)) {
+                params.lower_slices_bridge_speed_small = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)(overhangs_width_speed_90 + SCALED_EPSILON - params.get_ext_perimeter_width() / 2));
+                params.lower_slices_bridge_speed_big = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)(overhangs_width_speed_110 + SCALED_EPSILON - params.get_ext_perimeter_width() / 2));
             }
-            if (overhangs_width_flow > 0) {
-                if (overhangs_width_speed_110 == overhangs_width_flow_90 && overhangs_width_speed < overhangs_width_flow) {
+            if (flow_enabled) {
+                if (speed_enabled && overhangs_width_speed_110 == overhangs_width_flow_90) {
                     params.lower_slices_bridge_flow_small = params.lower_slices_bridge_speed_big;
                 } else {
-                    params.lower_slices_bridge_flow_small = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)overhangs_width_flow_90 - (coordf_t)(params.get_ext_perimeter_width() / 2));
+                    params.lower_slices_bridge_flow_small = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)(overhangs_width_flow_90 + SCALED_EPSILON - params.get_ext_perimeter_width() / 2));
                 }
-                params.lower_slices_bridge_flow_big = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)overhangs_width_flow_110 - (coordf_t)(params.get_ext_perimeter_width() / 2));
+                params.lower_slices_bridge_flow_big = offset((simplified.empty() ? *this->lower_slices : simplified),(coordf_t)(overhangs_width_flow_110 + SCALED_EPSILON - params.get_ext_perimeter_width() / 2));
+            }
+            //for extra_perimeter_on_overhang
+            if (params.config.overhangs_dynamic_speed.is_enabled()) {
+                // if overhangs_dynamic_speed, create paths between threshold =0 and threshold =overhangs_width_speed so we have the paths to split in chunk for dynamic.
+                if (overhangs_width_speed == 0) {
+                    params.lower_slices_bridge_dynamic = params.lower_slices_bridge_flow_small;
+                } else {
+                    params.lower_slices_bridge_dynamic = offset((simplified.empty() ? *this->lower_slices : simplified), (coordf_t)(SCALED_EPSILON - params.get_ext_perimeter_width() / 2));
+                }
+            }
+            if (params.config.extra_perimeters_on_overhangs) {
+                params.lower_slices_bridge = to_polygons(simplified);
             }
         }
     }
@@ -2760,23 +2960,26 @@ void PerimeterGenerator::process(// Input:
 
         // detect how many perimeters must be generated for this island
         int nb_loop_contour = params.config.perimeters;
+        assert(nb_loop_contour >= 0);
+        assert(params.config.perimeters.is_enabled());
         if (nb_loop_contour > 0)
             nb_loop_contour += extra_odd_perimeter + surface.extra_perimeters;
-        int nb_loop_holes = params.config.perimeters_hole;
-        if (nb_loop_holes > 0)
+        assert(nb_loop_contour >= 0);
+        int nb_loop_holes = params.config.perimeters_hole.value;
+        assert(nb_loop_holes >= 0);
+        if (params.config.perimeters_hole.is_enabled() && nb_loop_holes > 0)
             nb_loop_holes += extra_odd_perimeter + surface.extra_perimeters;
+        assert(nb_loop_holes >= 0);
         
-        if (nb_loop_contour < 0)
-            nb_loop_contour = std::max(0, nb_loop_holes);
-        if (nb_loop_holes < 0)
+        if (!params.config.perimeters_hole.is_enabled())
             nb_loop_holes = std::max(0, nb_loop_contour);
 
-            if (params.print_config.spiral_vase) {
-                if (params.layer->id() >= params.config.bottom_solid_layers) {
-                    nb_loop_contour = 1;
-                    nb_loop_holes = 0;
-                }
+        if (params.print_config.spiral_vase) {
+            if (params.layer->id() >= params.config.bottom_solid_layers) {
+                nb_loop_contour = 1;
+                nb_loop_holes = 0;
             }
+        }
 
         if ((params.layer->id() == 0 && params.config.only_one_perimeter_first_layer) ||
             (params.config.only_one_perimeter_top && this->upper_slices == NULL)) {
@@ -2847,7 +3050,7 @@ void PerimeterGenerator::process(// Input:
             infill_exp = diff_ex(infill_exp, gap_fill_exps);
         }
         
-        if (lower_slices != nullptr && params.config.overhangs_width_speed.value > 0 && params.config.extra_perimeters_on_overhangs &&
+        if (lower_slices != nullptr && params.config.overhangs_width_speed.is_enabled() && params.config.extra_perimeters_on_overhangs &&
             params.config.perimeters > 0 && params.layer->id() > params.object_config.raft_layers) {
             // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
             auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(infill_exp,
@@ -3189,6 +3392,13 @@ struct ExPolygonAsynch
     coordf_t  offset_holes_outer;
     
 };
+
+void assert_check_ExPolygonAsynch(const std::vector<ExPolygonAsynch> &polygons_asynchs) {
+#if _DEBUG
+    for(const auto &polygon_asynch : polygons_asynchs)
+        assert_check_polygons(to_polygons(polygon_asynch.expoly));
+#endif
+}
 
 // next_onion can be partially filled
 void grow_holes_only(std::vector<ExPolygonAsynch> &unmoveable_contours,
@@ -3716,7 +3926,7 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                         (params.use_round_perimeters() ? params.get_min_round_spacing() : 3));
                 }
                 
-                std::vector<ExPolygonAsynch> *touse;
+                std::vector<ExPolygonAsynch> *touse = nullptr;
                 std::vector<ExPolygonAsynch> copy;
                 if (perimeter_idx < std::max(contour_count, holes_count)) {
                     touse = &last_asynch;
@@ -3725,6 +3935,8 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                     copy = last_asynch;
                     touse = &copy;
                 }
+                assert(touse);
+                assert_check_ExPolygonAsynch(*touse);
                 bool round_peri = params.config.perimeter_round_corners.value;
                 float min_round_spacing = round_peri ? unscaled(params.get_perimeter_width()) / 10 : 0;
                 if (contour_count > perimeter_idx && holes_count <= perimeter_idx) {
@@ -3735,7 +3947,7 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                     grow_holes_only(*touse, next_onion, good_spacing,
                                     (1 - thin_perimeter) * params.get_perimeter_spacing() / 2, round_peri, min_round_spacing);
                 }
-
+                assert_check_ExPolygonAsynch(*touse);
                 bool special_area = contour_count == 0 || holes_count == 0;
                 if (special_area && (params.config.thin_walls || params.spiral_vase)) {
                     area_used = next_onion;
@@ -3826,45 +4038,62 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
             const bool fuzzify_all = params.config.fuzzy_skin == FuzzySkinType::All && params.layer->id() > 0 ;
 
             //push last_asynch or next_onion into contours & holes
+            assert_check_ExPolygonAsynch(last_asynch);
+            assert_check_loops(contours);
+            assert_check_loops(holes);
             if (!last_asynch.empty()) {
                 // we already put the last hole, now add contours.
                 for (auto &exp : last_asynch) {
                     if (exp.type == ExPolygonAsynch::epatShrinkContour) {
                         assert(next_onion.empty());
                         assert(exp.expoly.contour.is_counter_clockwise());
-                        if (exp.expoly.contour.length() > SCALED_EPSILON) // TODO: atleastLength
+                        if (exp.expoly.contour.length() > SCALED_EPSILON) { // TODO: atleastLength
+                            assert_check_polygon(exp.expoly.contour);
                             contours[perimeter_idx].emplace_back(exp.expoly.contour, perimeter_idx, true,
                                                                  has_steep_overhang, fuzzify_contours || fuzzify_all);
+                        }
                     } else {
                         // we already put the last contour, now add holes
                         // contours from hole collapse is added via next_onion
                         assert(exp.type == ExPolygonAsynch::epatGrowHole);
                         for (auto &hole : exp.expoly.holes) {
                             assert(hole.is_clockwise());
-                            if(hole.length() > SCALED_EPSILON) // TODO: atleastLength
+                            if (hole.length() > SCALED_EPSILON) { // TODO: atleastLength
+                                assert_check_polygon(hole);
                                 holes[perimeter_idx].emplace_back(hole, perimeter_idx, false, has_steep_overhang,
-                                                              fuzzify_contours || fuzzify_all);
+                                                                  fuzzify_contours || fuzzify_all);
+                            }
                         }
                     }
                 }
             }
-            for (const ExPolygon& expolygon : next_onion) {
-                //TODO: add width here to allow variable width (if we want to extrude a sightly bigger perimeter, see thin wall)
-                if(contour_count > perimeter_idx && expolygon.contour.length() > SCALED_EPSILON) // TODO: atleastLength
-                    contours[perimeter_idx].emplace_back(expolygon.contour, perimeter_idx, true, has_steep_overhang, fuzzify_contours || fuzzify_all);
-                if (!expolygon.holes.empty() && holes_count > perimeter_idx) {
-                    holes[perimeter_idx].reserve(holes[perimeter_idx].size() + expolygon.holes.size());
-                    for (const Polygon& hole : expolygon.holes)
-                        if(hole.length() > SCALED_EPSILON) // TODO: atleastLength
-                            holes[perimeter_idx].emplace_back(hole, perimeter_idx, false, has_steep_overhang, fuzzify_holes || fuzzify_all);
-                }
-            }
 
-            //simplify the loop to avoid artifacts when shrinking almost-0 segments
+            // simplify the loop to avoid artifacts when shrinking almost-0 segments
+            // also it ensure that there is no point at epsilon distance.
             resolution = get_resolution(perimeter_idx + 1, false, &surface);
             last.clear();
-            for (ExPolygon &exp : next_onion)
+            for (ExPolygon &exp : next_onion) {
                 exp.simplify((resolution < SCALED_EPSILON ? SCALED_EPSILON : resolution), &last);
+            }
+            assert_check_polygons(to_polygons(last));
+
+            // Add contour & holes from last (wich is now simplified next_onion) 
+            for (const ExPolygon& expolygon : last) {
+                //TODO: add width here to allow variable width (if we want to extrude a sightly bigger perimeter, see thin wall)
+                if (contour_count > perimeter_idx && expolygon.contour.length() > SCALED_EPSILON) { // TODO: atleastLength
+                    assert_check_polygon(expolygon.contour);
+                    contours[perimeter_idx].emplace_back(expolygon.contour, perimeter_idx, true, has_steep_overhang, fuzzify_contours || fuzzify_all);
+                }
+                if (!expolygon.holes.empty() && holes_count > perimeter_idx) {
+                    holes[perimeter_idx].reserve(holes[perimeter_idx].size() + expolygon.holes.size());
+                    for (const Polygon &hole : expolygon.holes) {
+                        if (hole.length() > SCALED_EPSILON) { // TODO: atleastLength
+                            assert_check_polygon(hole);
+                            holes[perimeter_idx].emplace_back(hole, perimeter_idx, false, has_steep_overhang, fuzzify_holes || fuzzify_all);
+                        }
+                    }
+                }
+            }
 
             // store surface for top infill if only_one_perimeter_top
             if (perimeter_idx == 0 && (params.config.only_one_perimeter_top && this->upper_slices != NULL)
@@ -3891,6 +4120,8 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                 last_asynch_initialized = true;
             }
         }
+        assert_check_loops(contours);
+        assert_check_loops(holes);
 
         // fuzzify
         const bool fuzzify_gapfill = params.config.fuzzy_skin == FuzzySkinType::All && params.layer->id() > 0;
@@ -3915,6 +4146,9 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                             holes.emplace_back();
                         }
                         assert(contours.size() == contour_count);
+                        //there was an offset, simplify to avoid too small sections
+                        contour_expolygon = contour_expolygon.front().simplify(SCALED_EPSILON);
+                        assert(contour_expolygon.size() == 1);
                         //Add the new perimeter
                         contours[contours_size].emplace_back(contour_expolygon.front().contour, contours_size, true, has_steep_overhang, fuzzify_gapfill);
                         //create the new gapfills
@@ -3931,6 +4165,8 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                 }
             }
         }
+        assert_check_loops(contours);
+        assert_check_loops(holes);
         assert(contours.size() == contour_count);
         //assert(holes.size() == holes_count);
         // nest loops: holes first
@@ -4049,9 +4285,7 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
             } else {
 #if _DEBUG
                 for (const PerimeterGeneratorLoop &epl : contours.front()) {
-                    for (size_t i_pt = 1; i_pt < epl.polygon.size(); ++i_pt)
-                        assert(!epl.polygon.points[i_pt - 1].coincides_with_epsilon(epl.polygon.points[i_pt]));
-                    assert(!epl.polygon.points.front().coincides_with_epsilon(epl.polygon.points.back()));
+                    assert_check_polygon(epl.polygon);
                 }
 #endif
                 if (params.object_config.thin_walls_merge.value) {
@@ -4781,7 +5015,7 @@ ExtrusionLoop PerimeterGenerator::_extrude_and_cut_loop(const Parameters &params
         }
 
         // detect overhanging/bridging perimeters
-        if ( params.config.overhangs_width_speed.value > 0 && params.layer->id() > 0
+        if ( params.config.overhangs_width_speed.is_enabled() && params.layer->id() > 0
             && !(params.object_config.support_material && params.object_config.support_material_contact_distance_type.value == zdNone)) {
             ExtrusionPaths paths = this->create_overhangs_classic(params, initial_polyline, role, is_external);
             

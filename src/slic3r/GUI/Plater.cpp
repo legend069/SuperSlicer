@@ -64,6 +64,7 @@
 #include "libslic3r/Format/STL.hpp"
 #include "libslic3r/Format/AMF.hpp"
 #include "libslic3r/Format/3mf.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Model.hpp"
@@ -446,15 +447,17 @@ void FreqChangedParams::init()
            m_og->set_config(config);
            m_og->hide_labels();
 
-           m_og->m_on_change = Tab::set_or_add(m_og->m_on_change,
-                                               [tab_print, this](t_config_option_key opt_key, boost::any value) {
-                                                   const Option *opt_def = this->m_og->get_option_def(opt_key);
-                                                   if (opt_def && !opt_def->opt.is_script) {
-                                                       tab_print->update_dirty();
-                                                       tab_print->reload_config();
-                                                       tab_print->update();
-                                                   }
-                                               });
+           m_og->m_on_change =
+               Tab::set_or_add(m_og->m_on_change, [tab_print, this](t_config_option_key opt_key, bool enabled, boost::any value)
+                               {
+                                   assert(enabled); //TODO fix & test
+                                   const Option *opt_def = this->m_og->get_option_def(opt_key);
+                                   if (opt_def && !opt_def->opt.is_script) {
+                                       tab_print->update_dirty();
+                                       tab_print->reload_config();
+                                       tab_print->update();
+                                   }
+                               });
 
            assert(pages.size() == 1);
            assert(pages[0]->m_optgroups.size() == 1);
@@ -602,7 +605,6 @@ void FreqChangedParams::init()
 
     // Add the horizontal sizer to the main sizer
     m_sizer->Add(hbox_sizer, 0, wxALIGN_LEFT | wxALL, 10);
-
 }
 
 
@@ -2840,8 +2842,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path> &input_
                         config.apply(loaded_printer_technology == ptFFF ?
                             static_cast<const ConfigBase&>(FullPrintConfig::defaults()) :
                             static_cast<const ConfigBase&>(SLAFullPrintConfig::defaults()));
-                        // Set all the nullable values in defaults to nils.
-                        config.null_nullables();
+                        // Disable all the optional values in defaults.
+                        config.disable_optionals();
                         // and place the loaded config over the base.
                         config += std::move(config_loaded);
                     }
@@ -6281,7 +6283,7 @@ LoadProjectsDialog::LoadProjectsDialog(const std::vector<fs::path>& paths)
     id++;
     // all new window
     if (instances_allowed) {
-        btn = new wxRadioButton(this, wxID_ANY, _L("Start a new instance of PrusaSlicer"), wxDefaultPosition, wxDefaultSize, id == 0 ? wxRB_GROUP : 0);
+        btn = new wxRadioButton(this, wxID_ANY, format_wxstr(_L("Start a new instance of %1%"), SLIC3R_APP_NAME), wxDefaultPosition, wxDefaultSize, id == 0 ? wxRB_GROUP : 0);
         btn->SetValue(id == m_action);
         btn->Bind(wxEVT_RADIOBUTTON, [this, id, contains_projects](wxCommandEvent&) {
             m_action = id;
@@ -6434,7 +6436,7 @@ bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)
                                 break;
                             }
                             // if 3mf - read archive headers to find project file
-                            if ((boost::algorithm::iends_with(filename, ".3mf") && !is_project_3mf(final_path.string())) ||
+                            if ((boost::algorithm::iends_with(filename, ".3mf") && !(is_project_3mf(final_path.string()) || is_project_bambu_3mf(final_path.string()))) ||
                                 (boost::algorithm::iends_with(filename, ".amf") && !boost::algorithm::iends_with(filename, ".zip.amf"))) {
                                 non_project_paths.emplace_back(final_path);
                                 break;
@@ -6637,7 +6639,7 @@ ProjectDropDialog::ProjectDropDialog(const std::string& filename)
     choices.Add(_L("Import 3D models only"));
     choices.Add(_L("Import config only"));
     if (!single_instance_only)
-        choices.Add(_L("Start new PrusaSlicer instance"));
+        choices.Add(format_wxstr(_L("Start new %1% instance"), SLIC3R_APP_NAME));
 
     main_sizer->Add(new wxStaticText(this, wxID_ANY,
                                      get_wraped_wxString(_L("Select an action to apply to the file") + ": " +
@@ -6744,14 +6746,14 @@ bool Plater::load_files(const wxArrayString& filenames, bool delete_after_load/*
         std::string filename = (*it).filename().string();
 
         bool handle_as_project = (boost::algorithm::iends_with(filename, ".3mf") || boost::algorithm::iends_with(filename, ".amf"));
-        if (boost::algorithm::iends_with(filename, ".zip") && is_project_3mf(it->string())) {
+        if (boost::algorithm::iends_with(filename, ".zip") && (is_project_3mf(it->string()) || is_project_bambu_3mf(it->string()))) {
             BOOST_LOG_TRIVIAL(warning) << "File with .zip extension is 3mf project, opening as it would have .3mf extension: " << *it;
             handle_as_project = true;
         }
         if (handle_as_project) {
             ProjectDropDialog::LoadType load_type = ProjectDropDialog::LoadType::Unknown;
             {
-                if ((boost::algorithm::iends_with(filename, ".3mf") && !is_project_3mf(it->string())) ||
+                if ((boost::algorithm::iends_with(filename, ".3mf") && !(is_project_3mf(it->string()) || is_project_bambu_3mf(it->string()))) ||
                     (boost::algorithm::iends_with(filename, ".amf") && !boost::algorithm::iends_with(filename, ".zip.amf")))
                     load_type = ProjectDropDialog::LoadType::LoadGeometry;
                 else {

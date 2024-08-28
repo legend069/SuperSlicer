@@ -463,8 +463,8 @@ public:
     /// </summary>
     /// <param name="opt_key">name of the changed option</param>
     /// <return> configs that have at least a change</param>
-    std::set<const DynamicPrintConfig*> value_changed(const t_config_option_key& opt_key, const std::vector<DynamicPrintConfig*> config_collection);
-    std::set<const DynamicPrintConfig*> update_phony(const std::vector<DynamicPrintConfig*> config_collection, bool exclude_default_extrusion = false);
+    const DynamicPrintConfig* value_changed(const t_config_option_key& opt_key, const std::vector<const DynamicPrintConfig*> config_collection);
+    const DynamicPrintConfig* update_phony(const std::vector<const DynamicPrintConfig*> config_collection, bool exclude_default_extrusion = false);
 };
 
 // An indirection to a bunch of Config
@@ -874,11 +874,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       external_perimeter_extrusion_change_odd_layers))
     ((ConfigOptionPercent,              external_perimeter_overlap))
     ((ConfigOptionFloatOrPercent,       external_perimeter_speed))
-    ((ConfigOptionBool,                 enable_dynamic_overhang_speeds))
-    ((ConfigOptionFloatOrPercent,       overhang_speed_0))
-    ((ConfigOptionFloatOrPercent,       overhang_speed_1))
-    ((ConfigOptionFloatOrPercent,       overhang_speed_2))
-    ((ConfigOptionFloatOrPercent,       overhang_speed_3))
     ((ConfigOptionBool,                 external_perimeters_first))
     ((ConfigOptionBool,                 external_perimeters_hole))
     ((ConfigOptionBool,                 external_perimeters_nothole))
@@ -953,15 +948,16 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       min_width_top_surface))
     // Detect bridging perimeters
     ((ConfigOptionFloatOrPercent,       overhangs_acceleration))
-    ((ConfigOptionFloatOrPercent,       overhangs_max_slope))
     ((ConfigOptionFloat,                overhangs_bridge_threshold))
     ((ConfigOptionInt,                  overhangs_bridge_upper_layers))
+    ((ConfigOptionGraph,                overhangs_dynamic_speed))
+    ((ConfigOptionFloatOrPercent,       overhangs_max_slope))
+    ((ConfigOptionBool,                 overhangs_reverse))
+    ((ConfigOptionFloatOrPercent,       overhangs_reverse_threshold))
     ((ConfigOptionFloatOrPercent,       overhangs_speed))
     ((ConfigOptionInt,                  overhangs_speed_enforce))
     ((ConfigOptionFloatOrPercent,       overhangs_width))
     ((ConfigOptionFloatOrPercent,       overhangs_width_speed))
-    ((ConfigOptionBool,                 overhangs_reverse))
-    ((ConfigOptionFloatOrPercent,       overhangs_reverse_threshold))
     ((ConfigOptionEnum<NoPerimeterUnsupportedAlgo>,  no_perimeter_unsupported_algo))
     ((ConfigOptionFloatOrPercent,       perimeter_acceleration))
     ((ConfigOptionEnum<PerimeterDirection>, perimeter_direction))
@@ -1223,7 +1219,6 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,                 default_fan_speed))
     ((ConfigOptionEnum<DraftShield>,    draft_shield))
     ((ConfigOptionFloat,                duplicate_distance))
-    ((ConfigOptionBools,                enable_dynamic_fan_speeds))
     ((ConfigOptionBool,                 enforce_retract_first_layer))
     ((ConfigOptionInts,                 external_perimeter_fan_speed))
     ((ConfigOptionFloat,                extruder_clearance_height))
@@ -1238,7 +1233,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercents,             filament_shrink))
     ((ConfigOptionInts,                 first_layer_bed_temperature))
     ((ConfigOptionInts,                 first_layer_temperature))
-    ((ConfigOptionIntsNullable,         idle_temperature))
+    ((ConfigOptionInts,                 idle_temperature))
     ((ConfigOptionInts,                 full_fan_speed_layer))
     ((ConfigOptionInts,                 gap_fill_fan_speed))
     ((ConfigOptionInts,                 infill_fan_speed))
@@ -1260,11 +1255,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,                 only_retract_when_crossing_perimeters))
     ((ConfigOptionBool,                 ooze_prevention))
     ((ConfigOptionString,               output_filename_format))
+    ((ConfigOptionGraphs,               overhangs_dynamic_fan_speed))
     ((ConfigOptionInts,                 overhangs_fan_speed))
-    ((ConfigOptionInts,                 overhang_fan_speed_0))
-    ((ConfigOptionInts,                 overhang_fan_speed_1))
-    ((ConfigOptionInts,                 overhang_fan_speed_2))
-    ((ConfigOptionInts,                 overhang_fan_speed_3))
     ((ConfigOptionInts,                 perimeter_fan_speed))
     ((ConfigOptionStrings,              post_process))
     ((ConfigOptionPoint,                priming_position))
@@ -1571,20 +1563,20 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                       material_correction_y))
     ((ConfigOptionFloat,                       material_correction_z))
     ((ConfigOptionEnum<SLAMaterialSpeed>,      material_print_speed))
-    ((ConfigOptionFloatNullable,               material_ow_support_pillar_diameter))
-    ((ConfigOptionFloatNullable,               material_ow_branchingsupport_pillar_diameter))
-    ((ConfigOptionFloatNullable,               material_ow_support_head_front_diameter))
-    ((ConfigOptionFloatNullable,               material_ow_branchingsupport_head_front_diameter))
-    ((ConfigOptionFloatNullable,               material_ow_support_head_penetration))
-    ((ConfigOptionFloatNullable,               material_ow_branchingsupport_head_penetration))
-    ((ConfigOptionFloatNullable,               material_ow_support_head_width))
-    ((ConfigOptionFloatNullable,               material_ow_branchingsupport_head_width))
-    ((ConfigOptionIntNullable,                 material_ow_support_points_density_relative))
+    ((ConfigOptionFloat,                       material_ow_support_pillar_diameter))
+    ((ConfigOptionFloat,                       material_ow_branchingsupport_pillar_diameter))
+    ((ConfigOptionFloat,                       material_ow_support_head_front_diameter))
+    ((ConfigOptionFloat,                       material_ow_branchingsupport_head_front_diameter))
+    ((ConfigOptionFloat,                       material_ow_support_head_penetration))
+    ((ConfigOptionFloat,                       material_ow_branchingsupport_head_penetration))
+    ((ConfigOptionFloat,                       material_ow_support_head_width))
+    ((ConfigOptionFloat,                       material_ow_branchingsupport_head_width))
+    ((ConfigOptionInt,                         material_ow_support_points_density_relative))
 
-    ((ConfigOptionFloatNullable,               material_ow_first_layer_size_compensation)) /* material_ow_elefant_foot_compensation */
-    ((ConfigOptionFloatNullable,               material_ow_relative_correction_x))
-    ((ConfigOptionFloatNullable,               material_ow_relative_correction_y))
-    ((ConfigOptionFloatNullable,               material_ow_relative_correction_z))
+    ((ConfigOptionFloat,                       material_ow_first_layer_size_compensation)) /* material_ow_elefant_foot_compensation */
+    ((ConfigOptionFloat,                       material_ow_relative_correction_x))
+    ((ConfigOptionFloat,                       material_ow_relative_correction_y))
+    ((ConfigOptionFloat,                       material_ow_relative_correction_z))
 )
 
 PRINT_CONFIG_CLASS_DEFINE(
@@ -1838,12 +1830,13 @@ public:
     bool         set_key_value(const std::string &opt_key, ConfigOption *opt) { bool out = m_data.set_key_value(opt_key, opt); this->touch(); return out; }
     template<typename T>
     void         set(const std::string &opt_key, T value) { m_data.set(opt_key, value, true); this->touch(); }
-    void set_any(const std::string &opt_key, boost::any value, int16_t extruder_id)
+    void set_any(const std::string &opt_key, bool enable, boost::any value, int16_t extruder_id)
     {
         ConfigOption *opt = m_data.option(opt_key, true);
         assert(opt);
         if (opt) {
             opt->set_any(value, extruder_id);
+            opt->set_enabled(enable, extruder_id);
             this->touch();
         }
     }
@@ -1886,6 +1879,8 @@ public:
     // utilities to help convert from prusa config.
     // if with_phony, then the phony settigns will be set to phony if needed.
     void convert_from_prusa(const DynamicPrintConfig& global_config, bool with_phony);
+    void handle_legacy_composite(std::vector<std::pair<t_config_option_key, std::string>> &opt_deleted)
+        { PrintConfigDef::handle_legacy_composite(m_data, opt_deleted); }
 
 private:
     friend class cereal::access;

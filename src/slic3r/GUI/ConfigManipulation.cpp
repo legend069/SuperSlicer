@@ -268,17 +268,17 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         // Ask only once.
         if (!m_support_material_overhangs_queried) {
             m_support_material_overhangs_queried = true;
-            if (config->option<ConfigOptionFloatOrPercent>("overhangs_width_speed") == 0) {
+            if (!config->option("overhangs_width_speed")->is_enabled()) {
                 wxString msg_text = _(L("Supports work better, if the following feature is enabled:\n"
-                    "- overhangs with bridge speed & fan"));
+                    "- overhangs threshold for speed & fan"));
                 if (is_global_config) {
                     msg_text += "\n\n" + _(L("Shall I adjust those settings for supports?"));
-                MessageDialog dialog(m_msg_dlg_parent, msg_text, _L("Support Generator"), wxICON_WARNING | wxYES | wxNO);
-                    DynamicPrintConfig new_conf = *config;
-                    auto answer = dialog.ShowModal();
-                if (answer == wxID_YES) {
+                    MessageDialog dialog(m_msg_dlg_parent, msg_text, _L("Support Generator"), wxICON_WARNING | wxYES | wxNO);
+                        DynamicPrintConfig new_conf = *config;
+                        auto answer = dialog.ShowModal();
+                    if (answer == wxID_YES) {
                         // Enable "detect bridging perimeters".
-                        new_conf.set_key_value("overhangs_width_speed", new ConfigOptionFloatOrPercent(50, true));
+                        new_conf.set_key_value("overhangs_width_speed", config->option("overhangs_width_speed")->clone()->set_enabled(true));
                     } else if (answer == wxID_NO) {
                         // Do nothing, leave supports on and "detect bridging perimeters" off.
                     } else if (answer == wxID_CANCEL) {
@@ -347,14 +347,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
         "overhangs",
         "seam_position","staggered_inner_seams",
         "perimeter_speed", "perimeter_reverse", "perimeter_generator",
-        "external_perimeter_speed", "small_perimeter_speed", "enable_dynamic_overhang_speeds",
+        "external_perimeter_speed", "small_perimeter_speed", "overhangs_dynamic_speed",
         "small_perimeter_min_length", " small_perimeter_max_length", "spiral_vase",
         "seam_notch_all", "seam_notch_inner", "seam_notch_outer"})
         toggle_field(el, have_perimeters);
 
     bool has_spiral_vase = have_perimeters && config->opt_bool("spiral_vase");
     
-    bool have_arachne = have_perimeters && (config->opt_int("perimeters") == config->opt_int("perimeters_hole") || config->opt_int("perimeters_hole") < 0);
+    bool have_arachne = have_perimeters && (config->opt_int("perimeters") == config->opt_int("perimeters_hole") || !config->is_enabled("perimeters_hole"));
     toggle_field("perimeter_generator", have_arachne);
     have_arachne = have_arachne && config->opt_enum<PerimeterGeneratorType>("perimeter_generator") == PerimeterGeneratorType::Arachne;
     for (auto el : { "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle", "wall_distribution_count", "min_feature_size", "min_bead_width", "aaa" })
@@ -373,9 +373,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
     toggle_field("no_perimeter_unsupported_algo", have_perimeters);
     toggle_field("only_one_perimeter_top", have_perimeters);
     toggle_field("only_one_perimeter_first_layer", config->opt_int("perimeters") > 1);
-
-    toggle_field("overhangs_width", config->option<ConfigOptionFloatOrPercent>("overhangs_width_speed")->value > 0);
-
+    toggle_field("overhangs_width", config->option("overhangs_width_speed")->is_enabled());
     bool have_overhangs_reverse = have_perimeters && !have_arachne && !config->opt_bool("perimeter_reverse");
     toggle_field("overhangs_reverse", have_overhangs_reverse);
 
@@ -479,6 +477,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
 
     for (auto el : { "hole_to_polyhole_threshold", "hole_to_polyhole_twisted" })
         toggle_field(el, config->opt_bool("hole_to_polyhole"));
+
+    for (auto el : { "overhangs_bridge_threshold", "overhangs_bridge_upper_layers" })
+        toggle_field(el, config->get_float("overhangs_max_slope") > 0);
 
     bool have_skirt = config->opt_int("skirts") > 0;
     toggle_field("skirt_height", have_skirt && config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
@@ -714,13 +715,16 @@ void ConfigManipulation::toggle_printer_fff_options(DynamicPrintConfig *config, 
     // Disable silent mode for non-marlin firmwares.
     toggle_field("silent_mode", is_marlin_flavor);
 
+    // only allow to disable autoemit_temperature_commands if it's not already disabled by start_gcode_manual
+    toggle_field("autoemit_temperature_commands", !config->get_bool("start_gcode_manual"));
+
     for (size_t i = 0; i < extruder_count; ++i) {
         
         bool have_retract_length = config->opt_float("retract_length", i) > 0;
         
         const bool ramping_lift = config->get_bool("travel_ramping_lift", i);
-        const bool lifts_z = (ramping_lift && config->get_float("travel_max_lift", i) > 0)
-                          || (! ramping_lift && config->get_float("retract_lift", i) > 0);
+        //const bool lifts_z = (ramping_lift && config->get_float("travel_max_lift", i) > 0)
+        //                  || (! ramping_lift && config->get_float("retract_lift", i) > 0);
 
         toggle_field("travel_max_lift", ramping_lift, i);
         toggle_field("travel_slope", ramping_lift, i);
@@ -777,6 +781,7 @@ void ConfigManipulation::toggle_printer_fff_options(DynamicPrintConfig *config, 
         bool toolchange_retraction = config->opt_float("retract_length_toolchange", i) > 0;
         toggle_field("retract_restart_extra_toolchange", extruder_count > 1 && toolchange_retraction, i);
     }
+
     if (config->opt_bool("single_extruder_multi_material") && extruder_count > 1) {
         bool have_advanced_wipe_volume = config->opt_bool("wipe_advanced");
         for (auto el : { "wipe_advanced_nozzle_melted_volume", "wipe_advanced_multiplier", "wipe_advanced_algo" }) {

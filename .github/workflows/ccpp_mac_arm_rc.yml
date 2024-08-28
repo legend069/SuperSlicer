@@ -19,27 +19,8 @@ jobs:
       run: chmod +x ./BuildMacOS.sh
       
     - name: build deps & slicer
-      run: ./BuildMacOS.sh -ia
-
-    # Add a step to list the contents of the build directory for debugging
-    - name: List build directory contents
-      run: ls -la build/
-
-    # Upload DMG artifact if it exists
-    - name: Upload DMG artifact
-      if: success()
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: rc_arm_macos.dmg
-        path: build/${{ github.event.repository.name }}.dmg
-
-    # Verify TAR file exists
-    - name: Verify TAR file exists
-      run: test -f build/${{ github.event.repository.name }}.tar
-
-    # Upload TAR artifact if it exists
-    - name: Upload TAR artifact
-      if: success()
+      run: ./BuildMacOS.sh -adsi
+    - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
       with:
         name: rc_arm_macos.dmg
