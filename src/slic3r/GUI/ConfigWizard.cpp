@@ -93,10 +93,10 @@ static const std::unordered_map<PrinterTechnology, std::string> tech_to_string{ 
 
 // Configuration data structures extensions needed for the wizard
 
-bool Bundle::load(fs::path source_path, BundleLocation location, bool ais_prusa_bundle)
+bool Bundle::load(fs::path source_path, bool ais_in_resources, bool ais_prusa_bundle)
 {
     this->preset_bundle = std::make_unique<PresetBundle>();
-    this->location = location;
+    this->is_in_resources = ais_in_resources;
     this->is_prusa_bundle = ais_prusa_bundle;
 
     std::string path_string = source_path.string();
@@ -114,7 +114,7 @@ bool Bundle::load(fs::path source_path, BundleLocation location, bool ais_prusa_
     if (presets_loaded == 0) {
         BOOST_LOG_TRIVIAL(error) << boost::format("Vendor bundle: `%1%`: No profile loaded.") % path_string;
         return false;
-    } 
+    }
 
     BOOST_LOG_TRIVIAL(trace) << boost::format("Vendor bundle: `%1%`: %2% profiles loaded.") % path_string % presets_loaded;
     this->vendor_profile = &first_vendor->second;
@@ -135,97 +135,47 @@ BundleMap BundleMap::load()
     BundleMap res;
 
     const auto vendor_dir = (boost::filesystem::path(Slic3r::data_dir()) / "vendor").make_preferred();
-    const auto archive_dir = (boost::filesystem::path(Slic3r::data_dir()) / "cache" / "vendor").make_preferred();
     const auto rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
-    const auto cache_dir = boost::filesystem::path(Slic3r::data_dir()) / "cache"; // for Index
-    // Load Prusa bundle from the datadir/vendor directory or from datadir/cache/vendor (archive) or from resources/profiles.
+
 #ifdef ALLOW_PRUSA_FIRST
     // prusa bundle mandatory check at startup
     auto prusa_bundle_path = (vendor_dir / ALLOW_PRUSA_FIRST).replace_extension(".ini");
-    BundleLocation prusa_bundle_loc = BundleLocation::IN_VENDOR;
+    auto prusa_bundle_rsrc = false;
     if (! boost::filesystem::exists(prusa_bundle_path)) {
-        prusa_bundle_path = (archive_dir / ALLOW_PRUSA_FIRST).replace_extension(".ini");
-        prusa_bundle_loc = BundleLocation::IN_ARCHIVE;
-    }
-    if (!boost::filesystem::exists(prusa_bundle_path)) {
-        prusa_bundle_path = (rsrc_vendor_dir / PresetBundle::PRUSA_BUNDLE).replace_extension(".ini");
-        prusa_bundle_loc = BundleLocation::IN_RESOURCES;
+        prusa_bundle_path = (rsrc_vendor_dir / ALLOW_PRUSA_FIRST).replace_extension(".ini");
+        prusa_bundle_rsrc = true;
     }
     {
         Bundle prusa_bundle;
-        if (prusa_bundle.load(std::move(prusa_bundle_path), prusa_bundle_loc, true))
+        if (prusa_bundle.load(std::move(prusa_bundle_path), prusa_bundle_rsrc, true))
             res.emplace(ALLOW_PRUSA_FIRST, std::move(prusa_bundle));
     }
 #endif
 
     // Load the other bundles in the datadir/vendor directory
-    // and then additionally from datadir/cache/vendor (archive) and resources/profiles.
-    // Should we concider case where archive has older profiles than resources (shouldnt happen)? -> YES, it happens during re-configuration when running older PS after newer version
-    typedef std::pair<const fs::path&, BundleLocation> DirData;
-    std::vector<DirData> dir_list { {vendor_dir, BundleLocation::IN_VENDOR},  {archive_dir, BundleLocation::IN_ARCHIVE},  {rsrc_vendor_dir, BundleLocation::IN_RESOURCES} };
-    for ( auto dir : dir_list) {
-        if (!fs::exists(dir.first))
-            continue;
-      try {
-        for (const auto &dir_entry : boost::filesystem::directory_iterator(dir.first)) {
-            if (Slic3r::is_ini_file(dir_entry)) {
-                std::string id = dir_entry.path().stem().string();  // stem() = filename() without the trailing ".ini" part
+    // and then additionally from resources/profiles.
+    bool is_in_resources = false;
+    for (auto dir : { &vendor_dir, &rsrc_vendor_dir }) {
+        try {
+            for (const auto& dir_entry : boost::filesystem::directory_iterator(*dir)) {
+                if (Slic3r::is_ini_file(dir_entry)) {
+                    std::string id = dir_entry.path().stem().string();  // stem() = filename() without the trailing ".ini" part
 
-                // Don't load this bundle if we've already loaded it.
-                if (res.find(id) != res.end()) { continue; }
+                    // Don't load this bundle if we've already loaded it.
+                    if (res.find(id) != res.end()) { continue; }
 
-                // Fresh index should be in archive_dir, otherwise look for it in cache 
-                // Then if not in archive or cache - it could be 3rd party profile that user just copied to vendor folder (both ini and cache)
-                
-                fs::path idx_path (archive_dir / (id + ".idx"));
-                if (!boost::filesystem::exists(idx_path)) {
-                    BOOST_LOG_TRIVIAL(error) << format("Missing index %1% when loading bundle %2%. Going to search for it in cache folder.", idx_path.string(), id);
-                    idx_path = fs::path(cache_dir / (id + ".idx"));
+                    Bundle bundle;
+                    if (bundle.load(dir_entry.path(), is_in_resources))
+                        res.emplace(std::move(id), std::move(bundle));
                 }
-                if (!boost::filesystem::exists(idx_path)) {
-                    BOOST_LOG_TRIVIAL(error) << format("Missing index %1% when loading bundle %2%. Going to search for it in vendor folder. Is it a 3rd party profile?", idx_path.string(), id);
-                    idx_path = fs::path(vendor_dir / (id + ".idx"));
-                }
-                if (!boost::filesystem::exists(idx_path)) {
-                    BOOST_LOG_TRIVIAL(error) << format("Could not load bundle %1% due to missing index %2%.", id, idx_path.string());
-                    continue;
-                }
-
-                Slic3r::GUI::Config::Index index;
-                try {
-                    index.load(idx_path);
-                }
-                catch (const std::exception& /* err */) {
-                    BOOST_LOG_TRIVIAL(error) << format("Could not load bundle %1% due to invalid index %2%.", id, idx_path.string());
-                    continue;
-                }
-                const auto recommended_it = index.recommended();
-                if (recommended_it == index.end()) {
-                    BOOST_LOG_TRIVIAL(error) << format("Could not load bundle %1% due to no recommended version in index %2%.", id, idx_path.string());
-                    continue;
-                }
-                const auto recommended = recommended_it->config_version;
-                VendorProfile vp;
-                try {
-                    vp = VendorProfile::from_ini(dir_entry, true);
-                }
-                catch (const std::exception& e) {
-                    BOOST_LOG_TRIVIAL(error) << format("Could not load bundle %1% due to corrupted profile file %2%. Message: %3%", id, dir_entry.path().string(), e.what());
-                    continue;
-                }
-                // Don't load
-                if (vp.config_version > recommended)
-                    continue;
-
-                Bundle bundle;
-                if (bundle.load(dir_entry.path(), dir.second))
-                    res.emplace(std::move(id), std::move(bundle));
             }
         }
-      }catch (std::exception e) {
-          MessageDialog msg(nullptr, format_wxstr(_L("Can't open directory '%1%'. Config bundles from here can't be loaded.\nError: %2%"), vendor_dir.string(), e.what()), _L("Error"), wxOK);
-          msg.ShowModal();
-      }
+        catch (std::exception e) {
+            MessageDialog msg(nullptr, format_wxstr(_L("Can't open directory '%1%'. Config bundles from here can't be loaded.\nError: %2%"), vendor_dir.string(), e.what()), _L("Error"), wxOK);
+            msg.ShowModal();
+        }
+
+        is_in_resources = true;
     }
 
     return res;
@@ -626,7 +576,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
     unsigned indent,
     Technology technology)
     : ConfigWizardPage(parent, std::move(title), std::move(shortname), indent)
-    , technology(technology)
+    , technology((Technology)(uint8_t)technology)
     , install(false)   // only used for 3rd party vendors
 {
     enum {
@@ -669,10 +619,10 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
                 
                 std::string CR3D_README_LINK = "https://github.com/CR-3D/SliCR-3D-profiles/blob/02a963ccc3001657b24cd402147bde05b048d973/CR3D/ReadMe.md";
                 
-                wxHyperlinkCtrl *hyperlink = new wxHyperlinkCtrl(this, 
+                wxHyperlinkCtrl *hyperlink = new wxHyperlinkCtrl(this,
                                                                  wxID_ANY,
                                                                  "Find more information here.",
-                                                                 CR3D_README_LINK, 
+                                                                 CR3D_README_LINK,
                                                                  wxDefaultPosition,
                                                                  wxDefaultSize,
                                                                  wxHL_DEFAULT_STYLE | wxNO_BORDER);
@@ -696,7 +646,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
         infoText->SetFont(font);
         sizer->Add(infoText);
         
-        wxHyperlinkCtrl* shop_hyperlink = new wxHyperlinkCtrl(this, 
+        wxHyperlinkCtrl* shop_hyperlink = new wxHyperlinkCtrl(this,
                                                               wxID_ANY,
                                                               "here",
                                                               "https://www.cr3d.de/kategorie/empfohlen/",
@@ -766,7 +716,7 @@ void PagePrinters::set_run_reason(ConfigWizard::RunReason run_reason) {
 #ifdef ALLOW_PRUSA_FIRST
     if (is_primary_printer_page
         && (run_reason == ConfigWizard::RR_DATA_EMPTY || run_reason == ConfigWizard::RR_DATA_LEGACY)
-        && printer_pickers.size() > 0 
+        && printer_pickers.size() > 0
         && printer_pickers[0]->vendor_id == ALLOW_PRUSA_FIRST) {
         printer_pickers[0]->select_one(0, true);
     }
@@ -774,6 +724,7 @@ void PagePrinters::set_run_reason(ConfigWizard::RunReason run_reason) {
    //didn't select the first prusa even if it's the first start: let the user choose
 #endif
 }
+
 
 
 const std::string PageMaterials::EMPTY;
