@@ -8292,7 +8292,14 @@ void Plater::filament_notification_plater() {
             }
         }
     }
-    get_notification_manager()->push_notification(GUI::format(_L(recommendation_message)));
+    
+    if (!is_startup) {
+        get_notification_manager()->push_notification(GUI::format(_L(recommendation_message)));
+    }
+
+    // Set startup to false after the check
+    is_startup = false;
+    
 }
 
 void Plater::on_config_change(const DynamicConfig &config)
