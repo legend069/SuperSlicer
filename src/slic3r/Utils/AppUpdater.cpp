@@ -323,32 +323,7 @@ bool AppUpdater::priv::run_downloaded_file(boost::filesystem::path path)
 
 void AppUpdater::priv::version_check(const std::string& version_check_url) 
 {
-	assert(!version_check_url.empty());
-	std::string error_message;
-	bool res = http_get_file(version_check_url, 1024
-		// on_progress
-		, [](Http::Progress progress) { return true; }
-		// on_complete
-		, [&](std::string body, std::string& error_message) {
-			boost::trim(body);
-			parse_version_string(body);
-			return true;
-		}
-		, error_message
-	);
-	//lm:In case the internet is not available, it will report no updates if run by user.
-	// We might save a flag that we don't know or try to run the version_check again, reporting
-	// the failure.
-	// dk: changed to download version every time. Dialog will show if m_triggered_by_user.
-	if (!res) {
-		std::string message = GUI::format("Downloading %1% version file has failed:\n%2%", SLIC3R_APP_NAME, error_message);
-		BOOST_LOG_TRIVIAL(error) << message;
-		if (m_triggered_by_user) {
-			wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_APP_DOWNLOAD_FAILED);
-			evt->SetString(message);
-			GUI::wxGetApp().QueueEvent(evt);
-		}
-	}
+	
 }
 
 #define VERSION_FROM_GITHUB 1

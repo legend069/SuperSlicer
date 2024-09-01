@@ -892,7 +892,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "lift_min",
     "nozzle_diameter",
             "gcode_min_length",
-            "gcode_min_resolution"
+            "gcode_min_resolution",
             "max_gcode_per_second",
     //FIXME the print host keys are left here just for conversion from the Printer preset to Physical Printer preset.
     "host_type", "print_host", "printhost_apikey", "printhost_cafile", "printhost_port",

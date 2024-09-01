@@ -272,18 +272,6 @@ void PresetUpdater::priv::prune_tmps() const
 		}
 }
 
-//parse the string, if it doesn't contain a valid version string, return invalid version.
-Semver get_version(const std::string &str, const std::regex &regexp) {
-	std::smatch match;
-	if (std::regex_match(str, match, regexp)) {
-		std::string version_cleaned = match[0];
-		const boost::optional<Semver> version = Semver::parse(version_cleaned);
-		if (version.has_value()) {
-			return *version;
-		}
-	}
-	return Semver::invalid();
-}
 
 // Get Slic3rPE version available online, save in AppConfig.
 

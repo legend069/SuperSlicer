@@ -418,6 +418,7 @@ public:
     bool can_mirror() const;
     bool can_split(bool to_objects) const;
     bool can_scale_to_print_volume() const;
+    bool is_render_statistic_dialog_visible() const;
 
     void msw_rescale();
     void sys_color_changed();
