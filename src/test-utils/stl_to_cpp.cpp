@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cstdlib>
 
+#include <libslic3r/AABBMesh.hpp>
 #include <libslic3r/Format/STL.hpp>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/LocalesUtils.hpp>

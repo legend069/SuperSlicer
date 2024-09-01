@@ -25,7 +25,8 @@ class PresetUpdater;
 
 namespace GUI {
 
-//#define ALLOW_PRUSA_FIRST "PrusaResearch"
+#define ALLOW_PRUSA_FIRST "CR3D"
+
 namespace DownloaderUtils {
     class Worker : public wxBoxSizer
     {

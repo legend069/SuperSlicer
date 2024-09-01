@@ -158,13 +158,13 @@ void PreferencesDialog::show(const std::string& highlight_opt_key /*= std::strin
             this->m_downloader->allow(!app_config->has("downloader_url_registered") || app_config->get_bool("downloader_url_registered"));
         }
 		for (const std::string& opt_key : {"suppress_hyperlinks", "downloader_url_registered"})
-			m_optkey_to_optgroup[opt_key]->set_value(opt_key, app_config->get_bool(opt_key));
+			m_optkey_to_optgroup[opt_key]->set_value(opt_key, app_config->get_bool(opt_key), true, false);
 
 		for (const std::string  opt_key : { "default_action_on_close_application"
 										   ,"default_action_on_new_project"
 										   ,"default_action_on_select_preset" })
-			m_optkey_to_optgroup[opt_key]->set_value(opt_key, app_config->get(opt_key) == "none");
-		m_optkey_to_optgroup["default_action_on_dirty_project"]->set_value("default_action_on_dirty_project", app_config->get("default_action_on_dirty_project").empty());
+			m_optkey_to_optgroup[opt_key]->set_value(opt_key, app_config->get(opt_key) == "none", true, false);
+		m_optkey_to_optgroup["default_action_on_dirty_project"]->set_value("default_action_on_dirty_project", app_config->get("default_action_on_dirty_project").empty(), true, false);
 
 		// update colors for color pickers of the labels
 		update_color(m_sys_colour, wxGetApp().get_label_clr_sys());
@@ -210,7 +210,8 @@ std::shared_ptr<ConfigOptionsGroup> PreferencesDialog::create_options_group(cons
 	optgroup->title_width = 40;
 	optgroup->label_width = 40;
 	optgroup->set_config_category_and_type(title, int(Preset::TYPE_PREFERENCES));
-	optgroup->m_on_change = [this, tabs, optgroup](t_config_option_key opt_key, boost::any value) {
+	optgroup->m_on_change = [this, tabs, optgroup](t_config_option_key opt_key, bool enabled, boost::any value) {
+        assert(enabled);
 		Field* field = optgroup->get_field(opt_key);
 		if (auto it = m_values.find(opt_key); it != m_values.end()) { //TODO: test that
 			m_values.erase(it); // we shouldn't change value, if some of those parameters were selected, and then deselected
@@ -244,7 +245,7 @@ std::shared_ptr<ConfigOptionsGroup> PreferencesDialog::create_options_group(cons
 				int val_int = boost::any_cast<int>(value);
 				auto vector = field->m_opt.enum_def->enums();
 				assert(vector.size() > val_int && val_int >= 0);
-				if(vector.size() > val_int && val_int >= 0){
+				if(int(vector.size()) > val_int && val_int >= 0){
 					m_values[opt_key] = vector[val_int];
 				}
 			}
@@ -374,7 +375,7 @@ void PreferencesDialog::append_enum_option( std::shared_ptr<ConfigOptionsGroup> 
 								const std::string& opt_key,
 								const std::string& label,
 								const std::string& tooltip,
-								const ConfigOption* def_val,
+								ConfigOption* def_val,
 								std::initializer_list<std::pair<std::string_view, std::string_view>> enum_values,
 								ConfigOptionMode mode)
 {
@@ -699,7 +700,8 @@ void PreferencesDialog::build()
 	create_options_tab(L("Camera"));
 	m_tabid_2_optgroups.back().emplace_back(create_options_group("", tabs, 1)); // no title -> no borders
 	m_tabid_2_optgroups.back().back()->set_config_category_and_type(_L("Camera"), int(Preset::TYPE_PREFERENCES));
-	m_tabid_2_optgroups.back().back()->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
+	m_tabid_2_optgroups.back().back()->m_on_change = [this](t_config_option_key opt_key, bool enabled, boost::any value) {
+        assert(enabled);
 		if (auto it = m_values.find(opt_key);it != m_values.end()) {
 			m_values.erase(it); // we shouldn't change value, if some of those parameters were selected, and then deselected
 			return;
@@ -1006,7 +1008,8 @@ void PreferencesDialog::build()
 		create_options_tab(L("Render"));
 		m_tabid_2_optgroups.back().emplace_back(create_options_group("", tabs, 1));
 		m_tabid_2_optgroups.back().back()->set_config_category_and_type(L("Render"), int(Preset::TYPE_PREFERENCES));
-		m_tabid_2_optgroups.back().back()->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
+		m_tabid_2_optgroups.back().back()->m_on_change = [this](t_config_option_key opt_key, bool enabled, boost::any value) {
+            assert(enabled);
 			if (auto it = m_values.find(opt_key); it != m_values.end()) {
 				m_values.erase(it); // we shouldn't change value, if some of those parameters were selected, and then deselected
 				return;
@@ -1269,7 +1272,7 @@ void PreferencesDialog::revert(wxEvent&)
 	if (m_use_custom_toolbar_size != (get_app_config()->get_bool("use_custom_toolbar_size"))) {
 		app_config->set("use_custom_toolbar_size", m_use_custom_toolbar_size ? "1" : "0");
 
-		m_optkey_to_optgroup["use_custom_toolbar_size"]->set_value("use_custom_toolbar_size", m_use_custom_toolbar_size);
+		m_optkey_to_optgroup["use_custom_toolbar_size"]->set_value("use_custom_toolbar_size", m_use_custom_toolbar_size, true, false);
 		m_icon_size_sizer->ShowItems(m_use_custom_toolbar_size);
 		refresh_og(m_optkey_to_optgroup["use_custom_toolbar_size"]);
 	}
@@ -1278,15 +1281,15 @@ void PreferencesDialog::revert(wxEvent&)
 		const std::string& key = value.first;
 		// special cases
 		if (key == "default_action_on_dirty_project") {
-			m_optkey_to_optgroup[key]->set_value(key, app_config->get(key).empty());
+			m_optkey_to_optgroup[key]->set_value(key, app_config->get(key).empty(), true, false);
 			continue;
 		}
 		if (key == "default_action_on_close_application" || key == "default_action_on_select_preset" || key == "default_action_on_new_project") {
-			m_optkey_to_optgroup[key]->set_value(key, app_config->get(key) == "none");
+			m_optkey_to_optgroup[key]->set_value(key, app_config->get(key) == "none", true, false);
 			continue;
 		}
 		if (key == "notify_release") {
-			m_optkey_to_optgroup[key]->set_value(key, s_keys_map_NotifyReleaseMode.at(app_config->get(key)));
+			m_optkey_to_optgroup[key]->set_value(key, s_keys_map_NotifyReleaseMode.at(app_config->get(key)), true, false);
 			continue;
 		}
 		if (key == "old_settings_layout_mode") {
@@ -1312,7 +1315,7 @@ void PreferencesDialog::revert(wxEvent&)
 		//general case
 		Field* field = m_optkey_to_optgroup[key]->get_field(key);
         if (field->m_opt.type == coBool) {
-			 m_optkey_to_optgroup[key]->set_value("",true);
+			 m_optkey_to_optgroup[key]->set_value("",true, true, false);
 			field->set_any_value(ConfigOptionBool(app_config->get_bool(key)).get_any(), false);
 			continue;
 		}
@@ -1471,99 +1474,9 @@ void PreferencesDialog::create_icon_size_slider(wxWindow* tab, std::shared_ptr<C
 
 void PreferencesDialog::create_settings_mode_widget(wxWindow* tab, std::shared_ptr<ConfigOptionsGroup> opt_grp)
 {
-#if _USE_CUSTOM_NOTEBOOK
-	bool disable_new_layout = wxGetApp().tabs_as_menu();
-#endif
-	wxWindow* parent = tab;//opt_grp->parent();
-
-	wxString title = L("Layout Options");
-    wxStaticBox* stb = new wxStaticBox(parent, wxID_ANY, _(title));
-	wxGetApp().UpdateDarkUI(stb);
-	if (!wxOSX) stb->SetBackgroundStyle(wxBG_STYLE_PAINT);
-	stb->SetFont(wxGetApp().normal_font());
-
-	wxString unstable_warning = _L("!! Can be unstable in some os distribution !!");
-	stb->SetToolTip(_L("Choose how the windows are selectable and displayed:")
-		+ "\n* " + _L(" Tab layout: all windows are in the application, all are selectable via a tab.")
-#ifndef _USE_CUSTOM_NOTEBOOK
-		+ " " + unstable_warning
-#endif
-		+ "\n* " + _L("Old layout: all windows are in the application, settings are on the top tab bar and the platter choice in on the bottom of the platter view.")
-		+ "\n* " + _L("Settings button: all windows are in the application, no tabs: you have to clic on settings gears to switch to settings tabs.")
-		+ "\n* " + _L("Settings window: settings are displayed in their own window. You have to clic on settings gears to show the settings window.")
-	);
-
-	auto sizer_v = new wxBoxSizer(wxVERTICAL);
-
-	auto app_config = get_app_config();
-	std::vector<wxString> choices = {  _L("Layout with the tab bar"),
-                                       _L("Legacy layout"),
-                                       _L("Access via settings button in the top menu"),
-                                       _L("Settings in non-modal window") };
-	int id = -1;
-	auto add_radio = [this, parent, sizer_v, choices](wxRadioButton** rb, int id, bool select) {
-		*rb = new wxRadioButton(parent, wxID_ANY, choices[id], wxDefaultPosition, wxDefaultSize, id == 0 ? wxRB_GROUP : 0);
-		sizer_v->Add(*rb);
-		(*rb)->SetValue(select);
-		(*rb)->Bind(wxEVT_RADIOBUTTON, [this, id](wxCommandEvent&) {
-			m_values["tab_settings_layout_mode"] = (id == 0) ? "1" : "0";
-			m_values["old_settings_layout_mode"] = (id == 1) ? "1" : "0";
-			m_values["new_settings_layout_mode"] = (id == 2) ? "1" : "0";
-			m_values["dlg_settings_layout_mode"] = (id == 3) ? "1" : "0";
-		});
-	};
-
-
-	add_radio(&m_rb_dlg_settings_layout_mode, ++id, app_config->get_bool("tab_settings_layout_mode"));
-	add_radio(&m_rb_old_settings_layout_mode, ++id, app_config->get_bool("old_settings_layout_mode"));
-	add_radio(&m_rb_new_settings_layout_mode, ++id, app_config->get_bool("new_settings_layout_mode"));
-	add_radio(&m_rb_dlg_settings_layout_mode, ++id, app_config->get_bool("dlg_settings_layout_mode"));
-/* //TODO: to merge	int id = 0;
-	for (const wxString& label : choices) {
-		wxRadioButton* btn = new wxRadioButton(parent, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, id==0 ? wxRB_GROUP : 0);
-		sizer_v->Add(btn);
-		btn->SetValue(id == selection);
-
-
-        btn->Bind(wxEVT_RADIOBUTTON, [this, id
-#if _USE_CUSTOM_NOTEBOOK
-			, disable_new_layout
-#endif
-		](wxCommandEvent& ) {
-            int test = 0;
-            m_values["tab_settings_layout_mode"] = (id == test++) ? "1" : "0";
-            m_values["old_settings_layout_mode"] = (id == test++) ? "1" : "0";
-#if _USE_CUSTOM_NOTEBOOK
-			if (!disable_new_layout)
-#endif
-            m_values["new_settings_layout_mode"] = (id == test++) ? "1" : "0";
-            m_values["dlg_settings_layout_mode"] = (id == test++) ? "1" : "0";
-		});
-		id++;
-	}*/
-#ifdef _USE_CUSTOM_NOTEBOOK
-	if (app_config->get_bool("tabs_as_menu")) {
-		m_rb_new_settings_layout_mode->Hide();
-		if (m_rb_new_settings_layout_mode->GetValue()) {
-			m_rb_new_settings_layout_mode->SetValue(false);
-			m_rb_old_settings_layout_mode->SetValue(true);
-
-
-		}
-	}
-#endif
-	
-	wxSizer* stb_sizer = new wxStaticBoxSizer(stb, wxHORIZONTAL);
-	std::string opt_key = "settings_layout_mode";
-	m_blinkers[opt_key] = new BlinkingBitmap(parent);
-	m_optkey_to_optgroup[opt_key] = opt_grp;
-	stb_sizer->Add(m_blinkers[opt_key], 0, wxRIGHT, 2);
-	stb_sizer->Add(sizer_v, 1, wxEXPAND);
-	wxBoxSizer* parent_sizer = static_cast<wxBoxSizer*>(tab->GetSizer());
-	parent_sizer->Add(stb_sizer, 0, wxEXPAND | wxALL, 3);
-	//opt_grp->sizer->Add(sizer, 0, wxEXPAND | wxTOP, em_unit());
-
-	append_preferences_option_to_searcher(opt_grp, opt_key, title);
+    auto app_config = get_app_config();
+    app_config->set("tab_settings_layout_mode", "1");
+    app_config->set("settings_layout_mode", "0");
 }
 
 void PreferencesDialog::create_settings_text_color_widget(wxWindow* tab, std::shared_ptr<ConfigOptionsGroup> opt_grp)
@@ -1657,7 +1570,7 @@ void PreferencesDialog::create_settings_font_widget(wxWindow* tab, std::shared_p
 		m_values[opt_key] = format("%1%", val);
 		stb_sizer->Layout();
 #ifdef __linux__
-		CallAfter([this]() { refresh_og(opt_grp); });
+		CallAfter([this, opt_grp]() { refresh_og(opt_grp); });
 #else
 		refresh_og(opt_grp);
 #endif

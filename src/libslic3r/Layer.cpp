@@ -570,11 +570,16 @@ void Layer::backup_untyped_slices()
 void Layer::restore_untyped_slices()
 {
     if (layer_needs_raw_backup(this)) {
-        for (LayerRegion *layerm : m_regions)
+        for (LayerRegion *layerm : m_regions) {
+            for(auto &poly : layerm->m_raw_slices) poly.assert_point_distance();
             layerm->m_slices.set(layerm->m_raw_slices, stPosInternal | stDensSparse);
+            for(auto &srf : layerm->m_slices) srf.expolygon.assert_point_distance();
+        }
     } else {
         assert(m_regions.size() == 1);
+        for(auto &poly : this->lslices) poly.assert_point_distance();
         m_regions.front()->m_slices.set(this->lslices, stPosInternal | stDensSparse);
+        for(auto &srf :  m_regions.front()->m_slices) srf.expolygon.assert_point_distance();
     }
 }
 
@@ -673,20 +678,11 @@ void Layer::make_perimeters()
                     if (! (*it)->slices().empty()) {
                         LayerRegion             *other_layerm                         = *it;
                         const PrintRegionConfig &other_config                         = other_layerm->region().config();
-                        bool                     dynamic_overhang_speed_compatibility = config.enable_dynamic_overhang_speeds ==
-                                                                    other_config.enable_dynamic_overhang_speeds;
-                        if (dynamic_overhang_speed_compatibility && config.enable_dynamic_overhang_speeds) {
-                            dynamic_overhang_speed_compatibility = config.overhang_speed_0 == other_config.overhang_speed_0 &&
-                                                                   config.overhang_speed_1 == other_config.overhang_speed_1 &&
-                                                                   config.overhang_speed_2 == other_config.overhang_speed_2 &&
-                                                                   config.overhang_speed_3 == other_config.overhang_speed_3;
-                        }
                         /// !!! add here the settings you want to be added in the per-object menu.
                         /// if you don't do that, objects will share the same region, and the same settings.
                         if (config.perimeter_extruder             == other_config.perimeter_extruder
                             && config.perimeters                  == other_config.perimeters
                             && config.external_perimeter_acceleration == other_config.external_perimeter_acceleration
-                            && dynamic_overhang_speed_compatibility
                             && config.external_perimeter_extrusion_width == other_config.external_perimeter_extrusion_width
                             && config.external_perimeter_overlap == other_config.external_perimeter_overlap
                             && config.external_perimeter_speed == other_config.external_perimeter_speed // it os mandatory? can't this be set at gcode.cpp?
@@ -715,6 +711,7 @@ void Layer::make_perimeters()
                             && config.only_one_perimeter_top    == other_config.only_one_perimeter_top
                             && config.only_one_perimeter_top_other_algo == other_config.only_one_perimeter_top_other_algo
                             && config.overhangs_acceleration    == other_config.overhangs_acceleration
+                            && config.overhangs_dynamic_speed   == other_config.overhangs_dynamic_speed
                             && config.overhangs_width_speed     == other_config.overhangs_width_speed
                             && config.overhangs_width           == other_config.overhangs_width
                             && config.overhangs_reverse         == other_config.overhangs_reverse
@@ -1273,7 +1270,7 @@ void SupportLayer::simplify_support_extrusion_path() {
     coordf_t scaled_resolution = scale_d(print_config.resolution.value);
     if (scaled_resolution == 0) scaled_resolution = enable_arc_fitting ? SCALED_EPSILON * 2 : SCALED_EPSILON;
 
-    SimplifyVisitor visitor{ scaled_resolution , enable_arc_fitting ? print_config.arc_fitting : ArcFittingType::Disabled, &print_config.arc_fitting_tolerance };
+    SimplifyVisitor visitor{ scaled_resolution , enable_arc_fitting ? print_config.arc_fitting : ArcFittingType::Disabled, &print_config.arc_fitting_tolerance, enable_arc_fitting ? SCALED_EPSILON * 2 : SCALED_EPSILON};
     this->support_fills.visit(visitor);
 }
 

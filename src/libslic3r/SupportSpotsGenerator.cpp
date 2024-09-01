@@ -18,6 +18,7 @@
 #include "PrintBase.hpp"
 #include "PrintConfig.hpp"
 #include "Tesselate.hpp"
+#include "Thread.hpp"
 #include "Utils.hpp"
 #include "libslic3r.h"
 #include "tbb/parallel_for.h"
@@ -259,16 +260,14 @@ PrecomputedSliceConnections precompute_slices_connections(const PrintObject *po)
         }
     }
 
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, po->layers().size()), [po, &result](tbb::blocked_range<size_t> r) {
-        for (size_t lidx = r.begin(); lidx < r.end(); lidx++) {
+    Slic3r::parallel_for(size_t(0), po->layers().size(), [po, &result](size_t lidx) {
             const Layer *l = po->get_layer(lidx);
-            tbb::parallel_for(tbb::blocked_range<size_t>(0, l->lslices_ex.size()), [lidx, l, &result](tbb::blocked_range<size_t> r2) {
-                for (size_t slice_idx = r2.begin(); slice_idx < r2.end(); slice_idx++) {
+            Slic3r::parallel_for(size_t(0), l->lslices_ex.size(), [lidx, l, &result](size_t slice_idx) {
                     result[lidx][slice_idx] = estimate_slice_connection(slice_idx, l);
                 }
-            });
+            );
         }
-    });
+    );
 
     return result;
 };
@@ -517,8 +516,8 @@ ObjectPart::ObjectPart(
         if (collection->empty()) {
             continue;
         }
-
-        for (const ExtrusionEntity* entity: collection->flatten()) {
+        ExtrusionEntityCollection coll = collection->flatten(false);
+        for (const ExtrusionEntity* entity: coll.entities()) {
             Polylines polylines;
             std::vector<float> widths;
 
@@ -1244,8 +1243,8 @@ void estimate_supports_malformations(SupportLayerPtrs &layers, float flow_width,
     for (SupportLayer *l : layers) {
         l->curled_lines.clear();
         std::vector<ExtrusionLine> current_layer_lines;
-
-        for (const ExtrusionEntity *extrusion : l->support_fills.flatten().entities()) {
+        ExtrusionEntityCollection coll = l->support_fills.flatten(false);
+        for (const ExtrusionEntity *extrusion : coll.entities()) {
             Polyline pl = extrusion->as_polyline().to_polyline(scale_t(flow_width*4));
             Polygon  pol(pl.points);
             pol.make_counter_clockwise();
@@ -1319,7 +1318,8 @@ void estimate_malformations(LayerPtrs &layers, const Params &params)
         AABBTreeLines::LinesDistancer<Linef> prev_layer_boundary{std::move(boundary_lines)};
         std::vector<ExtrusionLine>           current_layer_lines;
         for (const LayerRegion *layer_region : l->regions()) {
-            for (const ExtrusionEntity *extrusion : layer_region->perimeters().flatten().entities()) {
+            ExtrusionEntityCollection collection = layer_region->perimeters().flatten(false);
+            for (const ExtrusionEntity *extrusion : collection.entities()) {
                 if (!extrusion->role().is_external_perimeter())
                     continue;
 

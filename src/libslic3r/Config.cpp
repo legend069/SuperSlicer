@@ -142,8 +142,10 @@ std::string escape_strings_cstyle(const std::vector<std::string> &strs, const st
         if (j > 0)
             // Separate the strings.
             (*outptr ++) = ';';
-        if (!(enables.empty() || enables[j]))
-            (*outptr ++) = '!';
+        if (!(enables.empty() || enables[j])) {
+            (*outptr++) = '!';
+            (*outptr++) = ':';
+        }
         const std::string &str = strs[j];
         // Is the string simple or complex? Complex string contains spaces, tabs, new lines and other
         // escapable characters. Empty string shall be quoted as well, if it is the only string in strs.
@@ -224,8 +226,9 @@ bool unescape_strings_cstyle(const std::string &str, std::vector<std::string> &o
             c = str[i];
         }
         bool enable = true;
-        if (c == '!') {
+        if (c == '!' && str.size() > i + 1 && str[i + 1] == ':') {
             enable = false;
+            ++i;
             c = str[++i];
         }
         // Start of a word.
@@ -586,6 +589,27 @@ bool GraphData::deserialize(const std::string &str)
     return true;
 }
 
+//TODO: replace ConfigOptionDef* by ConfigOptionDef&
+ConfigSubstitution::ConfigSubstitution(const ConfigOptionDef *def, std::string old, ConfigOptionUniquePtr &&new_v)
+    : opt_def(def), old_name(def->opt_key), old_value(old), new_value(std::move(new_v)) { assert(def); }
+
+std::optional<ConfigSubstitution> ConfigSubstitutionContext::find(const std::string &old_name) {
+    for (const ConfigSubstitution & conf: m_substitutions) {
+        if(old_name == conf.old_name)
+            return std::make_optional<ConfigSubstitution>(conf.old_name, conf.old_value);
+    }
+    return {};
+}
+bool ConfigSubstitutionContext::erase(std::string old_name) {
+    for (size_t idx_susbst = 0; idx_susbst < m_substitutions.size(); ++idx_susbst) {
+        if (old_name == m_substitutions[idx_susbst].old_name) {
+            m_substitutions.erase(m_substitutions.begin() + idx_susbst);
+            return true;
+        }
+    }
+    return false;
+}
+
 void ConfigOptionDeleter::operator()(ConfigOption* p) {
     delete p;
 }
@@ -612,41 +636,42 @@ std::vector<std::string> ConfigOptionDef::cli_args(const std::string &key) const
 
 ConfigOption *ConfigOptionDef::create_empty_option() const
 {
-	if (this->nullable) {
-	    switch (this->type) {
-        case coFloat:           return new ConfigOptionFloatNullable();
-        case coInt:             return new ConfigOptionIntNullable();
-	    case coFloats:          return new ConfigOptionFloatsNullable();
-	    case coInts:            return new ConfigOptionIntsNullable();
-	    case coPercents:        return new ConfigOptionPercentsNullable();
-        case coFloatsOrPercents: return new ConfigOptionFloatsOrPercentsNullable();
-        case coBools: return new ConfigOptionBoolsNullable();
-        default: throw ConfigurationError(std::string("Unknown option type for nullable option ") + this->label);
-        }
-    } else {
-        switch (this->type) {
-        case coFloat: return new ConfigOptionFloat();
-        case coFloats: return new ConfigOptionFloats();
-        case coInt: return new ConfigOptionInt();
-        case coInts: return new ConfigOptionInts();
-        case coString: return new ConfigOptionString();
-        case coStrings: return new ConfigOptionStrings();
-        case coPercent: return new ConfigOptionPercent();
-        case coPercents: return new ConfigOptionPercents();
-        case coFloatOrPercent: return new ConfigOptionFloatOrPercent();
-        case coFloatsOrPercents: return new ConfigOptionFloatsOrPercents();
-	    case coPoint:           return new ConfigOptionPoint();
-	    case coPoints:          return new ConfigOptionPoints();
-	    case coPoint3:          return new ConfigOptionPoint3();
-	//    case coPoint3s:         return new ConfigOptionPoint3s();
-	    case coGraph:           return new ConfigOptionGraph();
-	    case coGraphs:          return new ConfigOptionGraphs();
-	    case coBool:            return new ConfigOptionBool();
-	    case coBools:           return new ConfigOptionBools();
-	    case coEnum:            return new ConfigOptionEnumGeneric(this->enum_def->m_enum_keys_map);
-	    default:                throw ConfigurationError(std::string("Unknown option type for option ") + this->label);
-	    }
+    ConfigOption* opt = nullptr;
+    ConfigOptionVectorBase* opt_vec = nullptr;
+	switch (this->type) {
+	case coFloat:            opt = new ConfigOptionFloat(); break;
+	case coFloats:           opt = opt_vec = new ConfigOptionFloats(); break;
+	case coInt:              opt = new ConfigOptionInt(); break;
+	case coInts:             opt = opt_vec = new ConfigOptionInts(); break;
+	case coString:           opt = new ConfigOptionString(); break;
+	case coStrings:          opt = opt_vec = new ConfigOptionStrings(); break;
+	case coPercent:          opt = new ConfigOptionPercent(); break;
+	case coPercents:         opt = opt_vec = new ConfigOptionPercents(); break;
+	case coFloatOrPercent:   opt = new ConfigOptionFloatOrPercent(); break;
+    case coFloatsOrPercents: opt = opt_vec = new ConfigOptionFloatsOrPercents(); break;
+	case coPoint:            opt = new ConfigOptionPoint(); break;
+	case coPoints:           opt = opt_vec = new ConfigOptionPoints(); break;
+	case coPoint3:           opt = new ConfigOptionPoint3(); break;
+//    case coPoint3s:         return new ConfigOptionPoint3s();
+	case coGraph:            opt = new ConfigOptionGraph(); break;
+	case coGraphs:           opt = opt_vec = new ConfigOptionGraphs(); break;
+	case coBool:             opt = new ConfigOptionBool(); break;
+	case coBools:            opt = opt_vec = new ConfigOptionBools(); break;
+	case coEnum:             opt = new ConfigOptionEnumGeneric(this->enum_def->m_enum_keys_map); break;
+	default:                throw ConfigurationError(std::string("Unknown option type for option ") + this->label);
 	}
+    if (this->is_vector_extruder) {
+        assert(opt_vec);
+        opt_vec->set_is_extruder_size(true);
+    }
+    if (this->can_be_disabled) {
+        assert(opt);
+        opt->set_can_be_disabled(true);
+    }
+    if (this->can_phony) {
+        opt->set_phony(true);
+    }
+    return opt;
 }
 
 ConfigOption *ConfigOptionDef::create_default_option() const
@@ -659,6 +684,21 @@ ConfigOption *ConfigOptionDef::create_default_option() const
     return this->create_empty_option();
 }
 
+void ConfigOptionDef::set_default_value(ConfigOption *ptr) {
+    assert(!ptr->is_vector());
+    if (this->can_be_disabled) {
+        ptr->set_can_be_disabled();
+    }
+    this->default_value = Slic3r::clonable_ptr<const ConfigOption>(ptr);
+}
+void ConfigOptionDef::set_default_value(ConfigOptionVectorBase *ptr) {
+    ptr->set_is_extruder_size(this->is_vector_extruder);
+    if (this->can_be_disabled) {
+        ptr->set_can_be_disabled();
+    }
+    this->default_value = Slic3r::clonable_ptr<const ConfigOption>(ptr);
+}
+
 // Assignment of the serialization IDs is not thread safe. The Defs shall be initialized from the main thread!
 ConfigOptionDef *ConfigDef::add(const t_config_option_key &opt_key, ConfigOptionType type)
 {
@@ -669,13 +709,6 @@ ConfigOptionDef *ConfigDef::add(const t_config_option_key &opt_key, ConfigOption
     opt->serialization_key_ordinal                                     = ++serialization_key_ordinal_last;
     this->by_serialization_key_ordinal[opt->serialization_key_ordinal] = opt;
     return opt;
-}
-
-ConfigOptionDef *ConfigDef::add_nullable(const t_config_option_key &opt_key, ConfigOptionType type)
-{
-    ConfigOptionDef *def = this->add(opt_key, type);
-    def->nullable        = true;
-    return def;
 }
 
 void ConfigDef::finalize()
@@ -1298,10 +1331,8 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src,
     } else {
         bool substituted = false;
         if (optdef->type == coBools && substitutions_ctxt.rule != ForwardCompatibilitySubstitutionRule::Disable) {
-            // FIXME Special handling of vectors of bools, quick and not so dirty solution before PrusaSlicer 2.3.2 release.
-            bool                                       nullable = opt->nullable();
-            ConfigHelpers::DeserializationSubstitution default_value =
-                ConfigHelpers::DeserializationSubstitution::DefaultsToFalse;
+            //FIXME Special handling of vectors of bools, quick and not so dirty solution before PrusaSlicer 2.3.2 release.
+            ConfigHelpers::DeserializationSubstitution default_value = ConfigHelpers::DeserializationSubstitution::DefaultsToFalse;
             if (optdef->default_value) {
                 // Default value for vectors of booleans used in a "per extruder" context, thus the default contains just a single value.
                 assert(dynamic_cast<const ConfigOptionVector<unsigned char>*>(optdef->default_value.get()));
@@ -1309,11 +1340,7 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src,
                 if (values.size() == 1 && values.front() == 1)
                     default_value = ConfigHelpers::DeserializationSubstitution::DefaultsToTrue;
             }
-            auto result = nullable ?
-                              static_cast<ConfigOptionBoolsNullable *>(opt)
-                                  ->deserialize_with_substitutions(value, append, default_value) :
-                              static_cast<ConfigOptionBools *>(opt)->deserialize_with_substitutions(value, append,
-                                                                                                    default_value);
+            auto result = static_cast<ConfigOptionBools*>(opt)->deserialize_with_substitutions(value, append, default_value);
             success     = result != ConfigHelpers::DeserializationResult::Failed;
             substituted = result == ConfigHelpers::DeserializationResult::Substituted;
         } else {
@@ -1353,9 +1380,16 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src,
             opt->set_phony(false);
     else
         opt->set_phony(false);
-
-    if (optdef->is_vector_extruder)
+    
+    if (optdef->is_vector_extruder) {
+        assert(optdef->default_value->is_vector());
+        assert(dynamic_cast<ConfigOptionVectorBase *>(opt));
         static_cast<ConfigOptionVectorBase *>(opt)->set_is_extruder_size(true);
+    }
+
+    if (optdef->can_be_disabled)
+        opt->set_can_be_disabled();
+
     return success;
 }
 
@@ -2034,14 +2068,37 @@ void ConfigBase::save(const std::string &file, bool to_prusa) const
     c.close();
 }
 
-// Set all the nullable values to nils.
-void ConfigBase::null_nullables()
+#ifdef _DEBUG
+std::string ConfigBase::to_debug_string() const
+{
+    std::stringstream c;
+    for (const std::string &opt_key : this->keys()) {
+        if (!(*print_config_def.get(opt_key)->default_value == *this->option(opt_key))) {
+            std::string serialized = this->opt_serialize(opt_key);
+            if (!serialized.empty() && serialized.front() == '"' && serialized.back() == '"') {
+                boost::replace_all(serialized, "\"", "\\\"");
+            } else {
+                c << "config.set_deserialize(\"" << opt_key << "\", \"" << this->opt_serialize(opt_key) << "\");"
+                  << std::endl;
+            }
+        }
+    }
+    return c.str();
+}
+#endif
+
+// Disable all the optional settings.
+void ConfigBase::disable_optionals()
 {
     for (const std::string &opt_key : this->keys()) {
         ConfigOption *opt = this->optptr(opt_key, false);
-        assert(opt != nullptr);
-        if (opt->nullable())
-            opt->deserialize("nil", ForwardCompatibilitySubstitutionRule::Disable);
+        const ConfigOptionDef* def = get_option_def(opt_key);
+        assert(opt != nullptr && def != nullptr);
+        if (opt && def && def->is_optional) {
+            assert(def->can_be_disabled);
+            assert(opt->can_be_disabled());
+            opt->set_enabled(false);
+        }
     }
 }
 
@@ -2065,16 +2122,17 @@ bool DynamicConfig::operator==(const DynamicConfig &rhs) const
 }
 
 // Remove options with all nil values, those are optional and it does not help to hold them.
-size_t DynamicConfig::remove_nil_options()
+size_t DynamicConfig::remove_optional_disabled_options()
 {
-    size_t cnt_removed = 0;
-    for (auto it = options.begin(); it != options.end();)
-        if (it->second->is_nil()) {
-            it = options.erase(it);
-            ++cnt_removed;
-        } else
-            ++it;
-    return cnt_removed;
+    assert(false); // TODO: add check for optional 
+	size_t cnt_removed = 0;
+	for (auto it = options.begin(); it != options.end();)
+		if (!it->second->is_enabled()) {
+			it = options.erase(it);
+			++ cnt_removed;
+		} else
+			++ it;
+	return cnt_removed;
 }
 
 ConfigOption *DynamicConfig::optptr(const t_config_option_key &opt_key, bool create)
@@ -2356,9 +2414,6 @@ CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingle<std::string>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingle<Slic3r::Vec2d>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingle<Slic3r::Vec3d>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingle<bool>)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingleNullable<double>)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingleNullable<int>)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionSingleNullable<bool>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionVectorBase)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionVector<double>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionVector<int32_t>)
@@ -2366,21 +2421,15 @@ CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionVector<std::string>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionVector<Slic3r::Vec2d>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionVector<unsigned char>)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloat)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloatNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloats)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloatsNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionInt)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionIntNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionInts)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionIntsNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionString)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionStrings)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPercent)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPercents)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPercentsNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloatOrPercent)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloatsOrPercents)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionFloatsOrPercentsNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoint)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoints)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoint3)
@@ -2388,7 +2437,6 @@ CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionGraph)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionGraphs)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBool)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBools)
-CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBoolsNullable)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionEnumGeneric)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigBase)
 CEREAL_REGISTER_TYPE(Slic3r::DynamicConfig)
@@ -2400,9 +2448,6 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionS
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<Slic3r::Vec3d>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<Slic3r::GraphData>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingle<bool>) 
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingleNullable<double>)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingleNullable<int>)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionSingleNullable<bool>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOption, Slic3r::ConfigOptionVectorBase) 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<double>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<int32_t>)
@@ -2411,23 +2456,15 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::Con
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<Slic3r::GraphData>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVectorBase, Slic3r::ConfigOptionVector<unsigned char>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<double>, Slic3r::ConfigOptionFloat)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingleNullable<double>, Slic3r::ConfigOptionFloatNullable)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<double>, Slic3r::ConfigOptionFloats)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<double>, Slic3r::ConfigOptionFloatsNullable)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<int32_t>, Slic3r::ConfigOptionInt)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingleNullable<int32_t>, Slic3r::ConfigOptionIntNullable)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<int32_t>, Slic3r::ConfigOptionInts)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<int32_t>, Slic3r::ConfigOptionIntsNullable)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<std::string>, Slic3r::ConfigOptionString)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<std::string>, Slic3r::ConfigOptionStrings)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionFloat, Slic3r::ConfigOptionPercent)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionFloats, Slic3r::ConfigOptionPercents)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionFloats, Slic3r::ConfigOptionPercentsNullable)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionPercent, Slic3r::ConfigOptionFloatOrPercent)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::FloatOrPercent>,
-                                     Slic3r::ConfigOptionFloatsOrPercents)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::FloatOrPercent>,
-                                     Slic3r::ConfigOptionFloatsOrPercentsNullable)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::FloatOrPercent>, Slic3r::ConfigOptionFloatsOrPercents)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<Slic3r::Vec2d>, Slic3r::ConfigOptionPoint)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::Vec2d>, Slic3r::ConfigOptionPoints)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<Slic3r::Vec3d>, Slic3r::ConfigOptionPoint3)
@@ -2435,6 +2472,5 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<Slic3r::GraphDat
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<Slic3r::GraphData>, Slic3r::ConfigOptionGraphs)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionSingle<bool>, Slic3r::ConfigOptionBool)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<unsigned char>, Slic3r::ConfigOptionBools)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionVector<unsigned char>, Slic3r::ConfigOptionBoolsNullable)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigOptionInt, Slic3r::ConfigOptionEnumGeneric)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(Slic3r::ConfigBase, Slic3r::DynamicConfig)

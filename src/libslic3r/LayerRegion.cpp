@@ -1010,22 +1010,28 @@ double LayerRegion::infill_area_threshold() const
 void LayerRegion::trim_surfaces(const Polygons &trimming_polygons)
 {
 #ifndef NDEBUG
-    for (const Surface &surface : this->slices())
+    for (const Surface &surface : this->slices()) {
         assert(surface.surface_type == (stPosInternal | stDensSparse));
+        surface.expolygon.assert_point_distance();
+    }
 #endif /* NDEBUG */
     this->m_slices.set(intersection_ex(this->slices().surfaces, trimming_polygons), stPosInternal | stDensSparse);
+    for(auto &srf : this->m_slices) srf.expolygon.assert_point_distance();
 }
 
 void LayerRegion::elephant_foot_compensation_step(const float elephant_foot_compensation_perimeter_step, const Polygons &trimming_polygons)
 {
 #ifndef NDEBUG
-    for (const Surface &surface : this->slices())
+    for (const Surface &surface : this->slices()) {
         assert(surface.surface_type == (stPosInternal | stDensSparse));
+        surface.expolygon.assert_point_distance();
+    }
 #endif /* NDEBUG */
     assert(elephant_foot_compensation_perimeter_step >= 0);
     Polygons tmp = intersection(this->slices().surfaces, trimming_polygons);
     append(tmp, diff(this->slices().surfaces, opening(this->slices().surfaces, elephant_foot_compensation_perimeter_step)));
     this->m_slices.set(union_ex(tmp), stPosInternal | stDensSparse);
+    for(auto &srf : this->m_slices) srf.expolygon.assert_point_distance();
 }
 
 void LayerRegion::export_region_slices_to_svg(const char *path) const
@@ -1095,7 +1101,7 @@ void LayerRegion::simplify_extrusion_entity()
     
 	//Ligne 652:     SimplifyVisitor(coordf_t scaled_resolution, ArcFittingType use_arc_fitting, const ConfigOptionFloatOrPercent *arc_fitting_tolearance)
     //call simplify for all paths
-    Slic3r::SimplifyVisitor visitor{ scaled_resolution , enable_arc_fitting, &print_config.arc_fitting_tolerance };
+    Slic3r::SimplifyVisitor visitor{ scaled_resolution , enable_arc_fitting, &print_config.arc_fitting_tolerance, enable_arc_fitting != ArcFittingType::Disabled ? SCALED_EPSILON * 2 : SCALED_EPSILON };
     this->m_perimeters.visit(visitor);
     this->m_fills.visit(visitor);
     this->m_ironings.visit(visitor);

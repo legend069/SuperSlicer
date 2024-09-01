@@ -57,4 +57,4 @@ add_cmake_project(wxWidgets
         -DwxUSE_SCINTILLA=ON
 )
 
-set(DEP_wxWidgets_DEPENDS ZLIB PNG EXPAT TIFF JPEG NanoSVG)
+set(DEP_wxWidgets_DEPENDS ZLIB PNG EXPAT JPEG NanoSVG)

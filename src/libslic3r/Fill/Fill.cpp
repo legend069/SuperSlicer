@@ -693,7 +693,7 @@ static void insert_fills_into_islands(Layer &layer, uint32_t fill_region_id, uin
     }
 }
 
-static void insert_ironings_into_islands(Layer &layer, uint32_t region_id, uint32_t ironing_idx_begin, uint32_t ironing_idx_end)
+static void insert_ironings_into_islands(Layer &layer, uint32_t layer_region_id, uint32_t ironing_idx_begin, uint32_t ironing_idx_end)
 {
 	if (ironing_idx_begin < ironing_idx_end) {
     	// Sort the extrusion range into its LayerIsland.
@@ -705,7 +705,7 @@ static void insert_ironings_into_islands(Layer &layer, uint32_t region_id, uint3
 	               point.y() >= bbox.min.y() && point.y() < bbox.max.y() &&
 	               layer.lslices[lslice_idx].contour.contains(point);
 	    };
-	    Point point = layer.get_region(region_id)->ironings().entities()[ironing_idx_begin]->first_point();
+	    Point point = layer.get_region(layer_region_id)->ironings().entities()[ironing_idx_begin]->first_point();
 	    int lslice_idx = int(layer.lslices_ex.size()) - 1;
 	    for (; lslice_idx >= 0; -- lslice_idx)
 	        if (point_inside_surface(lslice_idx, point))
@@ -774,7 +774,7 @@ static void insert_ironings_into_islands(Layer &layer, uint32_t region_id, uint3
 	    	}
 	    	assert(island);
 	    	if (island)
-	    		island->add_ironing_range(LayerExtrusionRange{ region_id, { ironing_idx_begin, ironing_idx_end }});
+	    		island->add_ironing_range(LayerExtrusionRange{ layer_region_id, { ironing_idx_begin, ironing_idx_end }});
 	    }
     }
 }
@@ -1047,16 +1047,12 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
                                         intersection_ex(ExPolygons{surface_fill.surface.expolygon}, f->no_overlap_expolygons);
                     double real_surface = 0;
                     for(auto &t : temp) real_surface += t.area();
-                    assert(compute_volume.volume < unscaled(unscaled(surface_fill.surface.area())) * surface_fill.params.layer_height + EPSILON);
+                    assert(compute_volume.volume < unscaled(unscaled(surface_fill.surface.area())) * surface_fill.params.layer_height * surface_fill.params.flow_mult + EPSILON);
                     double area = unscaled(unscaled(real_surface));
                     if(surface_fill.surface.has_pos_top())
-                        area *= surface_fill.params.config->fill_top_flow_ratio.value;
-                    if(surface_fill.surface.has_pos_bottom() && f->layer_id == 0)
-                        area *= surface_fill.params.config->first_layer_flow_ratio.value;
-                    if(surface_fill.surface.has_mod_bridge() && f->layer_id == 0)
-                        area *= surface_fill.params.config->first_layer_flow_ratio.value;
+                        area *= surface_fill.params.config->fill_top_flow_ratio.get_abs_value(1);
                     //TODO: over-bridge mod
-                    if(surface_fill.params.config->over_bridge_flow_ratio.value == 1){
+                    if(surface_fill.params.config->over_bridge_flow_ratio.get_abs_value(1) == 1){
                         assert(compute_volume.volume <= area * surface_fill.params.layer_height * 1.001 || f->debug_verify_flow_mult <= 0.8);
                         if(compute_volume.volume > 0) //can fail for thin regions
                             assert(
@@ -1270,7 +1266,8 @@ void Layer::make_ironing()
         }
 
 		LayerRegion *layerm;
-		uint32_t     region_id;
+        // id of the region into the layer where the fill is made.
+		uint32_t     layer_region_id;
 
         // IdeaMaker: ironing
         // ironing flowrate (5% percent)
@@ -1287,15 +1284,12 @@ void Layer::make_ironing()
         // speed: 20 mm/sec
     };
 
+
     std::vector<IroningParams> by_extruder;
     // not using layer.height?
     double default_layer_height = this->object()->config().layer_height;
-#if _DEBUG
-	for (uint32_t region_id = 0; region_id < uint32_t(this->regions().size()); ++region_id)
-		//if (LayerRegion *layerm = this->get_region(region_id); ! layerm->slices().empty()) {
-        assert(this->get_region(region_id)->m_region->print_region_id() == region_id);
-#endif
-    for (LayerRegion *layerm : m_regions)
+    for (uint32_t layer_region_id = 0; layer_region_id < uint32_t(this->m_regions.size()); ++layer_region_id) {
+        LayerRegion *layerm = m_regions[layer_region_id];
         if (! layerm->slices().empty()) {
             IroningParams ironing_params;
             const PrintRegionConfig &config = layerm->region().config();
@@ -1328,10 +1322,11 @@ void Layer::make_ironing()
                         ironing_params.angle += float(Geometry::deg2rad(-config.ironing_angle.value));
                 }
                 ironing_params.layerm         = layerm;
-                ironing_params.region_id         = layerm->m_region->print_region_id();
+                ironing_params.layer_region_id= layer_region_id;
                 by_extruder.emplace_back(ironing_params);
             }
         }
+    }
     std::sort(by_extruder.begin(), by_extruder.end());
 
     FillRectilinear 	fill;
@@ -1448,7 +1443,7 @@ void Layer::make_ironing()
 						ExtrusionFlow{ flow_mm3_per_mm, extrusion_width, float(extrusion_height) }
 					});
                 // set the ironing indexes into the island tree, but it may doesn't belong to a region anyway...
-				insert_ironings_into_islands(*this, ironing_params.region_id, ironing_begin, uint32_t(ironing_params.layerm->ironings().size()));
+				insert_ironings_into_islands(*this, ironing_params.layer_region_id, ironing_begin, uint32_t(ironing_params.layerm->ironings().size()));
             }
         }
         // Regions up to j were processed.

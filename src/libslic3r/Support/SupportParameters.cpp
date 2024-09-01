@@ -15,7 +15,7 @@ SupportParameters::SupportParameters(const PrintObject &object)
     const PrintObjectConfig &object_config  = object.config();
     const SlicingParameters &slicing_params = object.slicing_parameters();
 
-    this->default_region_config = object.print()->default_region_config();
+    this->default_region_config = object.default_region_config(object.print()->default_region_config());
     this->default_region_config.parent = &object_config;
 
     this->soluble_interface = slicing_params.soluble_interface;
@@ -29,8 +29,9 @@ SupportParameters::SupportParameters(const PrintObject &object)
 
     {
         int num_top_interface_layers    = std::max(0, object_config.support_material_interface_layers.value);
-        int num_bottom_interface_layers = object_config.support_material_bottom_interface_layers < 0 ? 
-            num_top_interface_layers : object_config.support_material_bottom_interface_layers;
+        int num_bottom_interface_layers = object_config.support_material_bottom_interface_layers.is_enabled() ?
+            object_config.support_material_bottom_interface_layers :
+            num_top_interface_layers;
         this->has_top_contacts              = num_top_interface_layers    > 0;
         this->has_bottom_contacts           = num_bottom_interface_layers > 0;
         this->num_top_interface_layers      = this->has_top_contacts ? size_t(num_top_interface_layers - 1) : 0;
@@ -50,7 +51,9 @@ SupportParameters::SupportParameters(const PrintObject &object)
     this->support_material_interface_flow    = Slic3r::support_material_interface_flow(&object, float(slicing_params.layer_height));
     this->raft_flow                          = Slic3r::raft_flow(&object, float(slicing_params.base_raft_layer_height));
     this->raft_interface_flow                = Slic3r::raft_interface_flow(&object, float(slicing_params.interface_raft_layer_height));
-    this->raft_bridge_flow_ratio             = object.print()->default_region_config().bridge_flow_ratio.get_abs_value(1.);
+    this->raft_bridge_flow_ratio             = this->default_region_config.bridge_flow_ratio.get_abs_value(1.);
+
+    this->resolution                         = scale_t(object.print()->config().resolution_internal);
 
     // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
     this->support_layer_height_min                       = 1000000.;

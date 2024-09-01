@@ -351,6 +351,7 @@ public:
     void enter_gizmos_stack();
     void leave_gizmos_stack();
 
+    bool is_startup = { true };
     void filament_notification_plater();
     
     void on_extruders_change(size_t extruders_count);
