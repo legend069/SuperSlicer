@@ -4155,26 +4155,6 @@ void GUI_App::start_download(std::string url) {
             // notify Windows only when any of the values gets changed
             ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
     }
-void GUI_App::associate_3mf_files()
-{
-#ifdef SLIC3R_APP_W_PROG_ID
-    associate_file_type(L".3mf", SLIC3R_APP_W_PROG_ID, SLIC3R_APP_WNAME, true);
-#endif
-}
-
-void GUI_App::associate_stl_files()
-{
-#ifdef SLIC3R_APP_W_PROG_ID
-    associate_file_type(L".stl", SLIC3R_APP_W_PROG_ID, SLIC3R_APP_WNAME, true);
-#endif
-}
-
-void GUI_App::associate_gcode_files()
-{
-#ifdef GCODEVIEWER_APP_W_PROG_ID
-    associate_file_type(L".gcode", GCODEVIEWER_APP_W_PROG_ID, wxString(GCODEVIEWER_APP_NAME).ToStdWstring(), true);
-#endif
-}
 
 void GUI_App::associate_bgcode_files()
 {

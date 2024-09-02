@@ -320,6 +320,7 @@ bool AppUpdater::priv::run_downloaded_file(boost::filesystem::path path)
 
 void AppUpdater::priv::version_check(const std::string& version_check_url)
 {
+    /*
     assert(!version_check_url.empty());
     std::string error_message;
     bool res = http_get_file(version_check_url, 1024
@@ -346,6 +347,7 @@ void AppUpdater::priv::version_check(const std::string& version_check_url)
             GUI::wxGetApp().QueueEvent(evt);
         }
     }
+    */
 }
 
 void AppUpdater::priv::parse_version_string(const std::string& body)
