@@ -419,6 +419,7 @@ public:
     bool can_mirror() const;
     bool can_split(bool to_objects) const;
     bool can_scale_to_print_volume() const;
+    bool is_render_statistic_dialog_visible() const;
 
     void msw_rescale();
     void sys_color_changed();
@@ -511,8 +512,6 @@ public:
     bool inside_snapshot_capture();
 
     void toggle_render_statistic_dialog();
-    bool is_render_statistic_dialog_visible() const;
-
     void set_keep_current_preview_type(bool value);
 
 	// Wrapper around wxWindow::PopupMenu to suppress error messages popping out while tracking the popup menu.

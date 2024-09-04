@@ -9,6 +9,7 @@
 #include <libslic3r/Model.hpp>
 #include <libslic3r/LocalesUtils.hpp>
 
+
 #include "ClipboardXX/include/clipboardxx.hpp"
 
 int main(int argc, char const *argv[])
@@ -30,31 +31,6 @@ int main(int argc, char const *argv[])
     //TriangleMesh tm2 = TriangleMesh(std::vector<Vec3f>{{-5, -5, -0.1}},std::vector<Vec3i32>{{1,4,3}});
     std::stringstream out_cpp;
     int idx_obj = 0;
-    for (Slic3r::ModelObject* obj : model.objects) {
-        int idx_vol = 0;
-        for(Slic3r::ModelVolume *vol : obj->volumes) {
-            Slic3r::TriangleMesh mesh = vol->mesh();
-            Slic3r::AABBMesh indexed_mesh(mesh); // more user-friendly
-            out_cpp << "AABBMesh vol_"<< idx_obj << "_" << idx_vol <<" = AABBMesh(std::vector<Vec3f>{";
-            int ptidx= 0;
-            for(const Slic3r::Vec3f &pt : indexed_mesh.vertices())
-                out_cpp << (0==ptidx++?"{":",{") << Slic3r::to_string_nozero(pt.x(), 7)
-                         << ',' << Slic3r::to_string_nozero(pt.y(), 7)
-                         << ',' << Slic3r::to_string_nozero(pt.z(), 7) << '}';
-            out_cpp << "},std::vector<Vec3i32>{";
-            ptidx= 0;
-            for(const Slic3r::Vec3i32 &tri : indexed_mesh.indices())
-                out_cpp << (0==ptidx++?"{":",{") << tri(0) << ',' << tri(1) << ',' << tri(2) << '}';
-            out_cpp << "});\n";
-
-            idx_vol++;
-        }
-        out_cpp << "\n";
-        idx_obj++;
-    }
-
-    clipboard << out_cpp.str();
-    std::cout << out_cpp.str();
 
     return 0;
 }

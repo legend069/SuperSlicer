@@ -45,6 +45,7 @@ set(CMAKE_CXX_STANDARD 17)
     include_directories(exif/include)
     add_subdirectory(angelscript)
     # include_directories(angelscript/include)
+
     if(WIN32)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")
     elseif(UNIX)

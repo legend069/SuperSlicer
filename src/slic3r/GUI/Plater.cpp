@@ -2522,16 +2522,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             if (!fs::exists(fs::path(evt.GetString().utf8_string()) / "prusa_printer_settings.ini"))
                 return;
             if (evt.GetInt() == 0) { // not at startup, show dialog
-                    wxGetApp().open_wifi_config_dialog(false, evt.GetString());
+                    ;
             } else { // at startup, show only notification
-                notification_manager->push_notification(NotificationType::WifiConfigFileDetected
-                    , NotificationManager::NotificationLevel::ImportantNotificationLevel
-                    // TRN Text of notification when Slicer starts and usb stick with printer settings ini file is present 
-                    , _u8L("Printer configuration file detected on removable media.")
-                    // TRN Text of hypertext of notification when Slicer starts and usb stick with printer settings ini file is present 
-                    , _u8L("Write Wi-Fi credentials."), [evt/*, CONFIG_FILE_NAME*/](wxEvtHandler* evt_hndlr){
-                        wxGetApp().open_wifi_config_dialog(true, evt.GetString());
-                        return true;});
+  
             }
             
         });

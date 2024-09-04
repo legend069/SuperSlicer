@@ -323,7 +323,7 @@ bool AppUpdater::priv::run_downloaded_file(boost::filesystem::path path)
 
 void AppUpdater::priv::version_check(const std::string& version_check_url) 
 {
-
+	
 }
 
 #define VERSION_FROM_GITHUB 1
