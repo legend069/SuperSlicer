@@ -26,19 +26,14 @@ add_cmake_project(wxWidgets
         -DwxBUILD_PRECOMP=ON
         ${_wx_toolkit}
         -DwxUSE_MEDIACTRL=OFF
-        -DwxUSE_OPENGL=ON
-        -DwxUSE_WEBVIEW=ON
         ${_wx_edge}
         -DwxUSE_WEBVIEW_IE=OFF
         -DwxUSE_SCINTILLA=ON
-        -DwxUSE_WEBVIEW_WEBKIT=ON
         -DwxUSE_DETECT_SM=OFF
         -DwxUSE_UNICODE=ON
         -DwxUSE_UNICODE_UTF8=${_unicode_utf8}
         -DwxUSE_OPENGL=ON
         -DwxUSE_WEBVIEW=ON
-        ${_wx_edge}
-        -DwxUSE_WEBVIEW_IE=OFF
         -DwxUSE_WEBVIEW_WEBKIT=ON
         -DwxUSE_LIBPNG=sys
         -DwxUSE_ZLIB=sys
@@ -50,11 +45,10 @@ add_cmake_project(wxWidgets
         -DwxUSE_LIBTIFF=OFF
         -DwxUSE_EXPAT=sys
         -DwxUSE_LIBSDL=OFF
-        -DwxUSE_STC=OFF
+        -DwxUSE_STC=ON
         -DwxUSE_XTEST=OFF
         -DwxUSE_GLCANVAS_EGL=OFF
         -DwxUSE_WEBREQUEST=OFF
-        -DwxUSE_SCINTILLA=ON
 )
 
 set(DEP_wxWidgets_DEPENDS ZLIB PNG EXPAT JPEG NanoSVG)
