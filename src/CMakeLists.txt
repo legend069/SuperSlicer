@@ -59,11 +59,12 @@ set(CMAKE_CXX_STANDARD 17)
     set(wxWidgets_USE_DEBUG ON)
     set(wxWidgets_USE_UNICODE ON)
     set(wxUSE_WEBVIEW_EDGE ON)
-
+    set(wxUSE_SCINTILLA ON)
+    
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
             endif ()
-    find_package(wxWidgets 3.2 MODULE REQUIRED COMPONENTS base core adv webview html gl stc)
+    find_package(wxWidgets 3.1 MODULE REQUIRED COMPONENTS base core adv webview html gl stc)
 
     include(${wxWidgets_USE_FILE})
 

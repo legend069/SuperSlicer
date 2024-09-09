@@ -110,8 +110,7 @@
 #include "PrintHostDialogs.hpp"
 #include "DesktopIntegrationDialog.hpp"
 #include "SendSystemInfoDialog.hpp"
-#include "SlicerUpdater.hpp"
-#include "AppUpdater.hpp"
+#include "../Utils/AppUpdater.hpp"
 
 #include "Downloader.hpp"
 #include "PhysicalPrinterDialog.hpp"

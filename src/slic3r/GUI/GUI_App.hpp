@@ -17,7 +17,7 @@
 #include "OpenGLManager.hpp"
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
-#include "AppUpdater.hpp"
+#include "../Utils/AppUpdater.hpp"
 #include "Downloader.hpp"
 
 #include <wx/app.h>

@@ -21,8 +21,6 @@ include(PrecompiledHeader)
 set(SLIC3R_GUI_SOURCES
     pchheader.cpp
     pchheader.hpp
-    GUI/AppUpdater.cpp
-    GUI/AppUpdater.hpp
     GUI/Downloader.cpp
     GUI/Downloader.hpp
     GUI/DownloaderFileGet.cpp
@@ -291,8 +289,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/MsgDialog.hpp
     GUI/UpdateDialogs.cpp
     GUI/UpdateDialogs.hpp
-    GUI/SlicerUpdater.cpp
-    GUI/SlicerUpdater.hpp
+
     GUI/FirmwareDialog.cpp
     GUI/FirmwareDialog.hpp
     GUI/PrintHostDialogs.cpp

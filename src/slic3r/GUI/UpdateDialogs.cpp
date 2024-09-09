@@ -19,7 +19,7 @@
 #include "I18N.hpp"
 #include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
-#include "AppUpdater.hpp"
+#include "../Utils/AppUpdater.hpp"
 #include "format.hpp"
 
 
@@ -31,8 +31,6 @@ static const char *URL_DEV       = "https://github.com/" SLIC3R_GITHUB "/release
 
 static const std::string CONFIG_UPDATE_WIKI_URL(
     "https://github.com/prusa3d/PrusaSlicer/wiki/Slic3r-PE-1.40-configuration-update");
-
-// MsgUpdateSlic3r
 
 // MsgUpdateConfig
 
