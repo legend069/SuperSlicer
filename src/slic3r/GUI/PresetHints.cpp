@@ -573,7 +573,7 @@ std::string PresetHints::recommended_thin_wall_thickness(const PresetBundle& pre
         
         try {
             for (int i = 2; i <= num_lines; thin_walls ? ++i : i++) {
-                width += perimeter_flow.spacing() * 2;
+                width += perimeter_flow.spacing();
                 out += ", " + format(_u8L("%d perimeter: %.2f mm"), i, width) + " ";
             }
         }

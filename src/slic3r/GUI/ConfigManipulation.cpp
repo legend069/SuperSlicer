@@ -648,6 +648,7 @@ void ConfigManipulation::update_printer_fff_config(DynamicPrintConfig *config,
             apply(config, &new_conf);
             is_msg_dlg_already_exist = false;
         }
+        /*
         if (min_lh >= max_lh) {
             const wxString msg_text = _(
                 L("Minimum layer height is not valid, it can't be higher or equal to the maximum layer height.\n\nThe minimum layer height will be set to 0."));
@@ -659,6 +660,7 @@ void ConfigManipulation::update_printer_fff_config(DynamicPrintConfig *config,
             apply(config, &new_conf);
             is_msg_dlg_already_exist = false;
         }
+         */
         
         bool have_retract_length = config->opt_float("retract_length", extruder_idx) > 0;
         bool use_firmware_retraction = config->opt_bool("use_firmware_retraction");

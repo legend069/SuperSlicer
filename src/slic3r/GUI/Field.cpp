@@ -1758,9 +1758,15 @@ void Choice::set_text_value(const std::string &value, bool change_event) //! Red
 {
 	m_disable_change_event = !change_event;
     choice_ctrl* field = dynamic_cast<choice_ctrl*>(window);
-    if (auto opt = m_opt.enum_def->value_to_index(value); opt.has_value()) {
-        // This enum has a value field of the same content as text_value. Select it.
-        field->SetSelection(*opt);
+    size_t idx = 0;
+    if (m_opt.has_enum_value(value)) {
+        for (auto el : m_opt.enum_def->values())
+        {
+            if (el == value)
+                break;
+            ++idx;
+        }        // This enum has a value field of the same content as text_value. Select it.
+        field->SetSelection(idx);
     } else {
         field->SetValue(value);
     }

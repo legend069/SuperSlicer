@@ -3951,7 +3951,7 @@ void PrintConfigDef::init_fff_params()
     });
     def->mode = comAdvancedE | comPrusa;
     def->cli = ConfigOptionDef::nocli;
-    def->set_default_value(new ConfigOptionEnum<PrintHostType>(htPrusaLink));
+    def->set_default_value(new ConfigOptionEnum<PrintHostType>(htRepetier));
 
     def = this->add("print_custom_variables", coString);
     def->label = L("Custom variables");

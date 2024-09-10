@@ -1,7 +1,3 @@
-///|/ Copyright (c) Prusa Research 2020 - 2022 David Kocík @kocikdav, Oleksandra Iushchenko @YuSanka, Vojtěch Bubník @bubnikv
-///|/
-///|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
-///|/
 #ifndef slic3r_PhysicalPrinterDialog_hpp_
 #define slic3r_PhysicalPrinterDialog_hpp_
 
@@ -10,10 +6,10 @@
 #include <wx/gdicmn.h>
 
 #include "libslic3r/Preset.hpp"
-#include "Widgets/TextInput.hpp"
 #include "GUI_Utils.hpp"
 
 class wxString;
+class wxTextCtrl;
 class wxStaticText;
 class ScalableButton;
 class wxBoxSizer;
@@ -52,7 +48,8 @@ public:
     void                SuppressDelete();
     void                AllowDelete();
 
-    void                on_sys_color_changed();
+    void                msw_rescale();
+    void                on_sys_color_changed() {};
 };
 
 
@@ -66,7 +63,8 @@ class PhysicalPrinterDialog : public DPIDialog
     PhysicalPrinter     m_printer;
     wxString            m_default_name;
     DynamicPrintConfig* m_config            { nullptr };
-    ::TextInput*        m_printer_name      { nullptr };
+
+    wxTextCtrl*         m_printer_name      { nullptr };
     std::vector<PresetForPrinter*> m_presets;
 
     ConfigOptionsGroup* m_optgroup          { nullptr };
@@ -79,10 +77,6 @@ class PhysicalPrinterDialog : public DPIDialog
     ScalableButton*     m_printhost_port_browse_btn         {nullptr};
 
     wxBoxSizer*         m_presets_sizer                 {nullptr};
-
-    wxString            m_stored_host;
-    PrintHostType       m_last_host_type;
-    bool                m_opened_as_connect {false};
 
     void build_printhost_settings(ConfigOptionsGroup* optgroup);
     void OnOK(wxEvent& event);
@@ -105,12 +99,13 @@ public:
     void        DeletePreset(PresetForPrinter* preset_for_printer);
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
-    void on_sys_color_changed() override;
+    void on_sys_color_changed() override {};
 
     bool m_show_cert_fields = false;
     bool m_show_device_tab = true;
     bool had_all_mk3;
 };
+
 
 } // namespace GUI
 } // namespace Slic3r
