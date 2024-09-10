@@ -86,8 +86,11 @@
 
 static constexpr const float TRACKBALLSIZE = 0.8f;
 
-static const Slic3r::ColorRGBA DEFAULT_BG_DARK_COLOR  = { 0.478f, 0.478f, 0.478f, 1.0f };
-static const Slic3r::ColorRGBA DEFAULT_BG_LIGHT_COLOR = { 0.753f, 0.753f, 0.753f, 1.0f };
+static const Slic3r::ColorRGBA DEFAULT_BG_DARK_COLOR  = { 0.431f, 0.431f, 0.431f, 0.7f };
+static const Slic3r::ColorRGBA DEFAULT_BG_LIGHT_COLOR = { 0.431f, 0.431f, 0.431f, 0.7f };
+
+
+
 static const Slic3r::ColorRGBA ERROR_BG_DARK_COLOR    = { 0.478f, 0.192f, 0.039f, 1.0f };
 static const Slic3r::ColorRGBA ERROR_BG_LIGHT_COLOR   = { 0.753f, 0.192f, 0.039f, 1.0f };
 

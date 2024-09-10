@@ -857,23 +857,27 @@ wxCoord OG_CustomCtrl::CtrlLine::draw_mode_bmp(wxDC& dc, wxCoord v_pos)
         return ctrl->m_h_gap;
 
     ConfigOptionMode mode = og_line.get_options()[0].opt.mode;
-    int pix_cnt = wxOSX ? 10 : 12;
-
-    if (mode == ConfigOptionMode::comNone)
-        return pix_cnt + ctrl->m_h_gap;
-
-    //get all tags
+    //get the easiest setting
     for (int i = 1; i < og_line.get_options().size(); i++)
         mode |= og_line.get_options()[i].opt.mode;
-    wxBitmapBundle* bmp = get_bmp_bundle("mode", pix_cnt, pix_cnt, wxGetApp().get_first_mode_btn_color(mode));
-    wxCoord y_draw = v_pos + lround((height - get_bitmap_size(bmp, ctrl).GetHeight()) / 2);
+    std::string bmp_name = "mode_other";
+    if ((mode & ConfigOptionMode::comSimple) != 0)
+        bmp_name = "mode_simple";
+    else if ((mode & ConfigOptionMode::comAdvanced) != 0)
+        bmp_name = "mode_advanced";
+    else if ((mode & ConfigOptionMode::comExpert) != 0)
+        bmp_name = "mode_expert";
+    ScalableBitmap bmp = ScalableBitmap(ctrl, bmp_name, wxOSX ? 10 : 12);
+    wxBitmapBundle bitmap_bundle = wxBitmapBundle::FromBitmap(bmp.get_bitmap());
+    
+    wxCoord y_draw = v_pos + lround((height - get_bitmap_size(&bitmap_bundle, ctrl).GetHeight()) / 2);
 
     if (og_line.get_options().front().opt.gui_type != ConfigOptionDef::GUIType::legend)
-        dc.DrawBitmap(bmp->GetBitmapFor(ctrl), 0, y_draw);
+        dc.DrawBitmap(bmp.get_bitmap(), 0, y_draw);
 
-    // get_bitmap_size(bmp, ctrl).GetWidth() can be bigger than pix_cnt if the screen has a scaling
-    return get_bitmap_size(bmp, ctrl).GetWidth() + ctrl->m_h_gap;
+    return get_bitmap_size(&bitmap_bundle, ctrl).GetWidth() + ctrl->m_h_gap;
 }
+
 
 wxCoord    OG_CustomCtrl::CtrlLine::draw_text(wxDC& dc, wxPoint pos, const wxString& text, const wxString& tooltip, const wxColour* color, int width, bool is_url/* = false*/, bool align_right/* = false*/)
 {
