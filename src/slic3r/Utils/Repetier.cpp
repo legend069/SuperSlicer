@@ -197,29 +197,39 @@ bool Repetier::cooldown_printer() const {
     return res;
 }
 
-bool Repetier::preheat_printer() const {
+bool Repetier::preheat_printer(DynamicPrintConfig config) const {
     
-    std::string endpoint = "/printer/api/" + port + "?a=preheat";
-    std::string jsonData = R"({"extruder":1, "bed":1, "chamber":1})";
-    std::string cleanedHost = removeHttpPrefix(host);
-    std::string encoded_json = Http::url_encode(jsonData);
-    
-    std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
     bool res = true;
+    size_t first_layer_temp_count = config.option<ConfigOptionInts>("first_layer_temperature")->size();
     
-    auto http = Http::post(std::move(url));
-    set_auth(http);
-    
-    http.form_add("a", "preheat")
-        .on_complete([&](std::string body, unsigned status) {
-            std::cout << "Preheat was successful" << std::endl;
-        })
-        .on_error([&](std::string body, std::string error, unsigned status) {
-            std::cout << "Error preheating" << error << std::endl;
-            res = false;
-        })
-        .perform_sync();
-    
+    for (int i = 0; i < first_layer_temp_count; i++) {
+        
+        int first_layer_temp = config.option<ConfigOptionInts>("first_layer_temperature")->get_at(i);
+        
+        std::string endpoint = "/printer/api/" + port + "?a=setExtruderTemperature";
+        
+        //{"temperature":215,"extruder":0}
+        std::string jsonData = R"({"temperature": )" + std::to_string(first_layer_temp) + R"(,"extruder": )" + std::to_string(i) + "}";
+        
+        std::string cleanedHost = removeHttpPrefix(host);
+        std::string encoded_json = Http::url_encode(jsonData);
+        
+        std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
+        
+        auto http = Http::post(std::move(url));
+        set_auth(http);
+        
+        http.form_add("a", "setExtruderTemperature")
+            .on_complete([&](std::string body, unsigned status) {
+                std::cout << "Preheat was successful" << std::endl;
+            })
+            .on_error([&](std::string body, std::string error, unsigned status) {
+                std::cout << "Error preheating" << error << std::endl;
+                res = false;
+            })
+            .perform_sync();
+        
+    }
     
     return res;
 }
