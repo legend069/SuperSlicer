@@ -1,20 +1,1308 @@
 
-#: ../../ui_layout/default/print.ui
+#: ../ui_layout/default/print.ui : l380
+msgid "% of perimeter flow"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l60
+msgid "0% (bridge)"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l61
+msgid "25%"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l62
+msgid "50%"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l63
+msgid "75%"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
 msgid "_"
 msgstr ""
 
-#: ../../ui_layout/default/printer_sla.ui : l9
+#: ../ui_layout/default/print.ui
+msgid "Acceleration control (advanced)"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Activate"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Advanced"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Advanced Infill options"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "After layer change G-code"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Algorithm"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l184
+msgid "Aligned"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l42
+msgid "Also for all perimeters"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Anchor solid infill by X mm"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l124
+msgid "Angle"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Apply on"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Arachne perimeter generator (variable width)"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l50
+msgid "At end"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l49
+msgid "At start"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Automatic generation"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Autospeed (advanced)"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Avoid crossing perimeters"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Bed"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Before layer change G-code"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Behavior"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Between extrusion role change G-code"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Between objects G-code (for sequential printing)"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui : l61
+msgid "Big"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l14
+msgid "Bottom"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Branch"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Branch diameter"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l203
+msgid "Bridge"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Bridge acceleration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l68
+msgid "Bridge flow"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Bridge lines density"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Bridge speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l67
+msgid "Bridge speed and fan"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Bridge type"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l46
+msgid "Bridges"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Bridges fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Brim"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Brim ears"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "build volume"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l380
+msgid "Cap with"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Capabilities"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l505
+msgid "Change the bridge type and the bridge overlap to compute the same extrusions as when the PrusaSlicer 'thick bridge' isn't selected.\nAs long as it's selected, it will modify them.\nUnselect it to deactivate this enforcement."
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l7
+msgid "Change the perimeter extrusion widths to ensure that there is an exact number of perimeters for this wall thickness value. It won't put the perimeter width below the nozzle diameter, and up to double.\nNote that the value displayed is just a view of the current perimeter thickness, like the info text below. The number of perimeters used to compute this value is one loop, or the custom variable 'wall_thickness_lines' (advanced mode) if defined.\nIf the value is too low, it will revert the widths to the saved value.\nIf the value is set to 0, it will show 0."
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Color override"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Colour Change G-code"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l187
+msgid "Connection length"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Connection of the support sticks and junctions"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l4
+msgid "Contour"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Convert round vertical holes to polyholes"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Cooling"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Cooling fan"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Corrections"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l293
+msgid "Count"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Curve smoothing"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Custom G-code"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Custom variables"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l43
+msgid "Default"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "default"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Default acceleration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Default speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l26
+msgid "Density"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Dependencies"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l51
+msgid "Depth"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l33
+msgid "Deretraction"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Disable fan for the first"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Display"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Display mirroring"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Distance"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l125
+msgid "Distance Margin"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Dynamic Overhangs fan speeds"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Enable fan speed for a % overlap"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Enable ironing post-process"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "End G-code"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l453
+msgid "even layers"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Exposure"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l36
+msgid "External"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "external perimeter"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "External perimeter first"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Extra perimeters"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l60
+msgid "Extra unretraction"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Extruder"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Extruder clearance (mm)"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Extruders"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Extrusion direction"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Extrusion width"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Fan speed - default"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Filament"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Filament properties"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Filtering"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Firmware"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "First layer"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "first layer"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "First layer acceleration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "First layer speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Flow"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Flow ratio"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l56
+msgid "for external perimeters"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Formatting"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l265
+msgid "from brim"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l227
+msgid "From region"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l228
+msgid "From the whole layer"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Fuzzy skin (experimental)"
+msgstr ""
+
+#: ../ui_layout/default/milling.ui
+msgid "G-Code"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "G2/G3 generation"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l51
+msgid "Gap fill"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Gap Fill"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Gap fill fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Gap fill speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Gap Fill threshold"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Gcode precision"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "General"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "General wipe"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l5
+msgid "Holes"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Hollowing"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui : l15
+msgid "horizontal"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Horizontal shells"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Idle temperature"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "idx"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l219
+msgid "increment"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l333
+msgid "Increment"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Infill"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "infill"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Infill acceleration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Infill angle"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Infill speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l488
+msgid "Inside"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l44
+msgid "Interface"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l295
+msgid "Interface layer height"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l545
+msgid "Interlocking depth"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l35
+msgid "Internal"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l47
+msgid "Internal bridges"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Internal Infill fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Ironing infill pattern tuning"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Ironing post-process (This will go on top of infills and perimeters)"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui : l56
+msgid "Kickstart duration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Layer count"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Layer height"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Layer height limits"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l69
+msgid "Layer time goal"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Layers"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Layers and perimeters"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l126
+msgid "Length"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l37
+msgid "Lift"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Lift z enforcement"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l385
+msgid "Main speed"
+msgstr ""
+
+#: ../ui_layout/default/sla_material.ui
+msgid "Material"
+msgstr ""
+
+#: ../ui_layout/default/sla_material.ui
+msgid "Material printing profile"
+msgstr ""
+
+#: ../ui_layout/default/sla_material.ui
+msgid "material_correction"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l67
+msgid "Max fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l343
+msgid "Maximum"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l379
+msgid "Maximum speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l544
+msgid "Maximum width"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Min feature"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui : l59
+msgid "Minimum retraction"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Minimum shell thickness"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Minimum travel after"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l34
+msgid "Minimum width"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l523
+msgid "mm"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Modifiers"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Modifying slices"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Multimaterial"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Multimaterial toolchange string reduction"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Multimaterial toolchange temperature"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Multiple extruders"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Name and Size"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l60
+msgid "Not on first layer"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Notes"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Number of pixels in"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Offsets (for multi-extruder printers)"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l252
+msgid "On"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l32
+msgid "On first layer"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l37
+msgid "On overhangs"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l33
+msgid "On top surfaces"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "One-loop perimeters"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui : l54
+msgid "Only for overhangs"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Only lift Z"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Only one perimeter"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Only retract when crossing perimeters"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Ooze prevention"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Options"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Options for support material and raft"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Options for support material interface"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Organic supports"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Other"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Other extrusions acceleration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Other speed"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Output"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Output file"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Output options"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l397
+msgid "Over raft"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l49
+msgid "Overhangs"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Overhangs cut"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Overhangs Perimeter fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Overhangs speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Overlap"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Overlapping external perimeter"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Pad"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Pattern"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Pattern Angle"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Pause Print G-code"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "perimeter"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Perimeter acceleration"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l188
+msgid "Perimeter anchor"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Perimeter Direction"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Perimeter fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Perimeter overlap"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Perimeter speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Perimeters"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Perimeters & Shell"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Plater"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l77
+msgid "Position of perimeters' starting points. May use the angle & travel cost (with the fixed visilibity & ovehangs cost) to find the best place.\nCorners\. at least 100% angle cost and no more than 80% travel cost (default to 120-40).\nNearest\. no more than 100% angle cost and at least 100% travel cost (default to 80-100).\nScattered\. seam is placed at a random position on external perimeters.\nRandom\. seam is placed at a random position for all perimeters.\nAligned\. seams are grouped in the best place possible (minimum 6 layers per group).\nContiguous\. seam is placed over a seam from the previous layer (useful with enforcers as seeds).\nRear\. seam is placed at the far side (highest Y coordinates).\nCustom\. Other conbination of angle & travel cost than 'Corners' and 'Nearest', (default to 60-100).\nCustom & weight can be defined in Advanced or Expert mode."
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Post-processing milling"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Post-processing script"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Precision limits"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l344
+msgid "Preferred"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Pressure equalizer (experimental)"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Preview"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Priming"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Print Host upload"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Print remaining times"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Print speed override"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Printer scaling correction"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Processing limit"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Profile dependencies"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Quality"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Raft"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Reducing printing time"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Retraction"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Retraction Speed"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Retraction when tool is disabled (advanced settings for multi-extruder setups)"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Retraction wipe"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l52
+msgid "Reverse on Even layers"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Seam"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Seam gap"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Seam notch"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l77
+msgid "Seam position"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Segmented regions"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Sequential printing"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Short layer time - began to increase base fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l66
+msgid "Simple widget to enable/disable the overhangs detection (using 55% and 75% for the two thresholds)\nUse the expert mode to get more detailled widgets"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l505
+msgid "Simulate Prusa 'no thick bridge'"
+msgstr ""
+
+#: ../ui_layout/default/milling.ui
+msgid "Size"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Size and coordinates"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Size for Gcode"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Skirt"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "skirt"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Skirt & Brim"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Slicing"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui : l60
+msgid "Small"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Small Area Infill Flow Compensation (beta)"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Small perimeter speed"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l40
+msgid "Solid"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "solid infill"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Solid Infill fan speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Solid infill if area below"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Solid infill ovelrap"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Solid layers"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l315
+msgid "Spacing"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l444
+msgid "spacing"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l243
+msgid "Spacing between ironing lines"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l38
+msgid "Sparse"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Sparse infill pattern"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Speed for non-print moves"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Speed for print moves"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Speedup time"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Start G-code"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Support & Other"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Support acceleration"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Support head"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Support material"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "support material"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Support Material"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Support Material fan speed"
+msgstr ""
+
+#: ../ui_layout/default/sla_print.ui
+msgid "Support pillar"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Support speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l29
+msgid "Supporting dense layer"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Supports"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Temperature °C"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Template Custom G-code"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Thin walls"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "threshold for"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Thumbnail options"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Thumbnails"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Tilt"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui
+msgid "Tilt time"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "Tool change G-code"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Toolchange parameters with multi extruder MM printers"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Toolchange parameters with single extruder MM printers"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l195
+msgid "Top"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "top infill"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l28
+msgid "Top infill pattern"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui : l41
+msgid "Top solid"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Travel acceleration"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Travel lift"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Travel speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Tree Branch angle"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Tuning ironing"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui : l16
+msgid "vertical"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Vertical Hole shrinking compensation"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Vertical shells"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Very short layer time - began to decrease extrusion rate"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l7
+msgid "Wall Thickness"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Wall Transition"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l443
+msgid "width"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Width"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Width & Flow"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l457
+msgid "width&spacing combo"
+msgstr ""
+
+#: ../ui_layout/default/extruder.ui
+msgid "Wipe inside"
+msgstr ""
+
+#: ../ui_layout/default/print.ui : l386
+msgid "Wipe starting speed"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Wipe tower"
+msgstr ""
+
+#: ../ui_layout/default/filament.ui
+msgid "Wipe tower parameters"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Wipe tower position"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui : l9
 msgid "X"
 msgstr ""
 
-#: ../../ui_layout/default/printer_sla.ui : l10
+#: ../ui_layout/default/print.ui : l389
+msgid "xy"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "XY compensation"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "XY First layer compensation"
+msgstr ""
+
+#: ../ui_layout/default/printer_sla.ui : l10
 msgid "Y"
 msgstr ""
 
-#: ../../ui_layout/default/print.ui : l286
+#: ../ui_layout/default/print.ui : l390
 msgid "z"
 msgstr ""
 
-#: ../../ui_layout/default/printer_sla.ui : l28
+#: ../ui_layout/default/printer_sla.ui : l29
 msgid "Z"
+msgstr ""
+
+#: ../ui_layout/default/printer_fff.ui
+msgid "z utilities"
+msgstr ""
+
+#: ../ui_layout/default/print.ui
+msgid "Z-offset"
 msgstr ""

@@ -2607,7 +2607,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts { 0 });
 
     def = this->add("first_layer_extrusion_width", coFloatOrPercent);
-    def->label = L("First layer");
+    def->label = L("First Layer");
     def->full_label = L("First layer width");
     def->category = OptionCategory::width;
     def->tooltip = L("Set this to a non-zero value to set a manual extrusion width for first layer. "
@@ -2627,7 +2627,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatOrPercent(140, true));
 
     def = this->add("first_layer_extrusion_spacing", coFloatOrPercent);
-    def->label = L("First layer");
+    def->label = L("First Layer");
     def->full_label = L("First layer spacing");
     def->category = OptionCategory::width;
     def->tooltip = L("Like First layer width but spacing is the distance between two lines (as they overlap a bit, it's not the same)."

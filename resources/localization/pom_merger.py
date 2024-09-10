@@ -176,15 +176,15 @@ def main():
 					print(line.msgstr);
 		#add def from conf files
 		if ui_dir:
-			new_data = parse_ui_file(ui_dir+"/extruder.ui");
-			new_data.extend(parse_ui_file(ui_dir+"/extruder.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/filament.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/milling.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/print.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/printer_fff.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/printer_sla.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/sla_material.ui"));
-			new_data.extend(parse_ui_file(ui_dir+"/sla_print.ui"));
+			new_data = parse_ui_file(ui_dir + "/default" + "/extruder.ui");
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/extruder.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/filament.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/milling.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/print.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/printer_fff.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/printer_sla.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/sla_material.ui"));
+			new_data.extend(parse_ui_file(ui_dir + "/default" + "/sla_print.ui"));
 			print("String from ui files: " + str(len(new_data)));
 			for dataline in new_data:
 				if not dataline.msgid in dict_ope:

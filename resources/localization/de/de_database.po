@@ -1273,6 +1273,9 @@ msgstr "Wechsele die Anwendungssprache"
 msgid "Check for application updates"
 msgstr "Nach Updates suchen"
 
+msgid "Check for Application Updates"
+msgstr "Nach Updates suchen"
+
 msgid "Check for Configuration Updates"
 msgstr "Nach Konfigurationsaktualisierungen suchen"
 
