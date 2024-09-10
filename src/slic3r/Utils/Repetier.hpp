@@ -41,7 +41,7 @@ public:
     bool get_printers(wxArrayString &printers) const override;
     
     /// Preheating Post Requests
-    bool preheat_printer() const;
+    bool preheat_printer(DynamicPrintConfig config) const;
     bool cooldown_printer() const;
 
     // Get printer config -> API

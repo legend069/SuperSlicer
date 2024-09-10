@@ -903,14 +903,18 @@ void PhysicalPrinterDialog::OnOK(wxEvent& event)
         return;
     }
     
-    Choice* choice = dynamic_cast<Choice*>(m_optgroup->get_field("printhost_port"));
-    std::string printhost_port_string = boost::any_cast<std::string>(m_optgroup->get_field("printhost_port")->get_value());
-
-    if (choice->get_value().empty() || printhost_port_string == "") {
-        warning_catcher(this, "printhost_port can´t be empty");
-        return;
-    }
+    const auto opt = m_config->option<ConfigOptionEnum<PrintHostType>>("host_type");
+    const auto host_type = opt != nullptr ? opt->value : htOctoPrint;
     
+    if (host_type == htRepetier) {
+        Choice* choice = dynamic_cast<Choice*>(m_optgroup->get_field("printhost_port"));
+        std::string printhost_port_string = boost::any_cast<std::string>(m_optgroup->get_field("printhost_port")->get_value());
+        
+        if (choice->get_value().empty() || printhost_port_string == "") {
+            warning_catcher(this, "printhost_port can´t be empty");
+            return;
+        }
+    }
 
     Field* printhost_field = m_optgroup->get_field("print_host");
     text_ctrl* printhost_win = printhost_field ? dynamic_cast<text_ctrl*>(printhost_field->getWindow()) : nullptr;

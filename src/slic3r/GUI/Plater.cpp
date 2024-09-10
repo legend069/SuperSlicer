@@ -543,7 +543,7 @@ void FreqChangedParams::init()
     
         static bool isOn = false;
     
-    m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this](wxCommandEvent&) {
+    m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this, tab_print](wxCommandEvent&) {
         DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
         
         if (selected_printer_config) {
@@ -568,7 +568,9 @@ void FreqChangedParams::init()
                     m_preheat_button->SetBitmap(preheat_on.get_bitmap());
                     m_preheat_button->SetLabel("Cooldown");
                     
-                    if (this->m_rep->preheat_printer()) {
+                    DynamicPrintConfig print_config = wxGetApp().preset_bundle->full_config();
+                    
+                    if (this->m_rep->preheat_printer(print_config)) {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
                     } else {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error preheating the printer, please try again."));
