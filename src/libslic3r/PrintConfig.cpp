@@ -568,6 +568,16 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString(""));
 
+
+    //BBS: add "bed_exclude_area"
+    def = this->add("bed_exclude_area", coPoints);
+    def->label = L("Bed exclude area");
+    def->tooltip = L("Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. "
+        "The area is expressed as polygon by points in following format: \"XxY, XxY, ...\"");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0), Vec2d(200, 0), Vec2d(200, 200), Vec2d(0, 200) });
+
+
     def = this->add("printhost_client_cert", coString);
     def->label = L("Client Certificate File");
     def->category = OptionCategory::general;
@@ -8193,6 +8203,15 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     }
     if (opt_key == "bed_size" && !value.empty()) {
         opt_key = "bed_shape";
+        ConfigOptionPoint p;
+        p.deserialize(value, ForwardCompatibilitySubstitutionRule::Disable);
+        std::ostringstream oss;
+        oss << "0x0," << p.value(0) << "x0," << p.value(0) << "x" << p.value(1) << ",0x" << p.value(1);
+        value = oss.str();
+    }
+
+    if (opt_key == "bed_exclude_area" && !value.empty()) {
+        opt_key = "bed_exclude_area";
         ConfigOptionPoint p;
         p.deserialize(value, ForwardCompatibilitySubstitutionRule::Disable);
         std::ostringstream oss;

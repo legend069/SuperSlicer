@@ -252,10 +252,9 @@ void ToolOrdering::collect_extruders(
     }
 
     // Extruder overrides are ordered by print_z.
-    std::vector<std::pair<double, uint16_t>>::const_iterator it_per_layer_extruder_override = per_layer_extruder_switches.begin();
+    std::vector<std::pair<double, uint16_t>>::const_iterator it_per_layer_extruder_override;
+	it_per_layer_extruder_override = per_layer_extruder_switches.begin();
     uint16_t extruder_override = 0;
-
-    std::vector<std::pair<double, uint16_t>>::const_iterator it_per_layer_color_changes = per_layer_color_changes.begin();
 
     // Collect the object extruders.
     for (auto layer : object.layers()) {
@@ -268,14 +267,6 @@ void ToolOrdering::collect_extruders(
         // Store the current extruder override (set to zero if no overriden), so that layer_tools.wiping_extrusions().is_overridable_and_mark() will use it.
         layer_tools.extruder_override = extruder_override;
 
-        // Append the extruder needed to be picked before performing the color change.
-        for (; it_per_layer_color_changes != per_layer_color_changes.end() && it_per_layer_color_changes->first < layer->print_z + EPSILON; ++it_per_layer_color_changes) {
-            if (std::abs(it_per_layer_color_changes->first - layer->print_z) < EPSILON) {
-                assert(layer_tools.extruder_needed_for_color_changer == 0); // Just on color change per layer is allowed.
-                layer_tools.extruder_needed_for_color_changer = it_per_layer_color_changes->second;
-                layer_tools.extruders.emplace_back(it_per_layer_color_changes->second);
-            }
-        }
 
         // What extruders are required to print this object layer?
         for (const LayerRegion *layerm : layer->regions()) {

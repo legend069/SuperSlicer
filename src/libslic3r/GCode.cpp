@@ -3506,12 +3506,14 @@ void GCodeGenerator::process_layer_single_object(
             bool            has_interface      = role.is_mixed() || role.is_support_interface();
             // Extruder ID of the support base. -1 if "don't care".
             unsigned int    support_extruder   = print_object.config().support_material_extruder.value - 1;
+                        
             // Shall the support be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
             bool            support_dontcare   = support_extruder == std::numeric_limits<unsigned int>::max();
+
             // Extruder ID of the support interface. -1 if "don't care".
             unsigned int    interface_extruder = print_object.config().support_material_interface_extruder.value - 1;
             // Shall the support interface be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
-            bool            interface_dontcare = interface_extruder == std::numeric_limits<unsigned int>::max();
+                bool            interface_dontcare = print_object.config().support_material_interface_extruder.value == 0;
             if (support_dontcare || interface_dontcare) {
                 // Some support will be printed with "don't care" material, preferably non-soluble.
                 // Is the current extruder assigned a soluble filament?
@@ -3520,6 +3522,7 @@ void GCodeGenerator::process_layer_single_object(
                 // There should be a non-soluble extruder available.
                 assert(it_nonsoluble != print_args.layer_tools.extruders.end());
                 unsigned int dontcare_extruder = it_nonsoluble == print_args.layer_tools.extruders.end() ? print_args.layer_tools.extruders.front() : *it_nonsoluble;
+                
                 if (support_dontcare)
                     support_extruder = dontcare_extruder;
                 if (interface_dontcare)
@@ -3527,6 +3530,7 @@ void GCodeGenerator::process_layer_single_object(
             }
             bool extrude_support   = has_support && support_extruder == print_args.extruder_id;
             bool extrude_interface = has_interface && interface_extruder == print_args.extruder_id;
+                
             if (extrude_support || extrude_interface) {
                 init_layer_delayed();
                 m_layer = layer_to_print.support_layer;
@@ -3551,6 +3555,9 @@ void GCodeGenerator::process_layer_single_object(
                 gcode += this->extrude_support(chain_extrusion_references(entities, last_pos_defined()?&last_pos():nullptr));
             }
         }
+
+
+
     m_layer = layer_to_print.layer();
     // To control print speed of the 1st object layer printed over raft interface.
     m_object_layer_over_raft = layer_to_print.object_layer && layer_to_print.object_layer->id() > 0 &&

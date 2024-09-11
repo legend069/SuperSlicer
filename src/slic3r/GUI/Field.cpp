@@ -904,33 +904,63 @@ void TextField::get_value_by_opt_type(wxString &str, const bool check_value /* =
         m_value = FloatOrPercent{val, is_percent};
         break;
     }
+            
     case coPoints: {
-        std::vector<Vec2d> out_values;
-        str.Replace(" ", wxEmptyString, true);
-        if (!str.IsEmpty()) {
-            auto [/*bool*/ invalid_val, /*bool*/ out_of_range_val] = get_strings_points(str, m_opt.min, m_opt.max,
-                                                                                        out_values);
+                std::vector<Vec2d> out_values;
+                str.Replace(" ", wxEmptyString, true);
+                if (!str.IsEmpty()) {
+                    bool invalid_val = false;
+                    bool out_of_range_val = false;
+                    wxStringTokenizer points(str, ",");
+                    while (points.HasMoreTokens()) {
+                        wxString token = points.GetNextToken();
+                        double x, y;
+                        wxStringTokenizer _point(token, "x");
+                        if (_point.HasMoreTokens()) {
+                            wxString x_str = _point.GetNextToken();
+                            if (x_str.ToDouble(&x) && _point.HasMoreTokens()) {
+                                wxString y_str = _point.GetNextToken();
+                                if (y_str.ToDouble(&y) && !_point.HasMoreTokens()) {
+                                    if (m_opt_id == "bed_exclude_area") {
+                                        if (0 <= x &&  0 <= y) {
+                                            out_values.push_back(Vec2d(x, y));
+                                            continue;
+                                        }
+                                    }
+                                    else if (m_opt_id == "printable_area") {
+                                        if (0 <= x && x <= 1000 && 0 <= y && y <= 1000) {
+                                            out_values.push_back(Vec2d(x, y));
+                                            continue;
+                                        }
+                                    }
+                                    else {
+                                        if (0 < x && x < 1000 && 0 < y && y < 1000) {
+                                            out_values.push_back(Vec2d(x, y));
+                                            continue;
+                                        }
+                                    }
+                                    out_of_range_val = true;
+                                    break;
+                                }
+                            }
+                        }
+                        invalid_val = true;
+                        break;
+                    }
 
-            if (out_of_range_val) {
-                wxString text_value;
-                if (!m_value.empty())
-                    text_value = get_points_string(boost::any_cast<std::vector<Vec2d>>(m_value));
-                set_text_value(text_value.ToStdString(), true);
-                show_error(m_parent, _L("Input value is out of range"));
-            } else if (invalid_val) {
-                wxString text_value;
-                if (!m_value.empty())
-                    text_value = get_points_string(boost::any_cast<std::vector<Vec2d>>(m_value));
-                set_text_value(text_value.ToStdString(), true);
-                show_error(m_parent, format_wxstr(_L("Invalid input format. Expected vector of dimensions in the "
-                                                     "following format: \"%1%\""),
-                                                  "XxY, XxY, ..."));
-            }
-        }
+                    if (out_of_range_val) {
+                        wxString text_value;
+                        show_error(m_parent, _L("Value is out of range."));
+                    }
+                    else if (invalid_val) {
+                        wxString text_value;
+                        show_error(m_parent, format_wxstr(_L("Invalid format. Expected vector format: \"%1%\""),"XxY, XxY, ..." ));
+                    }
+                }
 
-        m_value = out_values;
-        break;
-    }
+                m_value = out_values;
+                break; }
+
 
     default: break;
     }
