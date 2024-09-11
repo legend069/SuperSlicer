@@ -1396,6 +1396,20 @@ private:
     template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionSingle<std::string>>(this)); }
 };
 
+class ConfigOptionStringVersion : public ConfigOptionString
+{
+public:
+    ConfigOptionStringVersion() : ConfigOptionString(std::string{}) {}
+    explicit ConfigOptionStringVersion(std::string value) : ConfigOptionString(std::move(value)) {}
+    ConfigOption*           clone() const override { return new ConfigOptionStringVersion(*this); }
+    ConfigOptionStringVersion&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    
+    std::string serialize() const override
+    {
+        return escape_string_cstyle(std::string("SUSI_") + SLIC3R_VERSION_FULL); 
+    }
+};
+
 // semicolon-separated strings
 class ConfigOptionStrings : public ConfigOptionVector<std::string>
 {

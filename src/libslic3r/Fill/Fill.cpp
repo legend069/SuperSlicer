@@ -615,7 +615,7 @@ static void insert_fills_into_islands(Layer &layer, uint32_t fill_region_id, uin
         auto point_inside_surface = [&layer](const size_t lslice_idx, const Point &point) {
             const BoundingBox &bbox = layer.lslices_ex[lslice_idx].bbox;
             return point.x() >= bbox.min.x() && point.x() < bbox.max.x() && point.y() >= bbox.min.y() && point.y() < bbox.max.y() &&
-                   layer.lslices[lslice_idx].contour.contains(point);
+                   layer.lslices()[lslice_idx].contour.contains(point);
         };
         Point point      = layer.get_region(fill_region_id)->fills().entities()[fill_begin]->first_point();
         int   lslice_idx = int(layer.lslices_ex.size()) - 1;
@@ -703,7 +703,7 @@ static void insert_ironings_into_islands(Layer &layer, uint32_t layer_region_id,
 	        const BoundingBox &bbox = layer.lslices_ex[lslice_idx].bbox;
 	        return point.x() >= bbox.min.x() && point.x() < bbox.max.x() &&
 	               point.y() >= bbox.min.y() && point.y() < bbox.max.y() &&
-	               layer.lslices[lslice_idx].contour.contains(point);
+	               layer.lslices()[lslice_idx].contour.contains(point);
 	    };
 	    Point point = layer.get_region(layer_region_id)->ironings().entities()[ironing_idx_begin]->first_point();
 	    int lslice_idx = int(layer.lslices_ex.size()) - 1;
@@ -924,9 +924,12 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         //params.resolution        = resolution;
         //params.use_arachne       = (perimeter_generator == PerimeterGeneratorType::Arachne && surface_fill.params.pattern == ipConcentric) || surface_fill.params.pattern == ipEnsuring;
         //params.layer_height      = layerm->layer()->height;
+        surface_fill.params.fill_resolution = std::max(SCALED_EPSILON, scale_t(this->object()->print()->config().resolution_internal.value));
 
         //union with safety offset to avoid separation from the appends of different surface with same settings.
         surface_fill.expolygons = union_safety_offset_ex(surface_fill.expolygons);
+        //simplify (also, it's possible rn that some point are below EPSILON distance).
+        ensure_valid(surface_fill.expolygons, surface_fill.params.fill_resolution);
 
         //store default values, before modification.
         bool dont_adjust = surface_fill.params.dont_adjust;
@@ -1116,7 +1119,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
 {
     std::vector<SurfaceFill>  surface_fills = group_fills(*this);
     const Slic3r::BoundingBox bbox          = this->object()->bounding_box();
-    const auto                resolution    = this->object()->print()->config().resolution_internal.value;
+    const coord_t             resolution    = std::max(SCALED_EPSILON, scale_t(this->object()->print()->config().resolution_internal.value));
 
     Polylines sparse_infill_polylines{};
 
@@ -1189,7 +1192,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         params.dont_adjust       = false; //  surface_fill.params.dont_adjust;
         params.anchor_length     = surface_fill.params.anchor_length;
         params.anchor_length_max = surface_fill.params.anchor_length_max;
-        params.resolution        = resolution;
+        params.fill_resolution        = resolution;
         params.use_arachne       = false;
         params.layer_height      = layerm.layer()->height;
 
@@ -1404,7 +1407,7 @@ void Layer::make_ironing()
                 polys = union_safety_offset(polys);
             }
             // Trim the top surfaces with half the nozzle diameter.
-            ironing_areas = intersection_ex(polys, offset(this->lslices, -float(scale_(0.5 * nozzle_dmr))));
+            ironing_areas = intersection_ex(polys, offset(this->lslices(), -float(scale_(0.5 * nozzle_dmr))));
         }
 
         // Create the filler object.

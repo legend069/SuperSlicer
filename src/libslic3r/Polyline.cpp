@@ -243,6 +243,17 @@ bool remove_same_neighbor(Polylines &polylines){
     return exist;
 }
 
+void ensure_valid(Polylines &polylines, coord_t resolution) {
+    for (size_t i = 0; i < polylines.size(); ++i) {
+        assert(polylines[i].size() > 1);
+        polylines[i].douglas_peucker(resolution);
+        assert(polylines[i].size() > 1);
+        if (polylines[i].size() == 2 && polylines[i].front().coincides_with_epsilon(polylines[i].back())) {
+            polylines.erase(polylines.begin() + i);
+            --i;
+        }
+    }
+}
 
 const Point& leftmost_point(const Polylines &polylines)
 {
@@ -274,6 +285,14 @@ bool remove_degenerate(Polylines &polylines)
         polylines.erase(polylines.begin() + j, polylines.end());
     return modified;
 }
+
+#ifdef _DEBUGINFO
+void assert_valid(const Polylines &polylines) {
+    for (const Polyline &polyline : polylines) {
+        polyline.assert_valid();
+    }
+}
+#endif
 
 std::pair<int, Point> foot_pt(const Points &polyline, const Point &pt)
 {
@@ -581,11 +600,13 @@ void ArcPolyline::append(const Points &src)
     for (const Point &point : src)
         m_path.emplace_back(point, 0.f, Geometry::ArcWelder::Orientation::Unknown);
         //m_path.push_back(Geometry::ArcWelder::Segment(point, 0.f, Geometry::ArcWelder::Orientation::Unknown));
+    assert(is_valid());
 }
 void ArcPolyline::append(Points &&src)
 {
     for (Point &point : src)
         m_path.emplace_back(std::move(point), 0, Geometry::ArcWelder::Orientation::Unknown);
+    assert(is_valid());
 }
 void ArcPolyline::append(const Points::const_iterator &begin, const Points::const_iterator &end)
 {
@@ -594,19 +615,41 @@ void ArcPolyline::append(const Points::const_iterator &begin, const Points::cons
         m_path.emplace_back(*it, 0, Geometry::ArcWelder::Orientation::Unknown);
         ++it;
     }
+    assert(is_valid());
 }
 void ArcPolyline::append(const ArcPolyline &src)
 {
+    const auto saved  = m_path;
     this->m_only_strait &= src.m_only_strait;
     if (m_path.empty()) {
         m_path = std::move(src.m_path);
     } else if (src.m_path.front().point == this->m_path.back().point) {
         if (src.size() > 1) {
-            const size_t next_size = m_path.size() + src.m_path.size() - 1;
-            m_path.reserve(next_size);
-            //std::move(src.m_path.begin() + 1, src.m_path.end(), std::back_inserter(m_path));
-            this->m_path.insert(this->m_path.end(), src.m_path.begin() + 1, src.m_path.end());
-            assert(next_size == m_path.size());
+            bool epsilon_merge = false;
+            if (!this->empty() && this->m_only_strait && src.m_only_strait) {
+                epsilon_merge = this->size() == 2 && this->front().coincides_with_epsilon(this->back());
+                if (!epsilon_merge) {
+                    epsilon_merge = (this->back().coincides_with_epsilon(src.get_point(1)));
+                    assert(!epsilon_merge || src.size() == 2);
+                }
+            }
+            if (epsilon_merge) {
+                m_path.back().point = src.get_point(1);
+                if (src.size() > 2) {
+                    const size_t next_size = this->size() + src.size() - 2;
+                    m_path.reserve(next_size);
+                    this->m_path.insert(this->m_path.end(), src.m_path.begin() + 2, src.m_path.end());
+                    assert(next_size == m_path.size());
+                }
+            } else {
+                assert(this->is_valid());
+                assert(src.is_valid());
+                const size_t next_size = m_path.size() + src.m_path.size() - 1;
+                m_path.reserve(next_size);
+                // std::move(src.m_path.begin() + 1, src.m_path.end(), std::back_inserter(m_path));
+                this->m_path.insert(this->m_path.end(), src.m_path.begin() + 1, src.m_path.end());
+                assert(next_size == m_path.size());
+            }
         }
     } else {
         // weird, are you sure you want to append it?
@@ -617,6 +660,7 @@ void ArcPolyline::append(const ArcPolyline &src)
         this->m_path.insert(this->m_path.end(), src.m_path.begin(), src.m_path.end());
         assert(next_size == m_path.size());
     }
+    assert(is_valid());
 }
 void ArcPolyline::append(ArcPolyline &&src)
 {
@@ -638,6 +682,7 @@ void ArcPolyline::append(ArcPolyline &&src)
         m_path.insert(m_path.end(), std::make_move_iterator(src.m_path.begin()), std::make_move_iterator(src.m_path.end()));
         assert(next_size == m_path.size());
     }
+    assert(is_valid());
 }
 
 void ArcPolyline::translate(const Vector &vector)
@@ -1099,7 +1144,8 @@ int ArcPolyline::simplify_straits(coordf_t min_tolerance,
         // try add a point in the buffer
         Point new_point = m_path[idx_end].point;
         //TODO better arc (here the length is minimized)
-        coord_t new_seg_length = coord_t(m_path[idxs.front()].point.distance_to(new_point));
+        coord_t new_seg_length = coord_t(m_path[idxs.back()].point.distance_to(new_point));
+        assert(new_seg_length > 0);
 
         // be sure it's not filled
         while (current_buffer_size >= max_buffer_size) {
@@ -1197,8 +1243,11 @@ int ArcPolyline::simplify_straits(coordf_t min_tolerance,
         }
 
         //check if the previous point has enough dist at both end
-        if (current_buffer_size > 0 && arc.back() == 0 &&
-            min_point_distance > line_length.back() && min_point_distance > new_seg_length) {
+        if (current_buffer_size > 0 && arc.back() == 0 && 
+            min_point_distance > line_length.back() && min_point_distance > new_seg_length
+            // also make sure it's not an importnat point for a ponty tip.
+            && new_seg_length < m_path[idxs[idxs.size() - 2]].point.distance_to(new_point)
+            ) {
             // erase previous point
             erased.push_back(idxs.back());
             idxs.pop_back();
@@ -1207,7 +1256,8 @@ int ArcPolyline::simplify_straits(coordf_t min_tolerance,
             line_length.pop_back();
             weights.pop_back();
             --current_buffer_size;
-            new_seg_length = coord_t(m_path[idxs.front()].point.distance_to(new_point));
+            new_seg_length = coord_t(m_path[idxs.back()].point.distance_to(new_point));
+            assert(new_seg_length > 0);
         }
 
         // add new point
@@ -1352,7 +1402,7 @@ void ArcPolyline::make_arc(ArcFittingType with_fitting_arc, coordf_t tolerance, 
 bool ArcPolyline::is_valid() const {
 #ifdef _DEBUG
     for (size_t i = 1; i < m_path.size(); ++i) {
-        assert(m_path[i - 1].point.distance_to(m_path[i].point) > SCALED_EPSILON);
+        assert(!m_path[i - 1].point.coincides_with_epsilon(m_path[i].point));
     }
 #endif
     return m_path.size() >= 2;

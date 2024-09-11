@@ -7,6 +7,7 @@
 #ifndef slic3r_Repetier_hpp_
 #define slic3r_Repetier_hpp_
 
+#include <optional>
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>

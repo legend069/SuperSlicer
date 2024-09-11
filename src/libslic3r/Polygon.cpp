@@ -113,6 +113,15 @@ void Polygon::douglas_peucker(coord_t tolerance)
     MultiPoint::douglas_peucker(tolerance);
     this->points.pop_back();
     assert(this->points.size() > 1);
+    if (points.size() == 2) {
+        // not a good polygon : too small. clear it
+        points.clear();
+    } else {
+        assert(this->points.front().coincides_with(this->points.back()));
+        this->points.pop_back();
+        assert(!this->points.front().coincides_with_epsilon(this->points.back()));
+        assert(this->points.size() > 1);
+    }
 }
 
 Polygons Polygon::simplify(double tolerance) const
@@ -279,13 +288,17 @@ Points Polygon::concave_points(double angle_threshold) const
 template<typename FilterFn>
 std::vector<size_t> filter_points_idx_by_vectors(const Points &poly, FilterFn filter)
 {
-    // Last point is the first point visited.
-    Point p1 = poly.back();
+    assert(poly.size() > 2);
+    if (poly.size() < 3)
+        return {};
+
+    // first point is the first point visited.
+    Point p1 = poly.front();
     // Previous vector to p1.
-    Vec2d v1 = (p1 - *(poly.end() - 2)).cast<double>();
+    Vec2d v1 = (p1 - poly.back()).cast<double>();
 
     std::vector<size_t> out;
-    for (size_t idx = 0; idx < poly.size(); ++idx) {
+    for (size_t idx = 1; idx < poly.size(); ++idx) {
         const Point &p2 = poly[idx];
         // p2 is next point to the currently visited point p1.
         Vec2d v2 = (p2 - p1).cast<double>();
@@ -294,10 +307,14 @@ std::vector<size_t> filter_points_idx_by_vectors(const Points &poly, FilterFn fi
         v1 = v2;
         p1 = p2;
     }
-    if (out.front() >= poly.size()) {
-        out.erase(out.begin());
-        assert(std::find(out.begin(), out.end(), poly.size() - 1) == out.end());
-        out.push_back(poly.size() - 1);
+
+    // also check last point.
+    {
+        const Point &p2 = poly.front();
+        // p2 is next point to the currently visited point p1.
+        Vec2d v2 = (p2 - p1).cast<double>();
+        if (filter(v1, v2))
+            out.push_back(poly.size() - 1);
     }
     
     return out;
@@ -307,10 +324,12 @@ template<typename ConvexConcaveFilterFn>
 std::vector<size_t> filter_convex_concave_points_idx_by_angle_threshold(const Points &poly, double angle_threshold, ConvexConcaveFilterFn convex_concave_filter)
 {
     assert(angle_threshold >= 0.);
-    if (angle_threshold < EPSILON) {
-        double cos_angle  = cos(angle_threshold);
+    if (angle_threshold > EPSILON) {
+        const double cos_angle  = cos(angle_threshold);
         return filter_points_idx_by_vectors(poly, [convex_concave_filter, cos_angle](const Vec2d &v1, const Vec2d &v2){
-            return convex_concave_filter(v1, v2) && v1.normalized().dot(v2.normalized()) < cos_angle;
+            // if v1 and v2 has same direction = flat angle.
+            // if v1.dot(v2) is negative -> sharp angle
+            return convex_concave_filter(v1, v2) && v1.normalized().dot(v2.normalized()) < -cos_angle;
         });
     } else {
         return filter_points_idx_by_vectors(poly, [convex_concave_filter](const Vec2d &v1, const Vec2d &v2){
@@ -612,6 +631,34 @@ bool remove_same_neighbor(Polygons &polygons)
     polygons.erase(std::remove_if(polygons.begin(), polygons.end(), [](const Polygon &p) { return p.points.size() <= 2; }), polygons.end());
     return exist;
 }
+
+void ensure_valid(Polygons &polygons, coord_t resolution /*= SCALED_EPSILON*/) {
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        polygons[i].douglas_peucker(resolution);
+        if (polygons[i].size() < 3) {
+            polygons.erase(polygons.begin() + i);
+            --i;
+        }
+    }
+}
+
+Polygons ensure_valid(Polygons &&polygons, coord_t resolution /*= SCALED_EPSILON*/)
+{
+    ensure_valid(polygons, resolution);
+    return std::move(polygons);
+}
+
+Polygons ensure_valid(coord_t resolution, Polygons &&polygons) {
+    return ensure_valid(std::move(polygons), resolution);
+}
+
+#ifdef _DEBUGINFO
+void assert_valid(const Polygons &polygons) {
+    for (const Polygon &polygon : polygons) {
+        polygon.assert_valid();
+    }
+}
+#endif
 
 static inline bool is_stick(const Point &p1, const Point &p2, const Point &p3)
 {

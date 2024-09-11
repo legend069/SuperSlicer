@@ -80,7 +80,6 @@ Flow LayerRegion::bridging_flow(FlowRole role, BridgeType force_type) const
 // Fill in layerm->m_fill_surfaces by trimming the layerm->slices by layerm->fill_expolygons.
 void LayerRegion::slices_to_fill_surfaces_clipped(coord_t opening_offset)
 {
-
     // Collect polygons per surface type.
     std::map<SurfaceType, ExPolygons> polygons_by_surface;
     for (const Surface &surface : this->slices().surfaces) {
@@ -91,6 +90,7 @@ void LayerRegion::slices_to_fill_surfaces_clipped(coord_t opening_offset)
     for (auto const& [srf_type, expoly] : polygons_by_surface) {
         if (!expoly.empty())
             for (ExPolygon& expoly_to_test : intersection_ex(expoly, this->fill_expolygons())) {
+                expoly_to_test.douglas_peucker(std::max(SCALED_EPSILON, scale_t(this->layer()->object()->print()->config().resolution.value)));
                 if (!opening_ex({ expoly_to_test }, opening_offset).empty()) {
                     this->m_fill_surfaces.append({ expoly_to_test }, srf_type);
                 }
@@ -150,8 +150,8 @@ void LayerRegion::make_perimeters(
         params.ext_perimeter_spacing2 -= params.infill_gap;
     }
 
-    const ExPolygons *lower_slices = this->layer()->lower_layer ? &this->layer()->lower_layer->lslices : nullptr;
-    const ExPolygons *upper_slices = this->layer()->upper_layer ? &this->layer()->upper_layer->lslices : nullptr;
+    const ExPolygons *lower_slices = this->layer()->lower_layer ? &this->layer()->lower_layer->lslices() : nullptr;
+    const ExPolygons *upper_slices = this->layer()->upper_layer ? &this->layer()->upper_layer->lslices() : nullptr;
     
     for (const Surface &surface : slices) {
         size_t perimeters_begin = m_perimeters.size();
@@ -184,7 +184,7 @@ void LayerRegion::make_perimeters(
 void LayerRegion::make_milling_post_process(const SurfaceCollection& slices) {
     MillingPostProcess mill(// input:
         &slices,
-        (this->layer()->lower_layer != nullptr) ? &this->layer()->lower_layer->lslices : nullptr,
+        (this->layer()->lower_layer != nullptr) ? &this->layer()->lower_layer->lslices() : nullptr,
         this->region().config(),
         this->layer()->object()->config(),
         this->layer()->object()->print()->config()
@@ -495,9 +495,11 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges. layer" << this->layer()->print_z;
         const double custom_angle = this->region().config().bridge_angle.value;
         const auto   expansion_params_into_solid_infill  = RegionExpansionParameters::build(expansion_bottom_bridge, expansion_step, max_nr_expansion_steps);
-        bridges.surfaces = custom_angle > 0 ?
-            expand_merge_surfaces(m_fill_surfaces.surfaces, stPosBottom | stDensSolid | stModBridge, shells, expansion_params_into_solid_infill, sparse, expansion_params_into_sparse_infill, closing_radius, Geometry::deg2rad(custom_angle)) :
-            expand_bridges_detect_orientations(m_fill_surfaces.surfaces, shells, expansion_params_into_solid_infill, sparse, expansion_params_into_sparse_infill, closing_radius);
+        if (this->region().config().bridge_angle.is_enabled()) {
+            bridges.surfaces = expand_merge_surfaces(m_fill_surfaces.surfaces, stPosBottom | stDensSolid | stModBridge, shells, expansion_params_into_solid_infill, sparse, expansion_params_into_sparse_infill, closing_radius, Geometry::deg2rad(custom_angle));
+        } else {
+            bridges.surfaces = expand_bridges_detect_orientations(m_fill_surfaces.surfaces, shells, expansion_params_into_solid_infill, sparse, expansion_params_into_sparse_infill, closing_radius);
+        }
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges - done";
 #if 0
         {
@@ -625,7 +627,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             // Remove voids from fill_boundaries, that are not supported by the layer below.
             if (lower_layer_covered == nullptr) {
                 lower_layer_covered = &lower_layer_covered_tmp;
-            	lower_layer_covered_tmp = to_polygons(lower_layer->lslices);
+            	lower_layer_covered_tmp = to_polygons(lower_layer->lslices());
             }
             if (! lower_layer_covered->empty())
                 // Allow the top / bottom surfaces to expand into the voids of this layer if supported by the layer below.
@@ -788,15 +790,15 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
 
 // new fast bridge direction estimation which "minimizes amount of unanchored bridge endpoints"
 #if 0 
-                double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
-                if (custom_angle > 0.0) {
+                if (this->region().config().bridge_angle.is_enabled()) {
+                    double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
                     // Bridge was not detected (likely it is only supported at one side). Still it is a surface filled in
                     // using a bridging flow, therefore it makes sense to respect the custom bridging direction.
                     bridges[idx_last].bridge_angle = custom_angle;
 
 
                 } else {
-                    auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices));
+                    auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices()));
                     bridges[idx_last].bridge_angle = PI + std::atan2(bridging_dir.y(), bridging_dir.x());
 
                     // #if 1
@@ -808,7 +810,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                     //     bbox);
 
                     //     svg.draw(initial, "cyan");
-                    //     svg.draw(to_lines(lower_layer->lslices), "green", stroke_width);
+                    //     svg.draw(to_lines(lower_layer->lslices()), "green", stroke_width);
                     // #endif
                 }
 
@@ -816,7 +818,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
 #else
                 BridgeDetector bd(
                     initial,
-                    lower_layer->lslices,
+                    lower_layer->lslices(),
                     this->bridging_flow(frInfill).scaled_spacing(),
                     scale_t(this->layer()->object()->print()->config().bridge_precision.get_abs_value(this->bridging_flow(frInfill).spacing())),
                     this->layer()->id()
@@ -824,12 +826,12 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 #ifdef SLIC3R_DEBUG
                 printf("Processing bridge at layer %zu:\n", this->layer()->id());
                 #endif
-				double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
-                if (custom_angle > 0) {
+                if (this->region().config().bridge_angle.is_enabled()) {
+                    double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
                     // Bridge was not detected (likely it is only supported at one side). Still it is a surface filled in
                     // using a bridging flow, therefore it makes sense to respect the custom bridging direction.
                     bridges[idx_last].bridge_angle = custom_angle;
-				}else if (bd.detect_angle(custom_angle)) {
+				} else if (bd.detect_angle()) {
                     bridges[idx_last].bridge_angle = bd.angle;
                     if (this->layer()->object()->has_support()) {
 //                        polygons_append(this->bridged, intersection(bd.coverage(), to_polygons(initial)));
@@ -1012,11 +1014,11 @@ void LayerRegion::trim_surfaces(const Polygons &trimming_polygons)
 #ifndef NDEBUG
     for (const Surface &surface : this->slices()) {
         assert(surface.surface_type == (stPosInternal | stDensSparse));
-        surface.expolygon.assert_point_distance();
+        surface.expolygon.assert_valid();
     }
 #endif /* NDEBUG */
     this->m_slices.set(intersection_ex(this->slices().surfaces, trimming_polygons), stPosInternal | stDensSparse);
-    for(auto &srf : this->m_slices) srf.expolygon.assert_point_distance();
+    for(auto &srf : this->m_slices) srf.expolygon.assert_valid();
 }
 
 void LayerRegion::elephant_foot_compensation_step(const float elephant_foot_compensation_perimeter_step, const Polygons &trimming_polygons)
@@ -1024,13 +1026,14 @@ void LayerRegion::elephant_foot_compensation_step(const float elephant_foot_comp
 #ifndef NDEBUG
     for (const Surface &surface : this->slices()) {
         assert(surface.surface_type == (stPosInternal | stDensSparse));
-        surface.expolygon.assert_point_distance();
+        surface.expolygon.assert_valid();
     }
 #endif /* NDEBUG */
     assert(elephant_foot_compensation_perimeter_step >= 0);
     Polygons tmp = intersection(this->slices().surfaces, trimming_polygons);
     append(tmp, diff(this->slices().surfaces, opening(this->slices().surfaces, elephant_foot_compensation_perimeter_step)));
     this->m_slices.set(union_ex(tmp), stPosInternal | stDensSparse);
+    for(auto &srf : this->m_slices) srf.expolygon.assert_valid();
     for(auto &srf : this->m_slices) srf.expolygon.assert_point_distance();
 }
 

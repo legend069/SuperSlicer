@@ -69,7 +69,7 @@ bool MPMDv2::test(wxString &msg) const
                     return;
                 }
 
-                const auto text = ptree.get_optional<std::string>("text");
+                const std::optional<std::string> text = to_std_opt_str(ptree.get_optional<std::string>("text"));
                 res = validate_version_text(text);
                 if (! res) {
                     msg = Slic3r::GUI::format_wxstr(_L("Mismatched type of print host: %s"), (text ? *text : "MiniDeltaLCD"));
@@ -135,7 +135,7 @@ bool MPMDv2::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn
     return res;
 }
 
-bool MPMDv2::validate_version_text(const boost::optional<std::string> &version_text) const
+bool MPMDv2::validate_version_text(const std::optional<std::string> &version_text) const
 {
     return version_text ? boost::starts_with(*version_text, "MiniDeltaLCD") : true;
 }

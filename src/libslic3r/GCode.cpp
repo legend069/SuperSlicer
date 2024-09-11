@@ -1327,11 +1327,16 @@ void GCodeGenerator::_do_export(Print& print_mod, GCodeOutputStream &file, Thumb
             zs.reserve(object->layers().size());
             zs_with_supp.reserve(object->layers().size() + object->support_layers().size());
             for (auto layer : object->layers()) {
+                if (layer->has_extrusions()) {
                 zs.push_back(layer->print_z);
                 zs_with_supp.push_back(layer->print_z);
             }
-            for (auto layer : object->support_layers())
+            }
+            for (auto layer : object->support_layers()) {
+                if (layer->has_extrusions()) {
                 zs_with_supp.push_back(layer->print_z);
+                }
+            }
             std::sort(zs.begin(), zs.end());
             std::sort(zs_with_supp.begin(), zs_with_supp.end());
             m_layer_with_support_count += (uint32_t)(object->instances().size()
@@ -1340,22 +1345,40 @@ void GCodeGenerator::_do_export(Print& print_mod, GCodeOutputStream &file, Thumb
         }
     } else {
         // Print all objects with the same print_z together.
-        std::vector<coordf_t> zs;
-        std::vector<coordf_t> zs_with_supp;
+        std::vector<coord_t> zs;
+        std::vector<coord_t> zs_with_supp;
         for (auto object : print.objects()) {
             zs.reserve(zs.size() + object->layers().size());
             zs_with_supp.reserve(zs.size() + object->layers().size() + object->support_layers().size());
             for (auto layer : object->layers()) {
-                zs.push_back(layer->print_z);
-                zs_with_supp.push_back(layer->print_z);
+                if (layer->has_extrusions()) {
+                    zs.push_back(scale_t(layer->print_z));
+                    zs_with_supp.push_back(scale_t(layer->print_z));
             }
-            for (auto layer : object->support_layers())
-                zs_with_supp.push_back(layer->print_z);
+        }
+            for (auto layer : object->support_layers()) {
+                if (layer->has_extrusions()) {
+                    zs_with_supp.push_back(scale_t(layer->print_z));
+                }
+            }
         }
         std::sort(zs.begin(), zs.end());
         std::sort(zs_with_supp.begin(), zs_with_supp.end());
+#ifdef _DEBUGINFO
+        auto end_it = std::unique(zs.begin(), zs.end());
+        for (auto it = zs.begin(); it != end_it; ++it) {
+            m_layers_z.push_back(*it);
+        }
+        m_layer_count = (uint32_t)(end_it - zs.begin());
+        end_it = std::unique(zs_with_supp.begin(), zs_with_supp.end());
+        for (auto it = zs_with_supp.begin(); it != end_it; ++it) {
+            m_layers_with_supp_z.push_back(*it);
+        }
+        m_layer_with_support_count = (uint32_t)(end_it - zs_with_supp.begin());
+#else
         m_layer_count = (uint32_t)(std::unique(zs.begin(), zs.end()) - zs.begin());
         m_layer_with_support_count = (uint32_t)(std::unique(zs_with_supp.begin(), zs_with_supp.end()) - zs_with_supp.begin());
+#endif
     }
      this->m_throw_if_canceled();
 
@@ -1539,9 +1562,7 @@ void GCodeGenerator::_do_export(Print& print_mod, GCodeOutputStream &file, Thumb
         // Order object instances using a nearest neighbor search.
         print_object_instances_ordering = chain_print_object_instances(print);
         // prusaslicer replaced the previous m_layer_count set by `m_layer_count=tool_ordering.layer_tools().size()` here
-        assert(object_layer_count() == tool_ordering.layer_tools().size() ||
-               m_layer_with_support_count == tool_ordering.layer_tools().size() ||
-               m_layer_with_support_count == tool_ordering.layer_tools().size() + 1);
+        assert(layer_count() == tool_ordering.layer_tools().size());
     }
     if (initial_extruder_id == (uint16_t)-1) {
         // Nothing to print!
@@ -3425,7 +3446,7 @@ LayerResult GCodeGenerator::process_layer(
     for (const GCode::ObjectLayerToPrint &print_layer : layers) {
         //note: a layer can be null if the objetc doesn't have aanything to print at this height.
         if (print_layer.layer())
-            for (auto poly : print_layer.layer()->lslices) layer_area += poly.area();
+            for (auto poly : print_layer.layer()->lslices()) layer_area += poly.area();
     }
     layer_area = unscaled(unscaled(layer_area));
     status_monitor.stats().layer_area_stats.emplace_back(print_z, layer_area);
@@ -6792,7 +6813,7 @@ Polyline GCodeGenerator::travel_to(std::string &gcode, const Point &point, Extru
 
             //TODO: add bbox cache & checks like for can_cross_perimeter
             bool has_intersect = false;
-            for (const ExPolygon &expoly : m_layer->lslices) {
+            for (const ExPolygon &expoly : m_layer->lslices()) {
                 // first, check if it's inside the contour (still, it can go over holes)
                 Polylines diff_result = diff_pl(travel, expoly.contour);
                 if (diff_result.size() == 1 && diff_result.front() == travel)
@@ -7265,8 +7286,8 @@ bool GCodeGenerator::can_cross_perimeter(const Polyline& travel, bool offset)
             if (m_layer_slices_offseted.layer != m_layer) {
                 m_layer_slices_offseted.layer    = m_layer;
                 m_layer_slices_offseted.diameter = scale_t(EXTRUDER_CONFIG_WITH_DEFAULT(nozzle_diameter, 0.4)) / 2;
-                ExPolygons slices                = m_layer->lslices;
-                ExPolygons slices_offsetted = offset_ex(m_layer->lslices, -m_layer_slices_offseted.diameter * 1.5f);
+                ExPolygons slices                = m_layer->lslices();
+                ExPolygons slices_offsetted = offset_ex(m_layer->lslices(), -m_layer_slices_offseted.diameter * 1.5f);
                 // remove top surfaces
                 for (const LayerRegion *reg : m_layer->regions()) {
                     m_throw_if_canceled();
@@ -7295,7 +7316,7 @@ bool GCodeGenerator::can_cross_perimeter(const Polyline& travel, bool offset)
         //    std::stringstream stri;
         //    stri << this->m_layer->id() << "_avoid_" <<"_"<<(aodfjiaqsdz++) << ".svg";
         //    SVG svg(stri.str());
-        //    svg.draw(m_layer->lslices, "grey");
+        //    svg.draw(m_layer->lslices(), "grey");
         //    for (auto &entry : offset ? m_layer_slices_offseted.slices_offsetted : m_layer_slices_offseted.slices) {
         //        bool checked  = (travel.size() > 1 && 
         //            (entry.second.contains(travel.front()) ||

@@ -912,7 +912,7 @@ MedialAxis::extends_line(ThickPolyline& polyline, const ExPolygons& anchors, con
             coordf_t test_dist = new_bound.distance_to(p_maybe_inside) + new_back.distance_to(p_maybe_inside);
             //if (test_dist < m_max_width / 2 && (test_dist < shortest_dist || shortest_dist < 0)) {
             double angle_test = angle_ccw(p_maybe_inside - new_back, line.a - new_back); //new_back.ccw_angle(p_maybe_inside, line.a); if (angle_test > PI) angle_test = 2 * PI - angle_test;
-            assert(angle_test < PI);
+            assert(angle_test <= PI);
             if (test_dist < (coordf_t)this->m_max_width && test_dist<shortest_dist && abs(angle_test) > PI / 2) {
                 shortest_dist = test_dist;
                 best_anchor = p_maybe_inside;
@@ -2521,14 +2521,23 @@ unsafe_variable_width(const ThickPolyline& polyline, const ExtrusionRole role, c
             lines.erase(lines.begin() + i);
             --i;
             continue;
+        } else if (line_len < SCALED_EPSILON) {
+            assert(i == 0);
+            //erase second point
+            if (lines.size() > 1) {
+                lines[1].a = lines.front().a;
+                lines[1].a_width = lines.front().a_width;
+            }
+            lines.erase(lines.begin());
+            --i;
         } else if (thickness_delta > 0) {
             //set width as a middle-ground
             line.a_width = (line.a_width + line.b_width) / 2;
             line.b_width = line.a_width;
-            assert(line.a.distance_to(line.b) > SCALED_EPSILON);
+            assert(!line.a.coincides_with_epsilon(line.b));
         } else {
             assert(line.a_width == line.b_width);
-            assert(line.a.distance_to(line.b) > SCALED_EPSILON);
+            assert(!line.a.coincides_with_epsilon(line.b));
         }
     }
     

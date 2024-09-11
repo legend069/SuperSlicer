@@ -145,6 +145,7 @@ public:
     MultiPoint(MultiPoint &&other) : points(std::move(other.points)) {}
     MultiPoint(std::initializer_list<Point> list) : points(list) {}
     explicit MultiPoint(const Points &_points) : points(_points) {}
+    explicit MultiPoint(Points &&_points) : points(std::move(_points)) {}
     MultiPoint &operator=(const MultiPoint &other) {
         points = other.points;
         return *this;
@@ -241,14 +242,15 @@ public:
     inline auto crend() const { return points.crend(); }
 
 #ifdef _DEBUGINFO
-    virtual void assert_point_distance() const {
+    virtual void assert_valid() const {
+        assert(size() > 1);
         for (size_t i_pt = 1; i_pt < size(); ++i_pt)
             release_assert(!points[i_pt - 1].coincides_with_epsilon(points[i_pt]));
     }
     // to create a cpp multipoint to create test units.
     std::string to_debug_string();
 #else
-    void assert_point_distance() const {}
+    void assert_valid() const {}
 #endif
 };
 
@@ -290,7 +292,7 @@ inline double length(const Points &pts) {
 inline double area(const Points &polygon) {
     double area = 0.;
     for (size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i ++)
-        area += double(polygon[i](0) + polygon[j](0)) * double(polygon[i](1) - polygon[j](1));
+		area += double(polygon[i](0) + polygon[j](0)) * double(polygon[i](1) - polygon[j](1));
     return area;
 }
 

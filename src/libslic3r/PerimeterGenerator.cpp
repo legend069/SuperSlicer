@@ -206,8 +206,7 @@ static void fuzzy_paths(ExtrusionPaths& paths, coordf_t fuzzy_skin_thickness, co
     //not always a loop, with arachne
     bool is_loop = paths.front().first_point() == last_point;
 #ifdef _DEBUG
-    if (is_loop)
-        assert(paths.back().last_point() == paths.front().first_point());
+    if (is_loop) assert(paths.back().last_point() == paths.front().first_point());
     for (int i = 1; i < paths.size(); i++) {
         assert(paths[i - 1].last_point() == paths[i].first_point());
     }
@@ -271,8 +270,7 @@ static void fuzzy_paths(ExtrusionPaths& paths, coordf_t fuzzy_skin_thickness, co
         paths.back().polyline.append(last_point);
     }
 #ifdef _DEBUG
-    if (is_loop)
-        assert(paths.back().last_point() == paths.front().first_point());
+    if (is_loop) assert(paths.back().last_point() == paths.front().first_point());
     for (int i = 1; i < paths.size(); i++) {
         assert(paths[i - 1].last_point() == paths[i].first_point());
     }
@@ -308,13 +306,15 @@ static void fuzzy_polygon(Polygon& poly, coordf_t fuzzy_skin_thickness, coordf_t
         size_t point_idx = std::max(size_t(0), poly.size() - 2);
         while (out.size() < 3) {
             out.emplace_back(poly[point_idx]);
-            if (point_idx == 0)
+            if (point_idx == 0) {
                 break;
+            }
             --point_idx;
         }
     }
-    if (out.size() >= 3)
+    if (out.size() >= 3) {
         poly.points = std::move(out);
+    }
 }
 
 // Thanks Cura developers for this function.
@@ -351,16 +351,19 @@ static void fuzzy_extrusion_line(Arachne::ExtrusionLine &ext_lines, double fuzzy
     while (out.size() < 3) {
         size_t point_idx = ext_lines.size() - 2;
         out.emplace_back(ext_lines[point_idx].p, ext_lines[point_idx].w, ext_lines[point_idx].perimeter_index);
-        if (point_idx == 0)
+        if (point_idx == 0) {
             break;
+        }
         -- point_idx;
     }
 
-    if (ext_lines.back().p == ext_lines.front().p) // Connect endpoints.
+    if (ext_lines.back().p == ext_lines.front().p) { // Connect endpoints.
         out.front().p = out.back().p;
+    }
 
-    if (out.size() >= 3)
+    if (out.size() >= 3) {
         ext_lines.junctions = std::move(out);
+    }
 }
 
 ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Parameters &params,
@@ -403,8 +406,10 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
 
         bool can_overhang = params.config.overhangs_width_speed.is_enabled()
             && params.layer->id() > params.object_config.raft_layers;
-        if(params.object_config.support_material && params.object_config.support_material_contact_distance_type.value == zdNone)
+        if (params.object_config.support_material &&
+            params.object_config.support_material_contact_distance_type.value == zdNone) {
             can_overhang = false;
+        }
         if (can_overhang) {
             paths = this->create_overhangs_classic(params, loop.polygon.split_at_first_point(), role, is_external);
 #if _DEBUG
@@ -467,10 +472,11 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
     //result is  [idx, needReverse] ?
     std::vector<std::pair<size_t, bool>> chain = chain_extrusion_entities(coll, &zero_point);
     assert(coll.size() == chain.size());
-    for(const ExtrusionEntity *loop : coll)
-        assert(loop);
+    for(const ExtrusionEntity *loop : coll) assert(loop);
     ExtrusionEntityCollection coll_out;
-    if (chain.empty()) return coll_out;
+    if (chain.empty()) {
+        return coll_out;
+    }
 
     // little check: if you have external holes with only one extrusion and internal things, please draw the internal first, just in case it can help print the hole better.
     std::vector<std::pair<size_t, bool>> better_chain;
@@ -479,14 +485,16 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
         std::vector<std::pair<size_t, bool>> keep_ordering;
         std::vector<std::pair<size_t, bool>> thin_walls;
         for (const std::pair<size_t, bool> &idx : chain) {
-            if (idx.first < loops.size())
+            if (idx.first < loops.size()) {
                 if (!loops[idx.first].is_external() ||
-                    (!loops[idx.first].is_contour && !loops[idx.first].children.empty()))
+                    (!loops[idx.first].is_contour && !loops[idx.first].children.empty())) {
                     alone_holes.push_back(idx);
-                else
+                } else {
                     keep_ordering.push_back(idx);
-            else
+                }
+            } else {
                 thin_walls.push_back(idx);
+            }
         }
         append(better_chain, std::move(alone_holes));
         append(better_chain, std::move(keep_ordering));
@@ -505,8 +513,7 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
     const bool CCW_hole = params.config.perimeter_direction.value == PerimeterDirection::pdCW_CCW ||  params.config.perimeter_direction.value == PerimeterDirection::pdCCW_CCW;
 
 #if _DEBUG
-    for(auto ee : coll)
-        DEBUG_VISIT(*ee, LoopAssertVisitor())
+    for(auto ee : coll) DEBUG_VISIT(*ee, LoopAssertVisitor())
 #endif
     //move from coll to coll_out and getting children of each in the same time. (deep first)
     for (const std::pair<size_t, bool> &idx : better_chain) {
@@ -516,21 +523,21 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
             // let's get it from the sorted collection as it might have been reversed
             coll_out.set_entities().emplace_back(coll[idx.first]);
             coll[idx.first] = nullptr;
-            if (idx.second)
+            if (idx.second) {
                 coll_out.entities().back()->reverse();
+            }
             //if thin extrusion is a loop, make it ccw like a normal contour.
             if (ExtrusionLoop* loop = dynamic_cast<ExtrusionLoop*>(coll_out.entities().back())) {
-                if(loop->is_clockwise())
+                if (loop->is_clockwise()) {
                     loop->reverse();
+                }
             }
         } else {
             const PerimeterGeneratorLoop &loop = loops[idx.first];
             
 #if _DEBUG
-            for(auto ee : coll)
-                if(ee)
-                    ee->visit(LoopAssertVisitor());
-            loop.polygon.assert_point_distance();
+            for(auto ee : coll) if(ee) ee->visit(LoopAssertVisitor());
+            loop.polygon.assert_valid();
 #endif
             ExtrusionLoop* eloop = static_cast<ExtrusionLoop*>(coll[idx.first]);
             bool has_overhang = false;
@@ -554,9 +561,7 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
 
             }
 #if _DEBUG
-            for(auto ee : coll)
-                if(ee)
-                    ee->visit(LoopAssertVisitor());
+            for(auto ee : coll) if(ee) ee->visit(LoopAssertVisitor());
 #endif
             assert(thin_walls.empty());
             ExtrusionEntityCollection children = this->_traverse_loops_classic(params, loop.children, thin_walls, has_overhang ? 1 : (count_since_overhang+1));
@@ -572,12 +577,15 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
                 // has to reverse the direction if print external first, as the whole thing will be reverse afterwards
                 clockwise = clockwise != (loop.is_contour ? reverse_contour : reverse_hole);
 
-                if (clockwise)
-                    if(!eloop->is_clockwise())
+                if (clockwise) {
+                    if (!eloop->is_clockwise()) {
                         eloop->reverse(); // make_clockwise
-                else
-                    if(eloop->is_clockwise())
-                        eloop->reverse(); //make_couter_clockwise
+                    }
+                } else {
+                    if (eloop->is_clockwise()) {
+                        eloop->reverse(); // make_couter_clockwise
+                    }
+                }
                 //ensure that our children are printed before us
                 if (!children.empty()) {
                     ExtrusionEntityCollection print_child_beforeplz;
@@ -597,12 +605,15 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
                 // has to reverse the direction if print external first, as the whole thing will be reverse afterwards
                 counter_clockwise = counter_clockwise != (loop.is_contour ? reverse_contour : reverse_hole);
                 // if hole: reverse if steep_overhang & odd. if contour: the opposite
-                if (counter_clockwise)
-                    if(eloop->is_clockwise())
-                        eloop->reverse(); //make_couter_clockwise
-                else
-                    if(!eloop->is_clockwise())
+                if (counter_clockwise) {
+                    if (eloop->is_clockwise()) {
+                        eloop->reverse(); // make_couter_clockwise
+                    }
+                } else {
+                    if (!eloop->is_clockwise()) {
                         eloop->reverse(); // make_clockwise
+                    }
+                }
                 // ensure that our children are printed after us
                 if (!children.empty()) {
                     ExtrusionEntityCollection print_child_afterplz;
@@ -627,15 +638,14 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_loops_classic(const Para
 }
 
 ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &params,
-                                                            const Polyline &                      loop_polygons,
-                                                            const ExtrusionRole                   role,
-                                                            const bool                            is_external) const
+                                                            const Polyline &loop_polygons,
+                                                            const ExtrusionRole role,
+                                                            const bool is_external) const
 {
-#if _DEBUG
-    for (size_t idx = 1; idx < loop_polygons.size(); ++idx)
-        assert(!loop_polygons.points[idx - 1].coincides_with_epsilon(loop_polygons.points[idx]));
-#endif
+    loop_polygons.assert_valid();
+
     ExtrusionPaths paths;
+    coord_t resolution = std::max(SCALED_EPSILON, this->get_resolution(0,false, nullptr));
     bool speed_enabled = params.config.overhangs_width_speed.is_enabled();
     bool flow_enabled = speed_enabled && params.config.overhangs_width.is_enabled();
     bool dynamic_enabled = params.config.overhangs_dynamic_speed.is_enabled();
@@ -715,18 +725,18 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_speed_small, bbox);
             if (!lower_slices_bridge_speed_small_clipped.empty()) {
                 small_speed = diff_pl(*previous, lower_slices_bridge_speed_small_clipped);
-#ifdef _DEBUG
-                for (Polyline& poly : small_speed) //                       assert small_speed
-                    for (int i = 0; i < poly.points.size() - 1; i++) //     assert small_speed
-                        assert(!poly.points[i].coincides_with_epsilon(poly.points[i + 1])); //    assert small_speed
-#endif
+                for (Polyline &poly : small_speed) {
+                    poly.douglas_peucker(SCALED_EPSILON);
+                    assert(poly.size() > 1);
+                    if(poly.size() > 2) poly.assert_valid();
+                }
                 if (!small_speed.empty()) {
                     *previous = intersection_pl(*previous, lower_slices_bridge_speed_small_clipped);
-#ifdef _DEBUG
-                    for (Polyline& poly : *previous) //                         assert previous
-                        for (int i = 0; i < poly.points.size() - 1; i++) //     assert previous
-                            assert(!poly.points[i].coincides_with_epsilon(poly.points[i + 1])); //    assert previous
-#endif
+                    for (Polyline &poly : *previous) {
+                        poly.douglas_peucker(SCALED_EPSILON);
+                        assert(poly.size() > 1);
+                        if(poly.size() > 2) poly.assert_valid();
+                    }
                     previous = &small_speed;
                 } 
             }
@@ -736,18 +746,18 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_speed_big, bbox);
             if (!lower_slices_bridge_speed_big_clipped.empty()) {
                 big_speed = diff_pl(*previous, lower_slices_bridge_speed_big_clipped);
-#ifdef _DEBUG
-                for (Polyline& poly : big_speed) //                         assert big_speed
-                    for (int i = 0; i < poly.points.size() - 1; i++) //     assert big_speed
-                        assert(poly.points[i] != poly.points[i + 1]); //    assert big_speed
-#endif
+                for (Polyline &poly : big_speed) {
+                    poly.douglas_peucker(SCALED_EPSILON);
+                    assert(poly.size() > 1);
+                    if(poly.size() > 2) poly.assert_valid();
+                }
                 if (!big_speed.empty()) {
                     *previous = intersection_pl(*previous, lower_slices_bridge_speed_big_clipped);
-#ifdef _DEBUG
-                    for (Polyline& poly : *previous) //                         assert previous
-                        for (int i = 0; i < poly.points.size() - 1; i++) //     assert previous
-                            assert(poly.points[i] != poly.points[i + 1]); //    assert previous
-#endif
+                    for (Polyline &poly : *previous) {
+                        poly.douglas_peucker(SCALED_EPSILON);
+                        assert(poly.size() > 1);
+                        if(poly.size() > 2) poly.assert_valid();
+                    }
                     previous = &big_speed;
                 }
             }
@@ -759,18 +769,18 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_flow_small, bbox);
             if (!lower_slices_bridge_flow_small_clipped.empty()) {
                 small_flow = diff_pl(*previous, lower_slices_bridge_flow_small_clipped);
-#ifdef _DEBUG
-                for (Polyline& poly : small_flow) //                        assert small_flow
-                    for (int i = 0; i < poly.points.size() - 1; i++) //     assert small_flow
-                        assert(poly.points[i] != poly.points[i + 1]); //    assert small_flow
-#endif
+                for (Polyline &poly : small_flow) {
+                    poly.douglas_peucker(SCALED_EPSILON);
+                    assert(poly.size() > 1);
+                    if(poly.size() > 2) poly.assert_valid();
+                }
                 if (!small_flow.empty()) {
                     *previous = intersection_pl(*previous, lower_slices_bridge_flow_small_clipped);
-#ifdef _DEBUG
-                    for (Polyline& poly : *previous) //                         assert previous
-                        for (int i = 0; i < poly.points.size() - 1; i++) //     assert previous
-                            assert(poly.points[i] != poly.points[i + 1]); //    assert previous
-#endif
+                    for (Polyline &poly : *previous) {
+                        poly.douglas_peucker(SCALED_EPSILON);
+                        assert(poly.size() > 1);
+                        if(poly.size() > 2) poly.assert_valid();
+                    }
                     previous = &small_flow;
                 }
             }
@@ -780,18 +790,18 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(params.lower_slices_bridge_flow_big, bbox);
             if (!lower_slices_bridge_flow_big_clipped.empty()) {
                 big_flow = diff_pl(*previous, lower_slices_bridge_flow_big_clipped);
-#ifdef _DEBUG
-                for (Polyline& poly : big_flow) //                          assert big_flow
-                    for (int i = 0; i < poly.points.size() - 1; i++) //     assert big_flow
-                        assert(poly.points[i] != poly.points[i + 1]); //    assert big_flow
-#endif
+                for (Polyline &poly : big_flow) {
+                    poly.douglas_peucker(SCALED_EPSILON);
+                    assert(poly.size() > 1);
+                    if(poly.size() > 2) poly.assert_valid();
+                }
                 if (!big_flow.empty()) {
                     *previous = intersection_pl(*previous, lower_slices_bridge_flow_big_clipped);
-#ifdef _DEBUG
-                    for (Polyline& poly : *previous) //                         assert previous
-                        for (int i = 0; i < poly.points.size() - 1; i++) //     assert previous
-                            assert(poly.points[i] != poly.points[i + 1]); //    assert previous
-#endif
+                    for (Polyline &poly : *previous) {
+                        poly.douglas_peucker(SCALED_EPSILON);
+                        assert(poly.size() > 1);
+                        if(poly.size() > 2) poly.assert_valid();
+                    }
                     previous = &big_flow;
                 }
             }
@@ -905,6 +915,12 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     // We allow polyline reversal because Clipper may have randomly reversed polylines during clipping.
     if(!paths.empty())
         chain_and_reorder_extrusion_paths(paths, &paths.front().first_point());
+#ifdef _DEBUGINFO
+    ExtrusionLoop loop_test;
+    loop_test.paths = paths;
+    loop_test.visit(LoopAssertVisitor());
+    assert(!paths.empty());
+#endif
 
     //bool has_normal = !ok_polylines.empty();
     //bool has_speed = !small_speed.empty() || !big_speed.empty();
@@ -915,83 +931,263 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
     // big speed should go into a speed overhang or flow overhang.
     // small flow should go into a speed overhang or flow overhang.
     // big flow should only go into a flow overhang.
-    std::function<void(ExtrusionPaths&, const std::function<bool(ExtrusionPath&, ExtrusionPath&, ExtrusionPath&)>&)> foreach = [](ExtrusionPaths &paths, const std::function<bool(ExtrusionPath&, ExtrusionPath&, ExtrusionPath&)>& doforeach) {
-        if (paths.size() > 2)
-            for (int i = 1; i < paths.size() - 1; i++) {
-                if (doforeach(paths[i - 1], paths[i], paths[i + 1])) {
-                    paths.erase(paths.begin() + i);
-                    i--;
-                    if (paths[i].attributes_mutable().height == paths[i + 1].height()) {
-                        paths[i].polyline.append(paths[i + 1].polyline);
-                        paths.erase(paths.begin() + i + 1);
+    std::function<void(ExtrusionPaths &, const std::function<bool(ExtrusionPath &, ExtrusionPath &, ExtrusionPath &)> &)> foreach =
+        [](ExtrusionPaths &paths, const std::function<bool(ExtrusionPath &, ExtrusionPath &, ExtrusionPath &)> &doforeach) {
+            if (paths.size() > 2) {
+                // follow the number from this array to get the next item to check.
+                std::vector<uint32_t> sort(paths.size());
+                // initialize original index locations
+                std::vector<size_t> idxs(paths.size());
+                std::iota(idxs.begin(), idxs.end(), 0);
+                // sort indexes based (todo: optimise plz)
+                std::stable_sort(idxs.begin(), idxs.end(),
+                                 [&paths](size_t i1, size_t i2) { return paths[i1].length() < paths[i2].length(); });
+                for (uint32_t order = 0; order < uint32_t(idxs.size()); ++order) {
+                    sort[idxs[order]] = order;
+                }
+                // now for each order
+                const uint32_t end_order = uint32_t(idxs.size());
+                for (uint32_t current_order = 0; current_order < end_order && paths.size() > 2; ++current_order) {
+                    bool found = false;
+                    assert(paths.size() == sort.size());
+                    for (size_t i_curr = 0; i_curr < sort.size(); i_curr++) {
+                        assert(!found);
+                        if (sort[i_curr] == current_order) {
+                            found = true;
+                            // found our next item to check, do the thing.
+                            size_t i_prev = i_curr == 0 ? paths.size() - 1 : i_curr - 1;
+                            size_t i_next = (i_curr + 1) % paths.size();
+                            assert(paths[i_prev].polyline.back() == paths[i_curr].polyline.front());
+                            assert(paths[i_curr].polyline.back() == paths[i_next].polyline.front());
+                            if (doforeach(paths[i_prev], paths[i_curr], paths[i_next])) {
+                                assert(paths[i_prev].polyline.back() == paths[i_next].polyline.front());
+                                Point last = paths[i_next].polyline.back();
+                                paths.erase(paths.begin() + i_curr);
+                                sort.erase(sort.begin() + i_curr);
+                                // can't merge same height here, as it will create a hole in sort/order
+                            }
+                            break;
+                        }
+                    }
+                    assert(found);
+                }
+                // merge same height
+                for (size_t i_curr = 0; i_curr < paths.size() && paths.size() > 1; i_curr++) {
+                    // found our next item to check, do the thing.
+                    size_t i_next = (i_curr + 1) % paths.size();
+                    assert(paths[i_curr].polyline.back() == paths[i_next].polyline.front());
+                    if (paths[i_curr].height() == paths[i_next].height()) {
+                        paths[i_curr].polyline.append(paths[i_next].polyline);
+                        Point last = paths[i_next].polyline.back();
+                        paths.erase(paths.begin() + i_next);
+                        sort.erase(sort.begin() + i_next);
+                        --i_curr;
                     }
                 }
             }
-        if (paths.size() > 2)
-            if (doforeach(paths[paths.size() - 2], paths.back(), paths.front())) {
-                paths.erase(paths.end() - 1);
-                if (paths.back().attributes_mutable().height == paths.front().height()) {
-                    paths.back().polyline.append(paths.front().polyline);
-                    paths.front().polyline.swap(paths.back().polyline);
-                    paths.erase(paths.end() - 1);
-                }
+        };
+
+    const double min_length = dynamic_enabled ? params.perimeter_flow.scaled_width() / 2 :
+                                          params.perimeter_flow.scaled_width() * 2;
+    const double ok_length = params.perimeter_flow.scaled_width() * 20;
+
+    coordf_t length_paths = 0;
+    for (const ExtrusionPath &path : paths) {
+        length_paths += path.length();
+    }
+    if (length_paths < min_length * 2) {
+        // merge to biggest extrusion
+        coordf_t length_normal = 0;
+        coordf_t length_speed = 0;
+        coordf_t length_flow = 0;
+        for (const ExtrusionPath &path : paths) {
+            if (path.mm3_per_mm() == params.m_mm3_per_mm_overhang) {
+                length_flow += path.length();
+            } else if (path.role().is_overhang()) {
+                length_speed += path.length();
+            } else {
+                length_normal += path.length();
             }
-        if (paths.size() > 2)
-            if (doforeach(paths.back(), paths.front(), paths[1])) {
-                paths.erase(paths.begin());
-                if (paths.back().attributes_mutable().height == paths.front().height()) {
-                    paths.back().polyline.append(paths.front().polyline);
-                    paths.front().polyline.swap(paths.back().polyline);
-                    paths.erase(paths.end() - 1);
-                }
-            }
-    };
+        }
+        while (paths.size() > 1) {
+            paths.front().polyline.append(paths[1].polyline);
+        }
+        if (length_normal > length_speed + length_flow) {
+            paths.front().attributes_mutable() = ExtrusionAttributes{
+                role,
+                ExtrusionFlow(is_external ? params.ext_mm3_per_mm() : params.mm3_per_mm(),
+                    is_external ? params.ext_perimeter_flow.width() : params.perimeter_flow.width(),
+                    0 // layer height is used as id, temporarly
+            )};
+        } else if (length_speed > length_flow) {
+            paths.front().attributes_mutable() = ExtrusionAttributes{
+                role | ExtrusionRole::Bridge,
+                ExtrusionFlow(is_external ? params.ext_mm3_per_mm() : params.mm3_per_mm(),
+                    is_external ? params.ext_perimeter_flow.width() : params.perimeter_flow.width(),
+                    2 // layer height is used as id, temporarly
+            )};
+        } else {
+            paths.front().attributes_mutable() = ExtrusionAttributes{
+                role | ExtrusionRole::Bridge,
+                ExtrusionFlow(params.m_mm3_per_mm_overhang,
+                    params.overhang_flow.width(),
+                    4 // layer height is used as id, temporarly
+            )};
+        }
+    }
 
     if (paths.size() > 2) {
-        double min_length = params.perimeter_flow.scaled_width() * 2;
-        double ok_length = params.perimeter_flow.scaled_width() * 20;
-        if (dynamic_enabled) {
-            min_length = params.perimeter_flow.scaled_width() / 2;
-        }
-        
-        // merge too small paths into neighbor
+
         //curr will be deleted by 'foreach' (our caller, see above) if the return value is true. So its points need to be merged in prev or next.
-        foreach(paths, [min_length, ok_length](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
+        assert(!paths.empty());
+        // merge too small paths into neighbor if both same "direction"
+        foreach(paths, [min_length](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
             if (curr.length() < min_length) {
-                float diff_height = std::abs(prev.height() - curr.height()) - std::abs(next.height() - curr.height());
-                //have to choose the rigth path
-                if (diff_height < 0
-                    || (diff_height == 0 && prev.height() > next.height())
-                    || (diff_height == 0 && prev.height() == next.height() && prev.length() < next.length())) {
-                    //merge to previous
+                // if too small between two higher overhangs,-> change to higher overhang
+                if (prev.height() >= curr.height() && next.height() >= curr.height()) {
+                    if (prev.height() <= next.height()) {
+                        // merge to previous
+                        assert(prev.last_point() == curr.first_point());
+                        assert(curr.polyline.size() > 1);
+                        prev.polyline.append(curr.polyline);
+                    } else {
+                        // merge to next
+                        assert(curr.last_point() == next.first_point());
+                        assert(curr.polyline.size() > 1);
+                        curr.polyline.append(next.polyline);
+                        next.polyline.swap(curr.polyline);
+                    }
+                    return true;
+                } else if (prev.height() <= curr.height() && next.height() <= curr.height()) {
+                    // opposite: remove too small overhangs
+                    if (prev.height() > next.height()) {
+                        // merge to previous
+                        assert(prev.last_point() == curr.first_point());
+                        assert(curr.polyline.size() > 1);
+                        prev.polyline.append(curr.polyline);
+                    } else {
+                        // merge to next
+                        assert(curr.last_point() == next.first_point());
+                        assert(curr.polyline.size() > 1);
+                        curr.polyline.append(next.polyline);
+                        next.polyline.swap(curr.polyline);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        });
+        assert(!paths.empty());
+
+
+        // merge too small paths into neighbor
+        foreach(paths, [min_length](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
+            if (curr.length() < min_length) {
+                float diff_prev = std::abs(prev.height() - curr.height());
+                float diff_next = std::abs(next.height() - curr.height());
+                // merge to closest type, or the most overhang if equality
+                bool merge_prev = diff_prev != diff_next ? diff_prev < diff_next : prev.height() > next.height();
+                if (merge_prev) {
+                    // merge to previous
                     assert(prev.last_point() == curr.first_point());
                     assert(curr.polyline.size() > 1);
                     prev.polyline.append(curr.polyline);
                 } else {
-                    //merge to next
+                    // merge to next
                     assert(curr.last_point() == next.first_point());
                     assert(curr.polyline.size() > 1);
                     curr.polyline.append(next.polyline);
                     next.polyline.swap(curr.polyline);
                 }
                 return true;
-            } else if(curr.length() > ok_length){
-                curr.attributes_mutable().height++;
-                if (prev.height() == curr.height()) {
-                    prev.polyline.append(curr.polyline);
-                    return true;
-                } else if (next.height() == curr.height()) {
-                    curr.polyline.append(next.polyline);
-                    next.polyline.swap(curr.polyline);
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
             }
+            return false;
         });
-        
+
+        // now, there shouln't be any paths below min_length.
+        // for length 
+        foreach(paths, [ok_length, &params, no_small_flow, idx_lh_size](ExtrusionPath& prev, ExtrusionPath& curr, ExtrusionPath& next) {
+            if (curr.length() < ok_length) {
+                if (params.m_mm3_per_mm_overhang == curr.mm3_per_mm()) {
+                    // flow
+                    // merge to big flow if possible.
+                    if (prev.height() >= curr.height() || next.height() >= curr.height()) {
+                        bool merge_prev = next.height() < curr.height() || prev.length() < next.length();
+                        if (merge_prev) {
+                            // merge to previous
+                            assert(prev.last_point() == curr.first_point());
+                            assert(curr.polyline.size() > 1);
+                            prev.polyline.append(curr.polyline);
+                        } else {
+                            // merge to next
+                            assert(curr.last_point() == next.first_point());
+                            assert(curr.polyline.size() > 1);
+                            curr.polyline.append(next.polyline);
+                            next.polyline.swap(curr.polyline);
+                        }
+                        return true;
+                    } else {
+                        // merge to lower one if encircled
+                        if (prev.height() == curr.height() - 1 && prev.height() == next.height()) {
+                            if (prev.length() < next.length()) {
+                                // merge to previous
+                                assert(prev.last_point() == curr.first_point());
+                                assert(curr.polyline.size() > 1);
+                                prev.polyline.append(curr.polyline);
+                            } else {
+                                // merge to next
+                                assert(curr.last_point() == next.first_point());
+                                assert(curr.polyline.size() > 1);
+                                curr.polyline.append(next.polyline);
+                                next.polyline.swap(curr.polyline);
+                            }
+                            return true;
+                        }
+                    }
+                } else if (curr.role().is_overhang()) {
+                    // speed / dynamic
+                    //merge to higher one if possible.
+                    if (prev.height() >= curr.height() || next.height() >= curr.height()) {
+                        bool merge_prev = next.height() < curr.height() || prev.length() < next.length();
+                        if (merge_prev) {
+                            // merge to previous
+                            assert(prev.last_point() == curr.first_point());
+                            assert(curr.polyline.size() > 1);
+                            prev.polyline.append(curr.polyline);
+                        } else {
+                            // merge to next
+                            assert(curr.last_point() == next.first_point());
+                            assert(curr.polyline.size() > 1);
+                            curr.polyline.append(next.polyline);
+                            next.polyline.swap(curr.polyline);
+                        }
+                        return true;
+                    } else {
+                        // merge to lower one if encircled
+                        if (prev.height() == curr.height() - 1 && prev.height() == next.height()) {
+                            if (prev.length() < next.length()) {
+                                // merge to previous
+                                assert(prev.last_point() == curr.first_point());
+                                assert(curr.polyline.size() > 1);
+                                prev.polyline.append(curr.polyline);
+                            } else {
+                                // merge to next
+                                assert(curr.last_point() == next.first_point());
+                                assert(curr.polyline.size() > 1);
+                                curr.polyline.append(next.polyline);
+                                next.polyline.swap(curr.polyline);
+                            }
+                            return true;
+                        }
+                    }
+                } else {
+                    // normal
+                    // don't merge a small normal, it creates confusion.
+                }
+            }
+            return false;
+        });
+
         if (idx_lh_size >= (dynamic_enabled ? 4 : 3) ) {
             size_t idx_to_merge = idx_lh_size - 2;
             // small flow => big flow unless there is none, then merge into big speed
@@ -1014,8 +1210,8 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                     return true;
                 }
                 return false;
-            })
-                ;
+            });
+
             // small speed => big speed unless there is none, then merge into normal (or dynamic)
             if (idx_lh_size >= (dynamic_enabled ? 6 : 5)) {
                 idx_to_merge = idx_lh_size - 4;
@@ -1038,8 +1234,7 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
                         return true;
                     }
                     return false;
-                })
-                    ;
+                });
             }
         }
     }
@@ -1052,13 +1247,22 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
             paths.front().polyline.append(paths.back().polyline);
             paths.back().polyline.swap(paths.front().polyline);
             paths.erase(paths.begin());
-        }else if (paths.back().length() < min_length) {
+        } else if (paths.back().length() < min_length) {
             paths.front().polyline.append(paths.back().polyline);
             paths.erase(paths.begin() + 1);
         }
     }
+
+    //now that very small paths has been merge, remove useless points
+    for (ExtrusionPath &path : paths) {
+        assert(!path.polyline.has_arc());
+        path.polyline.make_arc(ArcFittingType::Disabled, std::max(SCALED_EPSILON * 2, scale_t(params.print_config.resolution)), 0);
+        assert(!path.polyline.has_arc());
+    }
+
     //set correct height
 #ifdef _DEBUG
+    for (ExtrusionPath& path : paths) path.polyline.is_valid();
     assert(!paths.empty());
     // maybe not a loop?
     Point last_pt = loop_polygons.first_point() == loop_polygons.last_point() ? paths.back().last_point() : paths.front().first_point();
@@ -1094,9 +1298,10 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
             last_pt = paths[idx_path-1].last_point();
 #endif
         }
-        if(!need_erase){
+        if (!need_erase) {
             last_type_fh = int(path.attributes_mutable().height);
-            path.attributes_mutable().height = path.height() < idx_lh_size - 2 ? (float)params.layer->height : params.overhang_flow.height();
+            path.attributes_mutable().height = path.height() < idx_lh_size - 2 ? (float) params.layer->height :
+                                                                                 params.overhang_flow.height();
 #ifdef _DEBUG
             assert(last_pt == path.first_point());
             for (size_t idx = 1; idx < path.size(); ++idx) {
@@ -1141,8 +1346,9 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_extrusions(const Paramet
     }
     for (PerimeterGeneratorArachneExtrusion& pg_extrusion : pg_extrusions) {
         Arachne::ExtrusionLine* extrusion = pg_extrusion.extrusion;
-        if (extrusion->is_zero_length())
+        if (extrusion->is_zero_length()) {
             continue;
+        }
 
         const bool    is_external = extrusion->inset_idx == 0;
         ExtrusionLoopRole loop_role = ExtrusionLoopRole::elrDefault;
@@ -1177,14 +1383,14 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_extrusions(const Paramet
             BoundingBox extrusion_path_bbox;
             for (const Arachne::ExtrusionJunction& ej : extrusion->junctions) {
                 //remove duplicate points from arachne
-                if(extrusion_path.empty() || 
-                    (ej.p.x() != extrusion_path.back().x() || ej.p.y() != extrusion_path.back().y()))
+                if (extrusion_path.empty() ||
+                    (ej.p.x() != extrusion_path.back().x() || ej.p.y() != extrusion_path.back().y())) {
                     extrusion_path.emplace_back(ej.p.x(), ej.p.y(), ej.w);
+                }
                 extrusion_path_bbox.merge(Point{ej.p.x(), ej.p.y()});
             }
             extrusion_path_bbox.offset(SCALED_EPSILON);
-            if(extrusion->is_closed)
-                assert((extrusion_path.front() - extrusion_path.back()).norm() < SCALED_EPSILON);
+            if(extrusion->is_closed) assert((extrusion_path.front() - extrusion_path.back()).norm() < SCALED_EPSILON);
             paths = this->create_overhangs_arachne(params, extrusion_path, extrusion_path_bbox, role, is_external);
             
             // Reapply the nearest point search for starting point.
@@ -1223,10 +1429,8 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_extrusions(const Paramet
                 }
 
                 chain_and_reorder_extrusion_paths(paths, &start_point);
-                for(size_t i = 1; i< paths.size(); ++i)
-                    assert(paths[i-1].last_point().coincides_with_epsilon(paths[i].first_point()));
-                if(extrusion->is_closed)
-                    assert(paths.back().last_point().coincides_with_epsilon(paths.front().first_point()));
+                for(size_t i = 1; i< paths.size(); ++i) assert(paths[i-1].last_point().coincides_with_epsilon(paths[i].first_point()));
+                if(extrusion->is_closed) assert(paths.back().last_point().coincides_with_epsilon(paths.front().first_point()));
             }
         } else {
             append(paths, Geometry::unsafe_variable_width(Arachne::to_thick_polyline(*extrusion),
@@ -1247,8 +1451,9 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_extrusions(const Paramet
         // Append paths to collection.
         if (!paths.empty()) {
             for (size_t idx_path = 0; idx_path < paths.size(); ++idx_path) {
-                if (idx_path > 0)
+                if (idx_path > 0) {
                     assert(paths[idx_path - 1].last_point().coincides_with_epsilon(paths[idx_path].first_point()));
+                }
                 for (size_t idx_pt = 1; idx_pt < paths[idx_path].size(); ++idx_pt) {
                     assert(!paths[idx_path].polyline.get_point(idx_pt - 1).coincides_with_epsilon(paths[idx_path].polyline.get_point(idx_pt)));
                 }
@@ -1260,8 +1465,9 @@ ExtrusionEntityCollection PerimeterGenerator::_traverse_extrusions(const Paramet
                 //TODO: use if (loop.is_steep_overhang && params.layer->id() % 2 == 1) to make_clockwise => need to detect is_steep_overhang on the arachne path
                 bool need_ccw = ((params.config.perimeter_reverse /*|| pg_extrusion.is_steep_overhang*/ && params.layer->id() % 2 == 1)
                                  == (pg_extrusion.is_contour ? CCW_contour : CCW_hole));
-                if (need_ccw != extrusion_loop.is_clockwise())
+                if (need_ccw != extrusion_loop.is_clockwise()) {
                     extrusion_loop.reverse();
+                }
 #if _DEBUG
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
                     assert(it->polyline.size() >= 2);
@@ -3156,8 +3362,10 @@ void PerimeterGenerator::processs_no_bridge(const Parameters params, Surfaces& a
                                 params.overhang_flow.scaled_spacing(),
                                 scale_t(params.print_config.bridge_precision.get_abs_value(params.overhang_flow.spacing())),
                                 params.layer->id());
-                            if (detector.detect_angle(Geometry::deg2rad(params.config.bridge_angle.value)))
+                            double angle = Geometry::deg2rad(params.config.bridge_angle.value);
+                            if (detector.detect_angle(params.config.bridge_angle.is_enabled() ? angle :  -1)) {
                                 expolygons_append(bridgeable, union_ex(detector.coverage()));
+                            }
                         }
                         if (!bridgeable.empty()) {
                             //check if we get everything or just the bridgeable area
@@ -3636,7 +3844,8 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                         params.overhang_flow.scaled_spacing(),
                         scale_t(params.print_config.bridge_precision.get_abs_value(params.overhang_flow.spacing())),
                         params.layer->id());
-                    if (detector.detect_angle(Geometry::deg2rad(params.config.bridge_angle.value)))
+                    double angle = Geometry::deg2rad(params.config.bridge_angle.value);
+                    if (detector.detect_angle(params.config.bridge_angle.is_enabled() ? angle : -1))
                         expolygons_append(bridgeable, union_ex(detector.coverage()));
                 }
                 if (!bridgeable.empty()) {
@@ -3968,13 +4177,13 @@ ProcessSurfaceResult PerimeterGenerator::process_classic(const Parameters &     
                         (params.use_round_perimeters() ? ClipperLib::JoinType::jtRound : ClipperLib::JoinType::jtMiter),
                         (params.use_round_perimeters() ? params.get_min_round_spacing() : 3));
                     if (perimeter_idx == 1) {
-                        append(gaps, diff_ex(
+                        append(gaps, ensure_valid(diff_ex(
                             offset_ex(last, -0.5f * params.get_ext_perimeter_spacing()),
-                            no_last_gapfill));  // safety offset
+                            no_last_gapfill), resolution));  // safety offset
                     } else {
-                        append(gaps, diff_ex(
+                        append(gaps, ensure_valid(diff_ex(
                             offset_ex(last, -0.5f * params.get_perimeter_spacing()),
-                            no_last_gapfill));  // safety offset
+                            no_last_gapfill), resolution));  // safety offset
                     }
                 }
             }
@@ -4659,7 +4868,7 @@ void PerimeterGenerator::_merge_thin_walls(const Parameters &params, ExtrusionEn
 #if _DEBUG
             LoopAssertVisitor loop_assert_visitor;
             searcher.search_result.loop->visit(loop_assert_visitor);
-            ExtrusionLoop orig_loop = *searcher.search_result.loop;
+            const ExtrusionLoop orig_loop = *searcher.search_result.loop;
 #endif
             if (!searcher.search_result.from_start)
                 tw.reverse();
@@ -4670,62 +4879,60 @@ void PerimeterGenerator::_merge_thin_walls(const Parameters &params, ExtrusionEn
             //we have to create 3 paths: 1: thinwall extusion, 2: thinwall return, 3: end of the path
             //create new path : end of the path
             ArcPolyline poly_after;
-            poly_after.append(point);
             ArcPolyline first_part;
-            //poly_after.points.insert(poly_after.points.end(),
-            //    searcher.search_result.path->polyline.get_points().begin() + searcher.search_result.idx_line + 1,
-            //    searcher.search_result.path->polyline.get_points().end());
-            //searcher.search_result.path->polyline.set_points().erase(
-            //    searcher.search_result.path->polyline.set_points().begin() + searcher.search_result.idx_line + 1,
-            //    searcher.search_result.path->polyline.set_points().end());
+            assert(searcher.search_result.path->polyline.length() > SCALED_EPSILON);
             searcher.search_result.path->polyline.split_at_index(searcher.search_result.idx_line, first_part, poly_after);
-            
-            size_t idx_path_before = searcher.search_result.idx_path;
-            size_t idx_path_to_add = idx_path_before + 1;
-            //check if the first part of the split polyline is long enough.
-            assert(!searcher.search_result.loop->paths[idx_path_before].empty());
-            if (searcher.search_result.loop->paths[idx_path_before].length() 
-                + searcher.search_result.loop->paths[idx_path_before].polyline.back().distance_to(point) < SCALED_EPSILON) {
-                //not long enough, move point to first point and destroy it
-                assert(!searcher.search_result.loop->paths[idx_path_before].empty());
-                point = searcher.search_result.loop->paths[idx_path_before].first_point();
-                searcher.search_result.loop->paths.erase(searcher.search_result.loop->paths.begin() + idx_path_before);
-                idx_path_to_add = idx_path_before;
-                idx_path_before--;
-            } else {
-                //long enough
-                if (!searcher.search_result.loop->paths[idx_path_before].polyline.back().coincides_with_epsilon(point)) {
-                    // add the point to previous path
-                    searcher.search_result.loop->paths[idx_path_before].polyline.append(point);
-                } else {
-                    //point too near of the start, just move the point
-                    point                     = searcher.search_result.loop->paths[idx_path_before].polyline.back();
-                    poly_after.set_front(point);
-                }
-            }
+            first_part.append(point);
+            poly_after.append_before(point);
             // remove next point if too near to point for the poly_after
             if (poly_after.size() > 1 && poly_after.front().coincides_with_epsilon(poly_after.get_point(1))) {
                 Point pt_front = poly_after.front();
                 poly_after.pop_front();
                 poly_after.set_front(pt_front);
             }
+            // same for first_part
+            if (first_part.size() > 1 && first_part.back().coincides_with_epsilon(first_part.get_point(first_part.size() - 2))) {
+                Point pt_back = first_part.back();
+                first_part.pop_back();
+                first_part.set_back(pt_back);
+            }
+            assert(first_part.size() == 2 || first_part.is_valid());
+            assert(poly_after.size() == 2 || poly_after.is_valid());
+
+            size_t idx_path_before = searcher.search_result.idx_path;
+            size_t idx_path_to_add = idx_path_before + 1;
+            //check if the first part of the split polyline is long enough.
+            assert(!first_part.empty());
+            bool point_moved = false;
+            if (first_part.size() <= 1 || first_part.length() < SCALED_EPSILON) {
+                assert(first_part.size() == 2);
+                assert(searcher.search_result.loop->paths.size() > 1);
+                //not long enough, move point to first point and destroy it
+                assert(!searcher.search_result.loop->paths[idx_path_before].empty());
+                point = searcher.search_result.loop->paths[idx_path_before].last_point();
+                assert(first_part.front().coincides_with_epsilon(poly_after.back()));
+                poly_after.set_front(first_part.front());
+                first_part.clear();
+                point_moved = true;
+            } else {
+                //long enough
+                assert(first_part.front() == searcher.search_result.loop->paths[idx_path_before].polyline.front());
+                assert(first_part.back() == point);
+                searcher.search_result.loop->paths[idx_path_before].polyline = first_part;
+            }
             assert(idx_path_before > searcher.search_result.loop->paths.size() || searcher.search_result.loop->paths[idx_path_before].size() >= 2);
             assert(idx_path_before > searcher.search_result.loop->paths.size() || searcher.search_result.loop->paths[idx_path_before].length() > SCALED_EPSILON);
             // check if poly_after is big enough to be added
             if (poly_after.size() <= 1 || poly_after.length()  < SCALED_EPSILON) {
-                //if there is a path after it, then move a little bit the first point
-                if (searcher.search_result.loop->paths.size() > idx_path_to_add) {
-                    assert(searcher.search_result.loop->paths[idx_path_to_add].first_point().coincides_with_epsilon(point));
-                    searcher.search_result.loop->paths[idx_path_to_add].polyline.set_front(point);
-                    // set return point, to move our return point
-                    poly_after.clear();
-                    poly_after.append(point);//points.push_back(point);
-                } else {
-                    //use last point as the end pos
-                    Point end_pt = poly_after.back();
-                    poly_after.clear();
-                    poly_after.append(end_pt);//.points.push_back(end_pt);
-                }
+                assert(poly_after.size() == 2);
+                assert(!point_moved);
+                //use last point as the end pos
+                assert(searcher.search_result.loop->paths[idx_path_before].polyline.back() != poly_after.back());
+                assert(searcher.search_result.loop->paths[idx_path_before].polyline.back().coincides_with_epsilon(poly_after.back()));
+                searcher.search_result.loop->paths[idx_path_before].polyline.set_back(poly_after.back());
+                point = poly_after.back();
+                poly_after.clear();
+                point_moved = true;
             } else {
                 assert(poly_after.length() > SCALED_EPSILON);
                 searcher.search_result.loop->paths.insert(searcher.search_result.loop->paths.begin() + idx_path_to_add, 
@@ -4733,8 +4940,11 @@ void PerimeterGenerator::_merge_thin_walls(const Parameters &params, ExtrusionEn
             }
             assert(idx_path_before > searcher.search_result.loop->paths.size() || searcher.search_result.loop->paths[idx_path_before].polyline.size() > 1);
             assert(poly_after.size() > 0);
+#if _DEBUG
+            searcher.search_result.loop->visit(loop_assert_visitor);
+#endif
             
-            //create thin wall path exttrusion
+            //create thin wall path extrusion
             ExtrusionEntityCollection tws;
             tws.append(Geometry::thin_variable_width({tw}, ExtrusionRole::ThinWall, params.ext_perimeter_flow,
                                                      std::max(params.ext_perimeter_flow.scaled_width() / 10,
@@ -4742,6 +4952,7 @@ void PerimeterGenerator::_merge_thin_walls(const Parameters &params, ExtrusionEn
                                                      false));
             assert(!tws.entities().empty());
 #if _DEBUG
+            searcher.search_result.loop->visit(loop_assert_visitor);
             tws.visit(loop_assert_visitor);
 #endif
             ChangeFlow change_flow(std::max(scale_t(params.print_config.resolution.value), SCALED_EPSILON));

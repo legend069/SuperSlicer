@@ -573,7 +573,9 @@ Flow support_material_flow(const PrintObject* object, float layer_height)
     int extruder_id = object->config().support_material_extruder.value - 1;
     if (extruder_id < 0) {
         if (!object->layers().empty()) {
-            extruder_id = object->layers().front()->get_region(0)->region().config().perimeter_extruder - 1;
+            extruder_id = object->layers().front()->get_region(0)->region().config().infill_extruder - 1;
+        } else {
+            extruder_id = object->default_region_config(object->print()->default_region_config()).infill_extruder - 1;
         }
     }
 
@@ -625,6 +627,8 @@ Flow support_material_1st_layer_flow(const PrintObject *object, float layer_heig
     if (extruder_id < 0) {
         if (!object->layers().empty()) {
             extruder_id = object->layers().front()->get_region(0)->region().config().infill_extruder - 1;
+        } else {
+            extruder_id = object->default_region_config(object->print()->default_region_config()).infill_extruder - 1;
         }
     }
     return Flow::new_from_config_width(

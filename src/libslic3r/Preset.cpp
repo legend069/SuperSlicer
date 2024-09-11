@@ -464,6 +464,7 @@ void Preset::set_visible_from_appconfig(const AppConfig &app_config)
 }
 
 static std::vector<std::string> s_Preset_print_options {
+        "print_version",
         "layer_height", 
         "first_layer_height",
         "perimeters",
@@ -938,6 +939,7 @@ static std::vector<std::string> s_Preset_printer_options {
 };
 
 static std::vector<std::string> s_Preset_sla_print_options {
+    "print_version",
     "layer_height",
     "faded_layers",
     "print_custom_variables", // only for scripted widgets
@@ -1705,13 +1707,13 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
         if (selected)
             preset_selected.is_compatible = preset_edited.is_compatible;
         if (preset_edited.vendor && preset_edited.vendor->templates_profile) {
-            if (preset_selected.is_visible)
+            if (preset_selected.is_visible) {
                 indices_of_template_presets.push_back(idx_preset);
-            else {
+            } else {
                 preset_selected.is_compatible = false;
                 if (selected)
                     m_idx_selected = size_t(-1);
-    }
+            }
         }
     }
     // filter out template profiles where profile with same alias and compability exists

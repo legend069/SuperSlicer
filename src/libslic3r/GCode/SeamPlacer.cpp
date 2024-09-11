@@ -1234,41 +1234,43 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
     using PerimeterDistancer = AABBTreeLines::LinesDistancer<Linef>;
 
     std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()), [po, &layers](tbb::blocked_range<size_t> r) {
-        std::unique_ptr<PerimeterDistancer> prev_layer_distancer;
-        if (r.begin() > 0) { // previous layer exists
-            prev_layer_distancer = std::make_unique<PerimeterDistancer>(
-                to_unscaled_linesf(po->layers()[r.begin() - 1]->lslices));
-        }
-
-        for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
-            size_t regions_with_perimeter = 0;
-            for (const LayerRegion *region : po->layers()[layer_idx]->regions()) {
-                if (region->perimeters().size() > 0) {
-                    regions_with_perimeter++;
-                }
-            };
-            bool should_compute_layer_embedding = regions_with_perimeter > 1;
-            std::unique_ptr<PerimeterDistancer> current_layer_distancer = std::make_unique<PerimeterDistancer>(
-                to_unscaled_linesf(po->layers()[layer_idx]->lslices));
-
-            for (SeamCandidate &perimeter_point : layers[layer_idx].points) {
-                Vec2f point = Vec2f{perimeter_point.position.head<2>()};
-                if (prev_layer_distancer.get() != nullptr) {
-                    perimeter_point.overhang = prev_layer_distancer->distance_from_lines<true>(point.cast<double>());
-                    // Seams: overhangs: don't remove overhang_angle_threshold, it seems to create artifacts.
-                    // supermerill/SuperSlicer#4217
-                    // + 0.6f * perimeter_point.perimeter.flow_width
-                    // - tan(SeamPlacer::overhang_angle_threshold)
-                    //         * po->layers()[layer_idx]->height;
-                    perimeter_point.overhang = perimeter_point.overhang < 0.0f ? 0.0f : perimeter_point.overhang;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
+            [po, &layers](tbb::blocked_range<size_t> r) {
+                std::unique_ptr<PerimeterDistancer> prev_layer_distancer;
+                if (r.begin() > 0) { // previous layer exists
+                    prev_layer_distancer = std::make_unique<PerimeterDistancer>(to_unscaled_linesf(po->layers()[r.begin() - 1]->lslices()));
                 }
 
-                if (should_compute_layer_embedding) { // search for embedded perimeter points (points hidden inside
-                                                      // the print ,e.g. multimaterial join, best position for seam)
-                    perimeter_point.embedded_distance = current_layer_distancer->distance_from_lines<true>(
-                                                            point.cast<double>()) +
-                        0.6f * perimeter_point.perimeter.flow_width;
+                for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
+                    size_t regions_with_perimeter = 0;
+                    for (const LayerRegion *region : po->layers()[layer_idx]->regions()) {
+                        if (region->perimeters().size() > 0) {
+                            regions_with_perimeter++;
+                        }
+                    };
+                    bool should_compute_layer_embedding = regions_with_perimeter > 1;
+                    std::unique_ptr<PerimeterDistancer> current_layer_distancer        = std::make_unique<PerimeterDistancer>(
+                        to_unscaled_linesf(po->layers()[layer_idx]->lslices()));
+
+                    for (SeamCandidate &perimeter_point : layers[layer_idx].points) {
+                        Vec2f point = Vec2f { perimeter_point.position.head<2>() };
+                        if (prev_layer_distancer.get() != nullptr) {
+                            perimeter_point.overhang = prev_layer_distancer->distance_from_lines<true>(point.cast<double>());
+                                    // Seams: overhangs: don't remove overhang_angle_threshold, it seems to create artifacts. supermerill/SuperSlicer#4217
+                                    // + 0.6f * perimeter_point.perimeter.flow_width
+                                    // - tan(SeamPlacer::overhang_angle_threshold)
+                                    //         * po->layers()[layer_idx]->height;
+                            perimeter_point.overhang =
+                                    perimeter_point.overhang < 0.0f ? 0.0f : perimeter_point.overhang;
+                        }
+
+                        if (should_compute_layer_embedding) { // search for embedded perimeter points (points hidden inside the print ,e.g. multimaterial join, best position for seam)
+                            perimeter_point.embedded_distance = current_layer_distancer->distance_from_lines<true>(point.cast<double>())
+                                    + 0.6f * perimeter_point.perimeter.flow_width;
+                        }
+                    }
+
+                    prev_layer_distancer.swap(current_layer_distancer);
                 }
             }
 
