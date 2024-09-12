@@ -110,7 +110,8 @@ ToolOrdering::ToolOrdering(const PrintObject &object, uint16_t first_extruder, b
         }
         for (auto layer : object.support_layers()) {
             if (layer->has_extrusions()) {
-            zs.emplace_back(layer->print_z);
+                zs.emplace_back(layer->print_z);
+            }
         }
         this->initialize_layers(zs);
     }
@@ -147,7 +148,8 @@ ToolOrdering::ToolOrdering(const Print &print, uint16_t first_extruder, bool pri
             }
             for (auto layer : object->support_layers()) {
                 if (layer->has_extrusions()) {
-                zs.emplace_back(layer->print_z);
+                    zs.emplace_back(layer->print_z);
+                }
             }
 
             // Find first object layer that is not empty and save its print_z
