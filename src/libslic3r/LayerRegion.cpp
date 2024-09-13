@@ -25,6 +25,21 @@
 
 namespace Slic3r {
 
+void LayerRegion::clear() {
+    this->m_perimeters.clear();
+    this->m_millings.clear();
+    this->m_unsupported_bridge_edges.clear();
+    this->m_fill_surfaces.clear();
+    this->m_fills.clear();
+    this->m_ironings.clear();
+    this->m_thin_fills.clear();
+    this->m_fill_expolygons.clear();
+    this->m_fill_expolygons_bboxes.clear();
+    this->m_fill_expolygons_composite.clear();
+    this->m_fill_expolygons_composite_bboxes.clear();
+    this->m_fill_no_overlap_expolygons.clear();
+}
+
 Flow LayerRegion::flow(FlowRole role) const
 {
     return this->flow(role, m_layer->height);
@@ -835,7 +850,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                     bridges[idx_last].bridge_angle = bd.angle;
                     if (this->layer()->object()->has_support()) {
 //                        polygons_append(this->bridged, intersection(bd.coverage(), to_polygons(initial)));
-                        append(m_unsupported_bridge_edges, bd.unsupported_edges());
+                        append(this->m_unsupported_bridge_edges, bd.unsupported_edges());
                     }
                 } else {
                     bridges[idx_last].bridge_angle = 0;
@@ -1034,7 +1049,7 @@ void LayerRegion::elephant_foot_compensation_step(const float elephant_foot_comp
     append(tmp, diff(this->slices().surfaces, opening(this->slices().surfaces, elephant_foot_compensation_perimeter_step)));
     this->m_slices.set(union_ex(tmp), stPosInternal | stDensSparse);
     for(auto &srf : this->m_slices) srf.expolygon.assert_valid();
-    for(auto &srf : this->m_slices) srf.expolygon.assert_point_distance();
+    for(auto &srf : this->m_slices) srf.expolygon.assert_valid();
 }
 
 void LayerRegion::export_region_slices_to_svg(const char *path) const

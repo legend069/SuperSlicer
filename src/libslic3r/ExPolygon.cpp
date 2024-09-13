@@ -331,8 +331,8 @@ BoundingBox get_extents(const ExPolygons &expolygons)
     BoundingBox bbox;
     if (! expolygons.empty()) {
         for (size_t i = 0; i < expolygons.size(); ++ i)
-			if (! expolygons[i].contour.points.empty())
-				bbox.merge(get_extents(expolygons[i]));
+            if (! expolygons[i].contour.points.empty())
+                bbox.merge(get_extents(expolygons[i]));
     }
     return bbox;
 }
@@ -406,7 +406,7 @@ bool has_duplicate_points(const ExPolygons &expolys)
         uint64_t operator()(const Point &p) const noexcept
         {
 #ifdef COORD_64B
-            return ankerl::unordered_dense::detail::wyhash::hash(p.x()) 
+            return ankerl::unordered_dense::detail::wyhash::hash(p.x())
                 + ankerl::unordered_dense::detail::wyhash::hash(p.y());
 #else
             uint64_t h;
@@ -464,14 +464,6 @@ ExPolygons ensure_valid(coord_t resolution, ExPolygons &&expolygons) {
     return ensure_valid(std::move(expolygons), resolution);
 }
 
-#ifdef _DEBUGINFO
-void assert_valid(const ExPolygons &expolygons) {
-    for (const ExPolygon &expolygon : expolygons) {
-        expolygon.assert_valid();
-    }
-}
-#endif
-
 bool remove_same_neighbor(ExPolygons &expolygons)
 {
     if (expolygons.empty())
@@ -518,21 +510,21 @@ bool remove_small_and_small_holes(ExPolygons &expolygons, double min_area)
 
 void keep_largest_contour_only(ExPolygons &polygons)
 {
-	if (polygons.size() > 1) {
-	    double     max_area = 0.;
-	    ExPolygon* max_area_polygon = nullptr;
-	    for (ExPolygon& p : polygons) {
-	        double a = p.contour.area();
-	        if (a > max_area) {
-	            max_area         = a;
-	            max_area_polygon = &p;
-	        }
-	    }
-	    assert(max_area_polygon != nullptr);
-	    ExPolygon p(std::move(*max_area_polygon));
-	    polygons.clear();
-	    polygons.emplace_back(std::move(p));
-	}
+    if (polygons.size() > 1) {
+        double     max_area = 0.;
+        ExPolygon* max_area_polygon = nullptr;
+        for (ExPolygon& p : polygons) {
+            double a = p.contour.area();
+            if (a > max_area) {
+                max_area         = a;
+                max_area_polygon = &p;
+            }
+        }
+        assert(max_area_polygon != nullptr);
+        ExPolygon p(std::move(*max_area_polygon));
+        polygons.clear();
+        polygons.emplace_back(std::move(p));
+    }
 }
 
 } // namespace Slic3r

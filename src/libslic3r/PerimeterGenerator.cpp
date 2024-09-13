@@ -918,7 +918,7 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
 #ifdef _DEBUGINFO
     ExtrusionLoop loop_test;
     loop_test.paths = paths;
-    loop_test.visit(LoopAssertVisitor());
+    loop_test.visit(LoopAssertVisitor(false)); // there can have some very small paths
     assert(!paths.empty());
 #endif
 

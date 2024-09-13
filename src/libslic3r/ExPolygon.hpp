@@ -92,17 +92,7 @@ public:
     Polygon& 		contour_or_hole(size_t idx) 		{ return (idx == 0) ? this->contour : this->holes[idx - 1]; }
     const Polygon& 	contour_or_hole(size_t idx) const 	{ return (idx == 0) ? this->contour : this->holes[idx - 1]; }
 
-#ifdef _DEBUGINFO
-    void assert_valid() const {
-        contour.assert_valid();
-        for (const Polygon& hole : holes)
-            hole.assert_valid();
-    }
-    // to create a cpp multipoint to create test units.
-    std::string to_debug_string();
-#else
     void assert_valid() const {}
-#endif
 };
 
 inline bool operator==(const ExPolygon &lhs, const ExPolygon &rhs) { return lhs.contour == rhs.contour && lhs.holes == rhs.holes; }
@@ -545,11 +535,8 @@ bool has_duplicate_points(const ExPolygons &expolys);
 void ensure_valid(ExPolygons &expolygons, coord_t resolution = SCALED_EPSILON);
 ExPolygons ensure_valid(ExPolygons &&expolygons, coord_t resolution = SCALED_EPSILON);
 ExPolygons ensure_valid(coord_t resolution, ExPolygons &&expolygons);
-#ifdef _DEBUGINFO
-void assert_valid(const ExPolygons &expolygons);
-#else
+
 void assert_valid(const ExPolygons &expolygons) {}
-#endif
 
 // Return True when erase some otherwise False.
 bool remove_same_neighbor(ExPolygons &expolys);

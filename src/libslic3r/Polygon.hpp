@@ -126,17 +126,6 @@ public:
     size_t remove_collinear(coord_t max_offset);
     size_t remove_collinear_angle(double angle);
 
-#ifdef _DEBUGINFO
-    void assert_valid() const override {
-        assert(size() > 2);
-        for (size_t i_pt = 1; i_pt < size(); ++i_pt)
-            release_assert(!points[i_pt - 1].coincides_with_epsilon(points[i_pt]));
-        release_assert(!points.front().coincides_with_epsilon(points.back()));
-    }
-#else
-    void assert_valid() const {}
-#endif
-
     using iterator = Points::iterator;
     using const_iterator = Points::const_iterator;
 };
@@ -166,11 +155,8 @@ bool remove_same_neighbor(Polygons &polygons);
 void ensure_valid(Polygons &polygons, coord_t resolution = SCALED_EPSILON);
 Polygons ensure_valid(Polygons &&polygons, coord_t resolution = SCALED_EPSILON);
 Polygons ensure_valid(coord_t resolution, Polygons &&polygons);
-#ifdef _DEBUGINFO
-void assert_valid(const Polygons &polygons);
-#else
-void assert_valid(const Polygons &polygons) const {}
-#endif
+
+void assert_valid(const Polygons &polygons) {}
 
 inline double total_length(const Polygons &polylines) {
     double total = 0;

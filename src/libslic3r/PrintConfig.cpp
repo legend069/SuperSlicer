@@ -423,6 +423,7 @@ void PrintConfigDef::init_common_params()
     def = this->add("print_version", coString);
     // defautl to none : only set if loaded. only write our version
     def->set_default_value(new ConfigOptionStringVersion());
+    def->cli = ConfigOptionDef::nocli;
 
     def = this->add("printer_technology", coEnum);
     def->label = L("Printer technology");
@@ -2347,6 +2348,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_settings_id", coStrings);
     def->mode = comNone | comPrusa; // note: hidden setting
     def->set_default_value(new ConfigOptionStrings { "" });
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("filament_settings_modified", coBools);
+    def->mode = comNone | comPrusa; // note: hidden setting
+    def->set_default_value(new ConfigOptionBools({false}));
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("filament_vendor", coString);
@@ -4618,9 +4624,19 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionString(""));
     def->cli = ConfigOptionDef::nocli;
 
+    def = this->add("print_settings_modified", coBool);
+    def->mode = comNone | comPrusa; // note: hidden setting
+    def->set_default_value(new ConfigOptionBool(false));
+    def->cli = ConfigOptionDef::nocli;
+
     def = this->add("printer_settings_id", coString);
     def->mode = comNone | comPrusa; // note: hidden setting
     def->set_default_value(new ConfigOptionString(""));
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("printer_settings_modified", coBool);
+    def->mode = comNone | comPrusa; // note: hidden setting
+    def->set_default_value(new ConfigOptionBool(false));
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("physical_printer_settings_id", coString);
@@ -7898,6 +7914,10 @@ void PrintConfigDef::init_sla_params()
     def->set_default_value(new ConfigOptionString(""));
     def->cli = ConfigOptionDef::nocli;
 
+    def = this->add("sla_material_settings_modified", coBool);
+    def->set_default_value(new ConfigOptionBool(false));
+    def->cli = ConfigOptionDef::nocli;
+
     def = this->add("default_sla_print_profile", coString);
     def->label = L("Default SLA material profile");
     def->tooltip = L("Default print profile associated with the current printer profile. "
@@ -7905,7 +7925,11 @@ void PrintConfigDef::init_sla_params()
     def->set_default_value(new ConfigOptionString());
     def->cli = ConfigOptionDef::nocli;
 
-    def = this->add("sla_print_settings_id", coString);
+    def = this->add("sla_print_settings_id", coBool);
+    def->set_default_value(new ConfigOptionBool(false));
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("sla_print_settings_modified", coString);
     def->set_default_value(new ConfigOptionString(""));
     def->cli = ConfigOptionDef::nocli;
 
@@ -9399,6 +9423,8 @@ std::unordered_set<std::string> prusa_export_to_remove_keys = {
 "xy_size_compensation",
 "xy_inner_size_compensation",
 "z_step",
+
+"print_version",
 };
 
 std::unordered_set<std::string> prusa_export_to_change_keys =
@@ -11179,6 +11205,10 @@ OtherPresetsConfigDef::OtherPresetsConfigDef()
     def = this->add("num_extruders", coInt);
     def->label = L("Number of extruders");
     def->tooltip = L("Total number of extruders, regardless of whether they are used in the current print.");
+
+    def = this->add("num_milling", coInt);
+    def->label = L("Number of mills");
+    def->tooltip = L("Total number of mills, regardless of whether they are used in the current print.");
 
     def = this->add("print_preset", coString);
     def->label = L("Print preset name");

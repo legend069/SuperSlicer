@@ -1202,7 +1202,7 @@ static inline std::tuple<Polygons, Polygons, Polygons, float> detect_overhangs(
     // Enforcers projected to overhangs, trimmed
     Polygons enforcer_polygons;
     
-    for(auto &poly : lower_layer_polygons) poly.assert_point_distance();
+    for(auto &poly : lower_layer_polygons) poly.assert_valid();
 
     assert_valid(lower_layer_polygons);
 
@@ -1777,7 +1777,7 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
                 Polygons            lower_layer_polygons = (layer_id == 0) ? Polygons() : to_polygons(object.layers()[layer_id - 1]->lslices());
                 SlicesMarginCache   slices_margin;
                 
-                for(auto &poly : lower_layer_polygons) poly.assert_point_distance();
+                for(auto &poly : lower_layer_polygons) poly.assert_valid();
 
                 assert_valid(lower_layer_polygons);
 
@@ -1788,9 +1788,9 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
                 #endif // SLIC3R_DEBUG
                         );
                 
-                for(auto &poly : overhang_polygons) poly.assert_point_distance();
-                for(auto &poly : contact_polygons) poly.assert_point_distance();
-                for(auto &poly : enforcer_polygons) poly.assert_point_distance();
+                for(auto &poly : overhang_polygons) poly.assert_valid();
+                for(auto &poly : contact_polygons) poly.assert_valid();
+                for(auto &poly : enforcer_polygons) poly.assert_valid();
 
                 assert_valid(overhang_polygons);
                 assert_valid(contact_polygons);

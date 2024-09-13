@@ -2547,10 +2547,10 @@ std::vector<Slic3r::GUI::PageShp> Tab::create_pages(std::string setting_type_nam
                     wxWindow *win = collpane->GetPane();
                     collpane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [tab](wxEvent &) { tab->Layout(); });
 
-                    const wxBitmapBundle *bmp_width     = get_bmp_bundle("explanation_width", 80);
-                    wxStaticBitmap *image_width   = new wxStaticBitmap(win, wxID_ANY, bmp_width->GetBitmap(wxDefaultSize));
-                    const wxBitmapBundle *bmp_spacing   = get_bmp_bundle("explanation_spacing", 80);
-                    wxStaticBitmap *image_spacing = new wxStaticBitmap(win, wxID_ANY, bmp_spacing->GetBitmap(wxDefaultSize));
+                    const wxBitmapBundle *bmp_width     = get_bmp_bundle("explanation_width", 170, 90);
+                    wxStaticBitmap *image_width   = new wxStaticBitmap(win, wxID_ANY, bmp_width->GetBitmap(bmp_width->GetDefaultSize()));
+                    const wxBitmapBundle *bmp_spacing   = get_bmp_bundle("explanation_spacing", 650, 100);
+                    wxStaticBitmap *image_spacing = new wxStaticBitmap(win, wxID_ANY, bmp_spacing->GetBitmap(bmp_spacing->GetDefaultSize()));
                     auto            sizerV        = new wxBoxSizer(wxVERTICAL);
                     auto            sizerH2       = new wxBoxSizer(wxHORIZONTAL);
                     auto            sizerH3       = new wxBoxSizer(wxHORIZONTAL);
@@ -3495,7 +3495,7 @@ bool TabFilament::save_current_preset(const std::string &new_name, bool detach)
     const bool is_saved = Tab::save_current_preset(new_name, detach);
     if (is_saved) {
         m_preset_bundle->reset_extruder_filaments();
-        m_preset_bundle->extruders_filaments[m_active_extruder].select_filament(m_presets->get_idx_selected());
+        m_preset_bundle->extruders_filaments[m_active_extruder].select_filament(m_presets->get_selected_idx());
     }
     return is_saved;
 }
@@ -4368,7 +4368,7 @@ bool Tab::select_preset(std::string preset_name, bool delete_current /*=false*/,
         if (delete_current) {
             // Find an alternate preset to be selected after the current preset is deleted.
             const std::deque<Preset> &presets 		= m_presets->get_presets();
-            size_t    				  idx_current   = m_presets->get_idx_selected();
+            size_t    				  idx_current   = m_presets->get_selected_idx();
             // Find the next visible preset.
             size_t 				      idx_new       = idx_current + 1;
             if (idx_new < presets.size())

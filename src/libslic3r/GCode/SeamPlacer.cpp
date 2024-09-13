@@ -1272,10 +1272,6 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
 
                     prev_layer_distancer.swap(current_layer_distancer);
                 }
-            }
-
-            prev_layer_distancer.swap(current_layer_distancer);
-        }
     });
 }
 

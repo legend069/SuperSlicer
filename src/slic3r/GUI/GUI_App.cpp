@@ -3555,10 +3555,11 @@ bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage
             return false;
     }
 
-    std::unique_ptr<ConfigWizard> wizard;
+    
+    ConfigWizard *wizard = nullptr;
     {
         wxBusyCursor wait;
-        wizard.reset(new ConfigWizard(mainframe));
+        wizard = new ConfigWizard(mainframe);
     }
     const bool res = wizard->run(reason, start_page);
 
@@ -3567,7 +3568,7 @@ bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage
     // So, wizard will be destroyed only during destroying of mainframe
     // To avoid this state the wizard have to be disconnected from mainframe and Destroyed explicitly
     assert(wizard);
-    mainframe->RemoveChild(wizard.get());
+    mainframe->RemoveChild(wizard);
     wizard->Destroy();
 
     if (res) {

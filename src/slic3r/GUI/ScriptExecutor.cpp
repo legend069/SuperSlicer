@@ -1384,12 +1384,14 @@ void ScriptContainer::call_script_function_set(const ConfigOptionDef &def, const
     if (ctx->GetState() == asEContextState::asEXECUTION_EXCEPTION)
         return;
 
-    // update the tabs from the results
-    for (auto &data : to_update) {
-        Tab *tab = wxGetApp().get_tab(data.first);
-        // also reset
-        if (!to_reset.empty()) {
-            const DynamicPrintConfig &initial_conf = tab->m_presets->get_selected_preset().config;
+    //update the tabs from the results
+    for (auto& data : to_update) {
+        Tab* tab = wxGetApp().get_tab(data.first);
+        //also reset
+        assert(tab);
+        assert(this->m_tab);
+        if (!to_reset.empty() && tab->get_printer_technology() == this->m_tab->get_printer_technology()) {
+            const DynamicPrintConfig& initial_conf = tab->m_presets->get_selected_preset().config;
             for (size_t key_idx = 0; key_idx != to_reset.size(); ++key_idx) {
                 const std::string &key = to_reset[key_idx];
                 if (initial_conf.has(key)) {

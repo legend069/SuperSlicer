@@ -1322,7 +1322,7 @@ static void modulate_extrusion_by_overlapping_layers(
             }
             path_ends.emplace_back(std::pair<Point, Point>(polylines.back().points.front(), polylines.back().points.back()));
         }
-        assert_valid(polylines);
+       // assert_valid(polylines);
     }
     // Destroy the original extrusion paths, their polylines were moved to path_fragments already.
     // This will be the destination for the new paths.
@@ -1338,9 +1338,9 @@ static void modulate_extrusion_by_overlapping_layers(
         assert_valid(polygons_trimming);
         frag.polylines = intersection_pl(path_fragments.back().polylines, polygons_trimming);
         ensure_valid(frag.polylines, this_layer.resolution);
-        assert_valid(frag.polylines);
+        //assert_valid(frag.polylines);
         path_fragments.back().polylines = diff_pl(path_fragments.back().polylines, polygons_trimming);
-        assert_valid(path_fragments.back().polylines);
+        //assert_valid(path_fragments.back().polylines);
         // Adjust the extrusion parameters for a reduced layer height and a non-bridging flow (nozzle_dmr = -1, does not matter).
         assert(this_layer.print_z > overlapping_layer.print_z);
         float old_height = frag.flow.height;

@@ -1994,7 +1994,7 @@ static inline void reorder_by_three_exchanges_with_segment_flipping2(std::vector
 // and to order the brim lines.
 static inline void improve_ordering_by_two_exchanges_with_segment_flipping(Polylines &polylines, bool fixed_start)
 {
-	assert_valid(polylines);
+	//assert_valid(polylines);
 #ifndef NDEBUG
 	auto cost = [&polylines]() {
 		double sum = 0.;

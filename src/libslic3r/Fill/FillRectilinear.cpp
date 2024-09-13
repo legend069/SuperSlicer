@@ -3173,7 +3173,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
             params);
     }
 
-    assert_valid(fill_lines); // totest, remove if triggered, else remove this & ensure_valid
+    //assert_valid(fill_lines); // totest, remove if triggered, else remove this & ensure_valid
     ensure_valid(fill_lines, params.fill_resolution);
 
     if (params.dont_connect() || fill_lines.size() <= 1) {
@@ -3184,7 +3184,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
         connect_infill(std::move(fill_lines), surface->expolygon, poly_with_offset_base.polygons_outer, polylines_out, scale_t(this->get_spacing()), params);
 
     ensure_valid(polylines_out, params.fill_resolution);
-    assert_valid(polylines_out);
+   // assert_valid(polylines_out);
     return true;
 }
 

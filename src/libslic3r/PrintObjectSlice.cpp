@@ -1478,7 +1478,7 @@ void PrintObject::slice_volumes()
                         ensure_valid(expolygons, std::max(scale_t(m_print->config().resolution), SCALED_EPSILON));
                         assert_valid(expolygons);
                         layerm->m_slices.set(std::move(expolygons), stPosInternal | stDensSparse);
-                        for(auto &srf : layerm->slices().surfaces) srf.expolygon.assert_point_distance();
+                        for(auto &srf : layerm->slices().surfaces) srf.expolygon.assert_valid();
                     } else {
 
                         float max_growth = std::max(hole_delta, std::max(inner_delta, outter_delta));
@@ -1514,7 +1514,7 @@ void PrintObject::slice_volumes()
                                     slices = _smooth_curves(slices, layerm->region().config());
                                 assert_valid(slices);
                                 layerm->m_slices.set(std::move(slices), stPosInternal | stDensSparse);
-                                for(auto &srf : layerm->slices().surfaces) srf.expolygon.assert_point_distance();
+                                for(auto &srf : layerm->slices().surfaces) srf.expolygon.assert_valid();
                             }
                         }
                         if (min_growth < 0.f || first_layer_compensation != 0.f) {

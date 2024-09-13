@@ -1069,7 +1069,7 @@ void make_brim(const Print& print, const Flow& flow, const PrintObjectPtrs& obje
     }
     islands = unbrimmable_areas;
     for (ExPolygon &expoly : islands) expoly.assert_valid();
-    for (ExPolygon &expoly : islands) expoly.assert_point_distance();
+    for (ExPolygon &expoly : islands) expoly.assert_valid();
 
 
     //get the brimmable area

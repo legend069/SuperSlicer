@@ -111,7 +111,6 @@ void Polygon::douglas_peucker(coord_t tolerance)
         return;
     this->points.push_back(this->points.front());
     MultiPoint::douglas_peucker(tolerance);
-    this->points.pop_back();
     assert(this->points.size() > 1);
     if (points.size() == 2) {
         // not a good polygon : too small. clear it
@@ -134,7 +133,8 @@ Polygons Polygon::simplify(double tolerance) const
     Points points = this->points;
     points.push_back(points.front());
     Polygon p(MultiPoint::douglas_peucker(points, tolerance));
-    p.points.pop_back();
+    // last point remove in polygon contructor
+    assert(!p.front().coincides_with_epsilon(p.back()));
     
     Polygons pp;
     pp.push_back(p);
@@ -652,13 +652,6 @@ Polygons ensure_valid(coord_t resolution, Polygons &&polygons) {
     return ensure_valid(std::move(polygons), resolution);
 }
 
-#ifdef _DEBUGINFO
-void assert_valid(const Polygons &polygons) {
-    for (const Polygon &polygon : polygons) {
-        polygon.assert_valid();
-    }
-}
-#endif
 
 static inline bool is_stick(const Point &p1, const Point &p2, const Point &p3)
 {
@@ -773,6 +766,7 @@ static inline void simplify_polygon_impl(const Points &points, double tolerance,
 {
     Points simplified = MultiPoint::douglas_peucker(points, tolerance);
     // then remove the last (repeated) point.
+    assert(simplified.front().coincides_with_epsilon(simplified.back()));
     simplified.pop_back();
     // Simplify the decimated contour by ClipperLib.
     bool ccw = ClipperLib::Area(simplified) > 0.;
