@@ -480,22 +480,27 @@ std::vector<SurfaceFill> group_fills(const Layer &layer)
     }
 
     {
+        const coord_t resolution = std::max(SCALED_EPSILON, scale_t(layer.object()->print()->config().resolution_internal.value));
         Polygons all_polygons;
-        for (SurfaceFill &fill : surface_fills)
-            if (! fill.expolygons.empty()) {
+        for (SurfaceFill &fill : surface_fills) {
+            if (!fill.expolygons.empty()) {
                 if (fill.params.priority > 0) {
                     append(all_polygons, to_polygons(fill.expolygons));
-                }else if (fill.expolygons.size() > 1 || !all_polygons.empty()) {
+                } else if (fill.expolygons.size() > 1 || !all_polygons.empty()) {
                     assert_valid(fill.expolygons);
                     Polygons polys = to_polygons(std::move(fill.expolygons));
                     // Make a union of polygons, use a safety offset, subtract the preceding polygons.
                     // Bridges are processed first (see SurfaceFill::operator<())
-                    fill.expolygons = all_polygons.empty() ? union_safety_offset_ex(polys) : diff_ex(polys, all_polygons, ApplySafetyOffset::Yes);
-                    assert_valid(fill.expolygons);
+                    fill.expolygons = all_polygons.empty() ? union_safety_offset_ex(polys) :
+                                                             diff_ex(polys, all_polygons, ApplySafetyOffset::Yes);
+                    ensure_valid(fill.expolygons, resolution);
                     append(all_polygons, std::move(polys));
-                } else if (&fill != &surface_fills.back())
+                } else if (&fill != &surface_fills.back()) {
+                    assert_valid(fill.expolygons);
                     append(all_polygons, to_polygons(fill.expolygons));
+                }
             }
+        }
     }
 
     // we need to detect any narrow surfaces that might collapse

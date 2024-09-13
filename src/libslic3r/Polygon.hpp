@@ -64,8 +64,8 @@ public:
         pgn.points.reserve(points.size());
         for (const Vec2d &pt : points)
             pgn.points.emplace_back(Point::new_scale(pt(0), pt(1)));
-		return pgn;
-	}
+        return pgn;
+    }
     Polygon& operator=(const Polygon &other) { points = other.points; return *this; }
     Polygon& operator=(Polygon &&other) { points = std::move(other.points); return *this; }
 
@@ -94,7 +94,9 @@ public:
     bool make_clockwise();
     bool is_valid() const { return this->points.size() >= 3; }
     void douglas_peucker(coord_t tolerance) override;
-
+    
+    void assert_valid() const;
+    
     // Does an unoriented polygon contain a point?
     bool contains(const Point &point) const { return Slic3r::contains(*this, point, true); }
     // Approximate on boundary test.
@@ -153,10 +155,10 @@ bool remove_same_neighbor(Polygon &polygon);
 bool remove_same_neighbor(Polygons &polygons);
 // remove any point that are at epsilon  (or resolution) 'distance' (douglas_peuckere algo for now) and all polygons that are too small to be valid
 void ensure_valid(Polygons &polygons, coord_t resolution = SCALED_EPSILON);
+void assert_valid(const Polygons &polygons);
 Polygons ensure_valid(Polygons &&polygons, coord_t resolution = SCALED_EPSILON);
 Polygons ensure_valid(coord_t resolution, Polygons &&polygons);
 
-void assert_valid(const Polygons &polygons) {}
 
 inline double total_length(const Polygons &polylines) {
     double total = 0;
@@ -188,7 +190,7 @@ void remove_collinear(Polygons &polys, coord_t max_offset = SCALED_EPSILON);
 // Append a vector of polygons at the end of another vector of polygons.
 inline void polygons_append(Polygons &dst, const Polygons &src) { dst.insert(dst.end(), src.begin(), src.end()); }
 
-inline void polygons_append(Polygons &dst, Polygons &&src) 
+inline void polygons_append(Polygons &dst, Polygons &&src)
 {
     if (dst.empty()) {
         dst = std::move(src);
@@ -226,7 +228,7 @@ inline size_t count_points(const Polygons &polys) {
     return n_points;
 }
 
-inline Points to_points(const Polygons &polys) 
+inline Points to_points(const Polygons &polys)
 {
     Points points;
     points.reserve(count_points(polys));
@@ -235,7 +237,7 @@ inline Points to_points(const Polygons &polys)
     return points;
 }
 
-inline Lines to_lines(const Polygon &poly) 
+inline Lines to_lines(const Polygon &poly)
 {
     Lines lines;
     lines.reserve(poly.points.size());
@@ -247,7 +249,7 @@ inline Lines to_lines(const Polygon &poly)
     return lines;
 }
 
-inline Lines to_lines(const Polygons &polys) 
+inline Lines to_lines(const Polygons &polys)
 {
     Lines lines;
     lines.reserve(count_points(polys));

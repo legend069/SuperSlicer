@@ -2988,10 +2988,6 @@ void TabPrint::update()
     // Disable check of the compatibility of the "support_material" and "overhangs" options for saved user profile
     // NOTE: Initialization of the support_material_overhangs_queried value have to be processed just ones
     
-//Disable overhangs for now
-    m_config->option("overhangs_width_speed")->set_enabled(false);
-    m_config->option("overhangs_width")->set_enabled(false);
-    
     if (!m_config_manipulation.is_initialized_support_material_overhangs_queried())
     {
         const Preset& selected_preset = m_preset_bundle->fff_prints.get_selected_preset();

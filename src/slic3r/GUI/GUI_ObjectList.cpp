@@ -1653,10 +1653,16 @@ static TriangleMesh create_mesh(const std::string& type_name, const BoundingBoxf
     if (type_name == "Box")
         // Sitting on the print bed, left front front corner at (0, 0).
         mesh = its_make_cube(side, side, side);
+    else if (type_name == "Square")
+        // Centered around 0, sitting on the print bed.
+        mesh = its_make_cube(side, side, 0.1);
     else if (type_name == "Cylinder")
         // Centered around 0, sitting on the print bed.
         // The cylinder has the same volume as the box above.
         mesh = its_make_cylinder(0.564 * side, bb.size().z()>0 ? bb.size().z() : side);
+    else if (type_name == "Circle")
+        // Centered around 0, sitting on the print bed.
+        mesh = its_make_cylinder(5, 0.1);
     else if (type_name == "Sphere")
         // Centered around 0, half the sphere below the print bed, half above.
         // The sphere has the same volume as the box above.
@@ -1721,6 +1727,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
 
     std::string base_name = "Generic";
     if (type == ModelVolumeType::SEAM_POSITION) base_name = "Seam";
+    if (type == ModelVolumeType::BRIM_PATCH) base_name = "Brim";
     if (type == ModelVolumeType::SUPPORT_ENFORCER) base_name = "Support";
     if (type == ModelVolumeType::SUPPORT_BLOCKER) base_name = "Blocker";
     const wxString name = _(L(base_name)) + "-" + _(type_name);
@@ -4297,6 +4304,8 @@ void ObjectList::change_part_type()
     if (printer_technology() != ptSLA) {
         names.Add(_L("Seam Position"));
         types.emplace_back(ModelVolumeType::SEAM_POSITION);
+        names.Add(_L("Brim Patch"));
+        types.emplace_back(ModelVolumeType::BRIM_PATCH);
     }
     int selection = 0;
     if (auto it = std::find(types.begin(), types.end(), type); it != types.end())

@@ -496,8 +496,8 @@ size_t Polygon::remove_collinear_angle(double angle_radian) {
     return nb_del;
 }
 
-BoundingBox get_extents(const Polygon &poly) 
-{ 
+BoundingBox get_extents(const Polygon &poly)
+{
     return poly.bounding_box();
 }
 
@@ -512,8 +512,8 @@ BoundingBox get_extents(const Polygons &polygons)
     return bb;
 }
 
-BoundingBox get_extents_rotated(const Polygon &poly, double angle) 
-{ 
+BoundingBox get_extents_rotated(const Polygon &poly, double angle)
+{
     return get_extents_rotated(poly.points, angle);
 }
 
@@ -572,7 +572,7 @@ bool has_duplicate_points(const Polygons &polys)
     struct PointHash {
         uint64_t operator()(const Point &p) const noexcept {
 #ifdef COORD_64B
-            return ankerl::unordered_dense::detail::wyhash::hash(p.x()) 
+            return ankerl::unordered_dense::detail::wyhash::hash(p.x())
                 + ankerl::unordered_dense::detail::wyhash::hash(p.y());
 #else
             uint64_t h;
@@ -652,6 +652,13 @@ Polygons ensure_valid(coord_t resolution, Polygons &&polygons) {
     return ensure_valid(std::move(polygons), resolution);
 }
 
+void assert_valid(const Polygons &polygons) {
+    
+}
+
+void Polygon::assert_valid() const {
+    
+}
 
 static inline bool is_stick(const Point &p1, const Point &p2, const Point &p3)
 {
@@ -708,7 +715,7 @@ bool remove_sticks(Polygons &polys)
     for (size_t i = 0; i < polys.size(); ++ i) {
         modified |= remove_sticks(polys[i]);
         if (polys[i].points.size() >= 3) {
-            if (j < i) 
+            if (j < i)
                 std::swap(polys[i].points, polys[j].points);
             ++ j;
         }
@@ -724,7 +731,7 @@ bool remove_degenerate(Polygons &polys)
     size_t j = 0;
     for (size_t i = 0; i < polys.size(); ++ i) {
         if (polys[i].points.size() >= 3) {
-            if (j < i) 
+            if (j < i)
                 std::swap(polys[i].points, polys[j].points);
             ++ j;
         } else
@@ -741,7 +748,7 @@ bool remove_small(Polygons &polys, double min_area)
     size_t j = 0;
     for (size_t i = 0; i < polys.size(); ++ i) {
         if (std::abs(polys[i].area()) >= min_area) {
-            if (j < i) 
+            if (j < i)
                 std::swap(polys[i].points, polys[j].points);
             ++ j;
         } else
@@ -823,7 +830,7 @@ bool polygons_match(const Polygon &l, const Polygon &r)
 
 bool contains(const Polygon &polygon, const Point &p, bool border_result)
 {
-    if (const int poly_count_inside = ClipperLib::PointInPolygon(p, polygon.points); 
+    if (const int poly_count_inside = ClipperLib::PointInPolygon(p, polygon.points);
         poly_count_inside == -1)
         return border_result;
     else

@@ -1393,7 +1393,7 @@ static void modulate_extrusion_by_overlapping_layers(
     for (size_t i_overlapping_layer = 0; i_overlapping_layer <= n_overlapping_layers; ++ i_overlapping_layer) {
         const Polylines &polylines = path_fragments[i_overlapping_layer].polylines;
         for (size_t i_polyline = 0; i_polyline < polylines.size(); ++ i_polyline) {
-            polylines[i_polyline].assert_valid();
+            polylines[i_polyline].MultiPoint::assert_valid();
             // Map a starting point of a polyline to a pair of <layer, polyline>
             if (polylines[i_polyline].points.size() >= 2) {
                 map_fragment_starts.insert(ExtrusionPathFragmentEnd(i_overlapping_layer, i_polyline, true));

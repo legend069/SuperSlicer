@@ -464,6 +464,14 @@ ExPolygons ensure_valid(coord_t resolution, ExPolygons &&expolygons) {
     return ensure_valid(std::move(expolygons), resolution);
 }
 
+void ExPolygon::assert_valid() const {
+    
+}
+
+void assert_valid(const ExPolygons &expolygons) {
+    
+}
+
 bool remove_same_neighbor(ExPolygons &expolygons)
 {
     if (expolygons.empty())

@@ -26,8 +26,8 @@ const Point& Polyline::leftmost_point() const
 {
     const Point *p = &this->points.front();
     for (Points::const_iterator it = this->points.begin() + 1; it != this->points.end(); ++ it) {
-        if (it->x() < p->x()) 
-        	p = &(*it);
+        if (it->x() < p->x())
+            p = &(*it);
     }
     return *p;
 }
@@ -275,7 +275,7 @@ bool remove_degenerate(Polylines &polylines)
     size_t j = 0;
     for (size_t i = 0; i < polylines.size(); ++ i) {
         if (polylines[i].points.size() >= 2) {
-            if (j < i) 
+            if (j < i)
                 std::swap(polylines[i].points, polylines[j].points);
             ++ j;
         } else
@@ -284,6 +284,15 @@ bool remove_degenerate(Polylines &polylines)
     if (j < polylines.size())
         polylines.erase(polylines.begin() + j, polylines.end());
     return modified;
+}
+
+void Polyline::assert_valid(const Polylines &polylines) {
+    
+}
+
+void Polyline::assert_valid() const {
+    
+    
 }
 
 std::pair<int, Point> foot_pt(const Points &polyline, const Point &pt)
@@ -499,7 +508,7 @@ void concatThickPolylines(ThickPolylines& pp) {
 }
 
 //////////////// ArcPolyline ////////////////////////
-// 
+//
 // Length of a smooth path.
 //
 //std::optional<Point> sample_path_point_at_distance_from_start(Geometry::ArcWelder::Path &path, double distance)
@@ -1082,7 +1091,7 @@ Geometry::ArcWelder::Path ArcPolyline::_from_polyline(std::initializer_list<Poin
 //TODO: unit tests
 // it will return the size of the buffer still used. It will try to not use d more than half, unless buffer_init < 0, then it will try to not use any at the end.
 //TODO: improvement: instead of watching at three point -> deleting the center (2 instead of 3), look at four -> add center of two center ones -> keep new & start & end (3 instead of 4)
-// choose between both based on the result: is the deviation better? is path less stuttery? 
+// choose between both based on the result: is the deviation better? is path less stuttery?
 int ArcPolyline::simplify_straits(coordf_t min_tolerance,
                                    coordf_t fl_min_point_distance,
                                    coordf_t mean_dist_per_line,
@@ -1235,7 +1244,7 @@ int ArcPolyline::simplify_straits(coordf_t min_tolerance,
         }
 
         //check if the previous point has enough dist at both end
-        if (current_buffer_size > 0 && arc.back() == 0 && 
+        if (current_buffer_size > 0 && arc.back() == 0 &&
             min_point_distance > line_length.back() && min_point_distance > new_seg_length
             // also make sure it's not an importnat point for a ponty tip.
             && new_seg_length < m_path[idxs[idxs.size() - 2]].point.distance_to(new_point)
@@ -1400,7 +1409,7 @@ bool ArcPolyline::is_valid() const {
     return m_path.size() >= 2;
 }
 
-// return false if the length of this path is (now) too short. 
+// return false if the length of this path is (now) too short.
 bool ArcPolyline::normalize() {
     assert(!has_arc() ); // TODO: with arc, if needed.
     // remove points that are too near each other (if possible)
