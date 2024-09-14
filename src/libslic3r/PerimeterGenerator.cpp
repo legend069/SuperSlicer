@@ -3249,9 +3249,11 @@ void PerimeterGenerator::process(// Input:
                 double(min_perimeter_infill_spacing / 2));
             //remove gaps surfaces
             not_filled_p.clear();
-            for (ExPolygon& ex : surface_process_result.gap_srf)
-                ex.simplify_p(scale_t(std::max(params.print_config.resolution.value, params.print_config.resolution_internal / 4)), &not_filled_p);
-            gap_fill_exps = union_ex(not_filled_p);
+            //for (ExPolygon& ex : surface_process_result.gap_srf)
+            //    ex.simplify_p(scale_t(std::max(params.print_config.resolution.value, params.print_config.resolution_internal / 4)), &not_filled_p);
+            //gap_fill_exps = union_ex(not_filled_p);
+            gap_fill_exps = surface_process_result.gap_srf;
+            ensure_valid(gap_fill_exps, scale_t(std::max(params.print_config.resolution.value, params.print_config.resolution_internal / 4)));
             gap_fill_exps = offset_ex(gap_fill_exps, -infill_peri_overlap);
             infill_exp = diff_ex(infill_exp, gap_fill_exps);
         }
