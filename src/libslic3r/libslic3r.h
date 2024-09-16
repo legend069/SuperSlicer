@@ -543,18 +543,20 @@ enum class ArcFittingType {
     #define release_assert(X) assert(X)
 #else
 #ifdef _RELWITHDEBINFO
-#define _DEBUGINFO
+//#define _DEBUGINFO
 inline void release_assert(bool valid) {
     if (!valid)
-        throw new std::exception();
+        //   throw new std::exception();
+        ;
 }
 #endif
+
 //error if release, as it's purely a debug thingy that need to be cleaned
 #endif
 
 #ifdef _DEBUGINFO
 #ifdef WIN32
-#define UNOPTIMIZE __pragma(optimize("", off))
+//#define UNOPTIMIZE __pragma(optimize("", off))
 #else
 //#define UNOPTIMIZE _Pragma("optimize(\"\", off)")
 #endif

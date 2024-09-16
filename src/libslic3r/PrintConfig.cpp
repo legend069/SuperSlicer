@@ -4235,7 +4235,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->can_be_disabled = true;
     def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0, true));
+    def->set_default_value(new ConfigOptionFloatOrPercent(55, false));
 
     def = this->add("overhangs_width", coFloatOrPercent);
     def->label = L("'As bridge' flow threshold");
@@ -5056,7 +5056,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("To avoid visible seam, the extrusion can be stoppped a bit before the end of the loop."
         "\nCan be a mm or a % of the current extruder diameter.");
     def->sidetext = L("mm or %");
-    def->min = 0;
+    def->min = 1;
     def->max_literal = { 5, false };
     def->mode = comExpert | comSuSi;
     def->is_vector_extruder = true;

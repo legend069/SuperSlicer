@@ -1772,7 +1772,9 @@ void GCodeGenerator::_do_export(Print& print_mod, GCodeOutputStream &file, Thumb
      this->m_throw_if_canceled();
 
     // Collect custom seam data from all objects.
-    print.set_status(0, L("Computing seam visibility areas: object %s / %s"), {"1", std::to_string(print.objects().size())}, PrintBase::SlicingStatus::SECONDARY_STATE);
+     print.set_status(0, L("Computing seam visibility areas: object %s / %s"),
+                      {"1", std::to_string(print.objects().size())},
+                      PrintBase::SlicingStatus::SECONDARY_STATE);
     m_seam_placer.init(print, this->m_throw_if_canceled);
 
     //activate first extruder is multi-extruder and not in start-gcode
@@ -2768,7 +2770,7 @@ void GCodeGenerator::_print_first_layer_extruder_temperatures(std::string &out, 
                     else
                         temp = print.config().idle_temperature.get_at(tool.id());
                 if (temp > 0)
-                     out += (m_writer.set_temperature(temp, false, tool.id()));
+                    out += (m_writer.set_temperature(temp, false, tool.id()));
             }
         }
         if (wait || print.config().single_extruder_multi_material.value) {
@@ -3528,14 +3530,12 @@ void GCodeGenerator::process_layer_single_object(
             bool            has_interface      = role.is_mixed() || role.is_support_interface();
             // Extruder ID of the support base. -1 if "don't care".
             unsigned int    support_extruder   = print_object.config().support_material_extruder.value - 1;
-                        
             // Shall the support be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
             bool            support_dontcare   = support_extruder == std::numeric_limits<unsigned int>::max();
-
             // Extruder ID of the support interface. -1 if "don't care".
             unsigned int    interface_extruder = print_object.config().support_material_interface_extruder.value - 1;
             // Shall the support interface be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
-                bool            interface_dontcare = print_object.config().support_material_interface_extruder.value == 0;
+            bool            interface_dontcare = interface_extruder == std::numeric_limits<unsigned int>::max();
             if (support_dontcare || interface_dontcare) {
                 // Some support will be printed with "don't care" material, preferably non-soluble.
                 // Is the current extruder assigned a soluble filament?
@@ -3544,7 +3544,6 @@ void GCodeGenerator::process_layer_single_object(
                 // There should be a non-soluble extruder available.
                 assert(it_nonsoluble != print_args.layer_tools.extruders.end());
                 unsigned int dontcare_extruder = it_nonsoluble == print_args.layer_tools.extruders.end() ? print_args.layer_tools.extruders.front() : *it_nonsoluble;
-                
                 if (support_dontcare)
                     support_extruder = dontcare_extruder;
                 if (interface_dontcare)
@@ -3552,7 +3551,6 @@ void GCodeGenerator::process_layer_single_object(
             }
             bool extrude_support   = has_support && support_extruder == print_args.extruder_id;
             bool extrude_interface = has_interface && interface_extruder == print_args.extruder_id;
-                
             if (extrude_support || extrude_interface) {
                 init_layer_delayed();
                 m_layer = layer_to_print.support_layer;
@@ -3577,9 +3575,6 @@ void GCodeGenerator::process_layer_single_object(
                 gcode += this->extrude_support(chain_extrusion_references(entities, last_pos_defined()?&last_pos():nullptr));
             }
         }
-
-
-
     m_layer = layer_to_print.layer();
     // To control print speed of the 1st object layer printed over raft interface.
     m_object_layer_over_raft = layer_to_print.object_layer && layer_to_print.object_layer->id() > 0 &&
@@ -4423,7 +4418,7 @@ void GCodeGenerator::seam_notch(const ExtrusionLoop& original_loop,
         Point next_point = notch_extrusion_start.front().last_point();  // second point
         //safeguard : if a ExtrusionRole::ror exist abord;
         if (next_point == start_point || prev_point == end_point) {
-            //throw Slic3r::SlicingError(_u8L("ExtrusionRole::ror while writing gcode: two points are at the same position. Please send the .3mf project to the dev team for debugging. Extrude loop: seam notch."));
+            throw Slic3r::SlicingError(_u8L("ExtrusionRole::ror while writing gcode: two points are at the same position. Please send the .3mf project to the dev team for debugging. Extrude loop: seam notch."));
         }
         if(building_paths.size() == 1)
             assert(is_full_loop_ccw == Polygon(building_paths.front().polyline.to_polyline().points).is_counter_clockwise());
@@ -4702,20 +4697,40 @@ std::string GCodeGenerator::extrude_loop(const ExtrusionLoop &original_loop, con
 
     // generate the unretracting/wipe start move (same thing than for the end, but on the other side)
     assert(!wipe_paths.empty() && wipe_paths.front().size() > 1 && !wipe_paths.back().empty());
-    if (EXTRUDER_CONFIG_WITH_DEFAULT(wipe_inside_start, true) && !wipe_paths.empty() && wipe_paths.front().size() > 1 && wipe_paths.back().size() > 1 && wipe_paths.front().role() == ExtrusionRole::ExternalPerimeter) {
-        //note: previous & next are inverted to extrude "in the opposite direction, as we are "rewinding"
-        //Point previous_point = wipe_paths.back().polyline.points.back();
-        Point previous_point = wipe_paths.front().polyline.get_point_from_begin(std::min(wipe_paths.front().polyline.length() / 2, point_dist_for_vec));
+    if (EXTRUDER_CONFIG_WITH_DEFAULT(wipe_inside_start, true) && !wipe_paths.empty() &&
+        wipe_paths.front().size() > 1 && wipe_paths.back().size() > 1 &&
+        wipe_paths.front().role() == ExtrusionRole::ExternalPerimeter) {
+        // Calculate points while handling seam_gap == 0
+
+        Point previous_point = wipe_paths.front().polyline.get_point_from_begin(
+            std::min(wipe_paths.front().polyline.length() / 2, point_dist_for_vec));
         Point current_point = wipe_paths.front().first_point();
-        //Point next_point = wipe_paths.front().polyline.get_points()[1];
         Point next_point = wipe_paths.front().last_point();
+
+        // Handle seam_gap == 0 where next_point might be the same as current_point
         if (next_point == current_point) {
-            //can happen if seam_gap is null
-            next_point = wipe_paths.back().polyline.get_point_from_end(std::min(wipe_paths.back().polyline.length() / 2, point_dist_for_vec));
+            next_point = wipe_paths.back().polyline.get_point_from_end(
+                std::min(wipe_paths.back().polyline.length() / 2, point_dist_for_vec));
         }
+
+        // Additional safeguard in case previous_point or next_point is still equal to current_point
         if (next_point == current_point || previous_point == current_point) {
-            //throw Slic3r::SlicingError(_u8L("ExtrusionRole::ror while writing gcode: two points are at the same position. Please send the .3mf project to the dev team for debugging. Extrude loop: wipe_inside_start."));
+            // Try to find alternative points from the polyline
+            if (wipe_paths.front().polyline.size() > 2) {
+                // If polyline has enough points, attempt to get more reliable next/previous points
+                next_point = wipe_paths.front().polyline.get_point_from_begin(1);  // Second point in polyline
+                previous_point = wipe_paths.back().polyline.get_point_from_end(1); // Second-to-last point in polyline
+            }
         }
+
+        // Final check before throwing an error, ensuring the points are distinct
+        if (next_point == current_point || previous_point == current_point) {
+            throw Slic3r::SlicingError(
+                _u8L("ExtrusionRole::ror while writing gcode: two points are at the same position. Please send the "
+                     ".3mf project to the dev team for debugging. Extrude loop: wipe_inside_start."));
+        }
+
+
         Point a = next_point;  // second point
         Point b = previous_point;  // second to last point
         if (is_hole_loop ? (!is_full_loop_ccw) : (is_full_loop_ccw)) {
@@ -4811,7 +4826,7 @@ std::string GCodeGenerator::extrude_loop(const ExtrusionLoop &original_loop, con
         Point next_point = wipe_paths.front().polyline.get_point_from_begin(std::min(wipe_paths.front().polyline.length()/2, point_dist_for_vec));  // second point
         //safeguard : if a ExtrusionRole::ror exist abord;
         if (next_point == current_point || prev_point == current_point) {
-            //throw Slic3r::SlicingError(_u8L("ExtrusionRole::ror while writing gcode: two points are at the same position. Please send the .3mf project to the dev team for debugging. Extrude loop: wipe."));
+            throw Slic3r::SlicingError(_u8L("ExtrusionRole::ror while writing gcode: two points are at the same position. Please send the .3mf project to the dev team for debugging. Extrude loop: wipe."));
         }
 
         // start the wipe. Note: you have to end it! (no return before emmitting it)

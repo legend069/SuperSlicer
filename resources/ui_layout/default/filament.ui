@@ -7,7 +7,6 @@ group:filament_spool_weight_event:Filament
 	setting:id$0:filament_density
 	setting:id$0:filament_cost
 	setting:id$0:filament_spool_weight
-
 group:Temperature °C
 	line:Extruder
 		setting:id$0:first_layer_temperature
@@ -20,20 +19,17 @@ group:Temperature °C
 		setting:id$0:label:Other layers:bed_temperature
 	end_line
 	setting:id$0:chamber_temperature
-
 group:Filament properties
 	setting:id$0:width$7:filament_type
 	setting:id$0:filament_soluble
 	setting:id$0:filament_shrink
 	setting:id$0:filament_max_overlap
-
 group:Print speed override
 	setting:id$0:filament_max_speed
 	setting:id$0:filament_max_volumetric_speed
 	volumetric_speed_description
 
 page:Cooling:time
-
 group:Fan speed - default
 	setting:id$0:default_fan_speed
 	line:Perimeter fan speed
@@ -67,28 +63,23 @@ group:Dynamic Overhangs fan speeds
 		setting:id$0:label$50%:overhang_fan_speed_2
 		setting:id$0:label$75%:overhang_fan_speed_3
 	end_line
-
 group:Short layer time - began to increase base fan speed
 	setting:id$0:fan_below_layer_time
 	setting:id$0:label$Max fan speed:max_fan_speed
-
 group:Very short layer time - began to decrease extrusion rate
 	setting:id$0:label$Layer time goal:slowdown_below_layer_time
 	setting:id$0:width$4:max_speed_reduction
 	setting:id$0:width$4:min_print_speed
-
 group:Behavior
 	cooling_description
 
 page:Multimaterial:funnel
-
 group:Multimaterial toolchange temperature 
 	setting:id$0:filament_enable_toolchange_temp
 	setting:id$0:filament_toolchange_temp 
 	setting:id$0:filament_use_fast_skinnydip
 	setting:id$0:filament_enable_toolchange_part_fan
 	setting:id$0:filament_toolchange_part_fan_speed
-
 group:Multimaterial toolchange string reduction
 	setting:id$0:filament_use_skinnydip 
 	setting:id$0:filament_skinnydip_distance
@@ -96,11 +87,9 @@ group:Multimaterial toolchange string reduction
 	setting:id$0:filament_cooling_zone_pause
 	setting:id$0:filament_dip_insertion_speed
 	setting:id$0:filament_dip_extraction_speed
-
 group:Wipe tower parameters
 	setting:id$0:filament_minimal_purge_on_wipe_tower
 	setting:id$0:filament_max_wipe_tower_speed
-
 group:Toolchange parameters with single extruder MM printers
 	setting:id$0:filament_loading_speed_start
 	setting:id$0:filament_loading_speed
@@ -114,7 +103,6 @@ group:Toolchange parameters with single extruder MM printers
 	setting:id$0:filament_cooling_final_speed
 	setting:id$0:filament_wipe_advanced_pigment
 	filament_ramming_parameters
-
 group:Toolchange parameters with multi extruder MM printers
     setting:id$0:filament_multitool_ramming
     setting:id$0:filament_multitool_ramming_volume
@@ -125,14 +113,12 @@ filament_overrides_page
 page:Custom G-code:cog
 group:no_title:edit_gcode:validate_gcode:Start G-code
 	setting:is_gcode:id$0:full_width:height$35:start_filament_gcode
-
 group:no_title:edit_gcode:validate_gcode:End G-code
 	setting:is_gcode:id$0:full_width:height$35:end_filament_gcode
 
 page:Notes:note
 group:label_width$0:Notes
 	setting:id$0:full_width:height$25:filament_notes
-	
 group:label_width$0:Custom variables
 	setting:id$0:full_width:height$15:filament_custom_variables
 
