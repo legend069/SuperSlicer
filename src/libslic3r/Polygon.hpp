@@ -159,7 +159,6 @@ void assert_valid(const Polygons &polygons);
 Polygons ensure_valid(Polygons &&polygons, coord_t resolution = SCALED_EPSILON);
 Polygons ensure_valid(coord_t resolution, Polygons &&polygons);
 
-
 inline double total_length(const Polygons &polylines) {
     double total = 0;
     for (Polygons::const_iterator it = polylines.begin(); it != polylines.end(); ++it)

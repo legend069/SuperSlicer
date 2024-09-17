@@ -1381,7 +1381,7 @@ void make_brim_patch(const Print &print,
         
         // create polygons
         std::vector<std::vector<BrimLoop>> loops;
-        next = offset2_ex(next, -flow.scaled_width() / 2 - flow.scaled_spacing() / 2, flow.scaled_spacing() / 2, jtSquare);
+        next = offset2_ex(next, -flow.scaled_width() / 2 - flow.scaled_spacing() / 4, flow.scaled_spacing() / 4, jtSquare);
         while (!next.empty()) {
             loops.emplace_back();
             for (ExPolygon &expoly : next) {
@@ -1390,7 +1390,7 @@ void make_brim_patch(const Print &print,
                     loops.back().emplace_back(poly);
                 }
             }
-            next = ensure_valid(offset2_ex(next, - (flow.scaled_spacing() * 3) / 2, flow.scaled_spacing() / 2, jtSquare), scaled_resolution_brim);
+            next = ensure_valid(offset2_ex(next, - (flow.scaled_spacing() * 5) / 4, flow.scaled_spacing() / 4, jtSquare), scaled_resolution_brim);
         }
 
         // create extrusions
