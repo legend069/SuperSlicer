@@ -6363,7 +6363,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert | comSuSi;
     def->sidetext = L("s");
     def->min = 0;
-    def->set_default_value(new ConfigOptionFloat(30));
+    def->set_default_value(new ConfigOptionFloat(5));
 
     def = this->add("toolchange_gcode", coString);
     def->label = L("Tool change G-code");

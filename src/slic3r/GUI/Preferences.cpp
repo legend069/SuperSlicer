@@ -1468,8 +1468,11 @@ void PreferencesDialog::create_icon_size_slider(wxWindow* tab, std::shared_ptr<C
 void PreferencesDialog::create_settings_mode_widget(wxWindow* tab, std::shared_ptr<ConfigOptionsGroup> opt_grp)
 {
     auto app_config = get_app_config();
+    app_config->set("old_settings_layout_mode", "0");
+    app_config->set("new_settings_layout_mode", "1");
+    app_config->set("dlg_settings_layout_mode", "0");
     app_config->set("tab_settings_layout_mode", "1");
-    app_config->set("settings_layout_mode", "0");
+    app_config->set("settings_layout_mode", "1");
 }
 
 void PreferencesDialog::create_settings_text_color_widget(wxWindow* tab, std::shared_ptr<ConfigOptionsGroup> opt_grp)

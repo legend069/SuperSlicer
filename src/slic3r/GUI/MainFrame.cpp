@@ -619,7 +619,7 @@ void MainFrame::update_layout()
 #ifdef __WXMSW__
                 ESettingsLayout::Tabs);
 #else
-                ESettingsLayout::Old);
+                ESettingsLayout::Tabs);
 #endif
 
     if (m_layout == layout)

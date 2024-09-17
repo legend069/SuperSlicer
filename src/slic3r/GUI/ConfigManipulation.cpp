@@ -375,7 +375,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
     toggle_field("only_one_perimeter_first_layer", config->opt_int("perimeters") > 1);
     
     toggle_field("overhangs_width", config->option("overhangs_width_speed")->is_enabled());
-    
+        
     bool have_overhangs_reverse = have_perimeters && !have_arachne && !config->opt_bool("perimeter_reverse");
     toggle_field("overhangs_reverse", have_overhangs_reverse);
 
@@ -722,14 +722,13 @@ void ConfigManipulation::toggle_printer_fff_options(DynamicPrintConfig *config, 
     // only allow to disable autoemit_temperature_commands if it's not already disabled by start_gcode_manual
     toggle_field("autoemit_temperature_commands", !config->get_bool("start_gcode_manual"));
 
+    toggle_field("time_toolchange", config->option<ConfigOptionFloats>("nozzle_diameter")->size() > 1);
+
     for (size_t i = 0; i < extruder_count; ++i) {
         
         bool have_retract_length = config->opt_float("retract_length", i) > 0;
         
         const bool ramping_lift = config->get_bool("travel_ramping_lift", i);
-        //const bool lifts_z = (ramping_lift && config->get_float("travel_max_lift", i) > 0)
-        //                  || (! ramping_lift && config->get_float("retract_lift", i) > 0);
-
         toggle_field("travel_max_lift", ramping_lift, i);
         toggle_field("travel_slope", ramping_lift, i);
         toggle_field("retract_lift", ! ramping_lift, i); // now possible outside retraction
