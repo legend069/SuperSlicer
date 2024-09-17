@@ -4235,7 +4235,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->can_be_disabled = true;
     def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionFloatOrPercent(55, false));
+    def->set_default_value(new ConfigOptionFloatOrPercent(55, true));
 
     def = this->add("overhangs_width", coFloatOrPercent);
     def->label = L("'As bridge' flow threshold");
