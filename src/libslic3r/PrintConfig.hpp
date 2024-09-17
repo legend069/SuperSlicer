@@ -174,10 +174,10 @@ enum SupportMaterialPattern {
 };
 
 enum SupportMaterialStyle {
+    smsOrganic,
     smsGrid,
     smsSnug,
-    smsTree,
-    smsOrganic,
+    smsTree
 };
 
 //from prusa, not used in superslicer as InfillPattern is enough.

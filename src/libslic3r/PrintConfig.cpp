@@ -2451,6 +2451,12 @@ void PrintConfigDef::init_fff_params()
         { "55", "55%" },
         { "60", "60%" },
         { "65", "65%" },
+        { "70", "70%" },
+        { "75", "75%" },
+        { "80", "80%" },
+        { "85", "85%" },
+        { "90", "90%" },
+        { "95", "95%" },
         //{ "100", "100%" } // can still be entered, but not showing it may make people increase solid layer count instead (which is the proper way).
     });
     def->mode = comSimpleAE | comPrusa;
@@ -4508,7 +4514,7 @@ void PrintConfigDef::init_fff_params()
                    "\nNote that Slic3r may increase this number automatically when it detects "
                    "sloping surfaces which benefit from a higher number of perimeters "
                    "if the Extra Perimeters option is enabled.");
-    def->sidetext = L("(minimum).");
+    def->sidetext = L(" ");
     def->aliases = { "perimeter_offsets" };
     def->min = 0;
     def->max = 10000;
@@ -6034,12 +6040,12 @@ void PrintConfigDef::init_fff_params()
         "will create more stable supports, while snug support towers will save material and reduce "
         "object scarring.");
     def->set_enum<SupportMaterialStyle>({
-        { "grid", L("Grid") }, 
+        { "organic", L("Organic") },
+        { "grid", L("Grid") },
         { "snug", L("Snug") },
-        { "organic", L("Organic") }
     });
-    def->mode = comAdvancedE | comPrusa;
-    def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsGrid));
+    def->mode = comAdvancedE | comPrusa; 
+    def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsOrganic));
 
     def = this->add("support_material_synchronize_layers", coBool);
     def->label = L("Synchronize with object layers");
