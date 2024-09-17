@@ -3,7 +3,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Printconfig.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "GLCanvas3D.hpp"
 #include "GUI.hpp"
