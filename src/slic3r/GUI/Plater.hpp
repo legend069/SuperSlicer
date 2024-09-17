@@ -140,9 +140,8 @@ public:
     void                    check_and_update_searcher(bool respect_mode = false);
     void                    update_ui_from_settings();
     
-#if _USE_CUSTOM_NOTEBOOK
     void                    show_mode_sizer(bool show);
-#endif
+
 
     std::vector<PlaterPresetComboBox*>&   combos_filament();
     Search::OptionsSearcher&        get_searcher();

@@ -793,13 +793,6 @@ void PreferencesDialog::build()
 			L("If enabled, related notification will be shown, when sliced object looks like a logo or a sign."),
 			app_config->get_bool("allow_auto_color_change"));
 
-#ifdef _USE_CUSTOM_NOTEBOOK
-		append_bool_option(m_tabid_2_optgroups.back().back(), "tabs_as_menu",
-			L("Set settings tabs as menu items"),
-			L("If enabled, Settings Tabs will be placed as menu items. If disabled, old UI will be used."),
-			app_config->get_bool("tabs_as_menu"));
-		m_values_need_restart.push_back("tabs_as_menu");
-#endif
 
 		// FIXME separator don't work anymore
 		m_tabid_2_optgroups.back().back()->append_separator();

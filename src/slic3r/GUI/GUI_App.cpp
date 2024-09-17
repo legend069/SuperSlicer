@@ -2757,10 +2757,8 @@ bool GUI_App::save_mode(const ConfigOptionMode mode) {
 void GUI_App::update_mode() {
     sidebar().update_mode();
 
-#if _USE_CUSTOM_NOTEBOOK
     if (!wxGetApp().tabs_as_menu())
         dynamic_cast<Notebook *>(mainframe->m_tabpanel)->UpdateMode();
-#endif
 
     for (auto tab : tabs_list)
         tab->update_mode();

@@ -271,10 +271,8 @@ void Tab::create_preset_tab()
     m_default_label_clr     = wxGetApp().get_label_clr_default();
     m_phony_label_clr       = wxGetApp().get_label_clr_phony();
 
-#if _USE_CUSTOM_NOTEBOOK
     // Sizer with buttons for mode changing
     if (wxGetApp().tabs_as_menu())
-#endif
         m_mode_sizer = nullptr;//new ModeSizer(panel, int (0.5*em_unit(this)));
 
     const float scale_factor = em_unit(this)*0.1;// GetContentScaleFactor();
@@ -4212,7 +4210,6 @@ void Tab::load_current_preset()
                 for (auto tab : wxGetApp().tabs_list) {
                     if (tab->type() == Preset::TYPE_PRINTER) { // Printer tab shouln't be swapped
                         int cur_selection = wxGetApp().tab_panel()->GetSelection();
-#if _USE_CUSTOM_NOTEBOOK
                         //update icon
                         int icon_size = 0;
                         try {
@@ -4223,7 +4220,6 @@ void Tab::load_current_preset()
                             Notebook* notebook = dynamic_cast<Notebook*>(wxGetApp().tab_panel());
                             notebook->SetPageImage(notebook->FindFirstBtPage(tab), tab->icon_name(icon_size, printer_technology), icon_size);
                         }
-#endif
                         if (cur_selection != 0)
                             wxGetApp().tab_panel()->SetSelection(wxGetApp().tab_panel()->GetPageCount() - 1);
                         continue;
