@@ -676,8 +676,8 @@ std::pair<PrintBase::PrintValidationError, std::string> Print::validate(std::vec
     if (warnings) {
         for (auto it_a = extruders.begin(); it_a != extruders.end() ;++it_a)
             for (auto it_b = std::next(it_a); it_b != extruders.end() ;++it_b)
-                if (std::abs(m_config.bed_temperature.get_at(*it_a) - m_config.bed_temperature.get_at(*it_b)) > 15
-                 || std::abs(m_config.first_layer_bed_temperature.get_at(*it_a) - m_config.first_layer_bed_temperature.get_at(*it_b)) > 15) {
+                if (std::abs(m_config.bed_temperature.get_at(*it_a) - m_config.bed_temperature.get_at(*it_b)) > 35
+                 || std::abs(m_config.first_layer_bed_temperature.get_at(*it_a) - m_config.first_layer_bed_temperature.get_at(*it_b)) > 35) {
                     warnings->emplace_back("_BED_TEMPS_DIFFER");
                     goto DONE;
                 }
