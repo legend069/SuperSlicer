@@ -3595,6 +3595,7 @@ void GUI_App::show_desktop_integration_dialog() {
 }
 
 void GUI_App::show_downloader_registration_dialog() {
+    /* PRINTABLES DOWNLOADER TODO FOR FUTURE
     InfoDialog msg(nullptr, format_wxstr(_L("Welcome to %1% version %2%."), SLIC3R_APP_NAME, SLIC3R_VERSION),
                    format_wxstr(_L("Do you wish to register downloads from <b>Printables.com</b>"
                                    "\nfor this <b>%1% %2%</b> executable?"
@@ -3611,6 +3612,7 @@ void GUI_App::show_downloader_registration_dialog() {
     } else {
         app_config->set("downloader_url_registered", "0");
     }
+    */
 }
 
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG

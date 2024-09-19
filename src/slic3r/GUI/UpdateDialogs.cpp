@@ -36,12 +36,12 @@ static const std::string CONFIG_UPDATE_WIKI_URL(
 
 MsgUpdateConfig::MsgUpdateConfig(const std::vector<Update> &updates, bool force_before_wizard /* = false*/)
     : MsgDialog(nullptr,
-                force_before_wizard ? _L("Opening Configuration Wizard") : _L("Configuration update"),
+                force_before_wizard ? _L("Opening Configuration Wizard") : _L("Configuration Update"),
                 force_before_wizard ? wxString::Format(_L("%s is not using the newest configuration available.\n"
                                                           "Configuration Wizard may not offer the latest printers, "
                                                           "filaments and SLA materials to be installed. "),
                                                        SLIC3R_APP_NAME) :
-                                      _L("Configuration update is available"),
+                                      _L("Configuration Update is available"),
                 wxICON_ERROR)
 {
     auto *text = new wxStaticText(
