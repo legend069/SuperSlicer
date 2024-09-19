@@ -488,6 +488,7 @@ public:
 	ConfigBase*		get_config_base() { return m_config_base; }
 	PresetCollection*	get_presets() { return m_presets; }
 	const PresetCollection* get_presets() const { return m_presets; }
+    ConfigManipulation get_config_manipulation();
 
     bool            set_value(const t_config_option_key& opt_key, const boost::any& value, bool enabled);
 	void			on_value_change(const std::string& opt_key, const boost::any& value);
@@ -531,7 +532,6 @@ protected:
     virtual bool    delete_current_preset();
 
     ConfigManipulation m_config_manipulation;
-    ConfigManipulation get_config_manipulation();
 };
 
 class TabFrequent : public Tab
