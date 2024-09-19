@@ -889,6 +889,12 @@ void GUI_App::post_init() {
                 // don't show_send_system_info_dialog_if_needed, only prusa has the server to receive the data anyway.
                 // show_send_system_info_dialog_if_needed();
             }
+        #ifdef _WIN32
+            // Run external updater on Windows if version check is enabled.
+            if (this->preset_updater->version_check_enabled() && ! run_updater_win())
+                // "prusaslicer-updater.exe" was not started, run our own update check.
+        #endif // _WIN32
+                
             // app version check is asynchronous and triggers blocking dialog window, better call it last
             this->app_version_check(false);
         });
@@ -896,6 +902,7 @@ void GUI_App::post_init() {
 
     // Set Slic3r version and save to Slic3r.ini or Slic3rGcodeViewer.ini.
     app_config->set("version", SLIC3R_VERSION_FULL);
+    app_config->save();
 
 #ifdef _WIN32
     // Sets window property to mainframe so other instances can indentify it.
@@ -3545,8 +3552,6 @@ bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage
 
     if (reason == ConfigWizard::RR_USER) {
         // Cancel sync before starting wizard to prevent two downloads at same time
-        preset_updater->cancel_sync();
-        preset_updater->update_index_db();
         if (preset_updater->config_update(app_config->orig_version(),
                                           PresetUpdater::UpdateParams::FORCED_BEFORE_WIZARD) ==
             PresetUpdater::R_ALL_CANCELED)
@@ -3760,28 +3765,27 @@ bool GUI_App::config_wizard_startup() {
     return false;
 }
 
-bool GUI_App::check_updates(const bool verbose) {
-    PresetUpdater::UpdateResult updater_result;
-    try {
+bool GUI_App::check_updates(const bool verbose)
+{	
+	PresetUpdater::UpdateResult updater_result;
+	try {
         preset_updater->update_index_db();
-        updater_result = preset_updater->config_update(app_config->orig_version(),
-                                                       verbose ? PresetUpdater::UpdateParams::SHOW_TEXT_BOX :
-                                                                 PresetUpdater::UpdateParams::SHOW_NOTIFICATION);
-
-        std::cout << "Current Version" << app_config->orig_version();
-        std::cout << "Online Version" << app_config->version_check_url();
-
-        if (updater_result == PresetUpdater::R_INCOMPAT_EXIT) {
-            mainframe->Close();
+		updater_result = preset_updater->config_update(app_config->orig_version(), verbose ? PresetUpdater::UpdateParams::SHOW_TEXT_BOX : PresetUpdater::UpdateParams::SHOW_NOTIFICATION);
+		if (updater_result == PresetUpdater::R_INCOMPAT_EXIT) {
+			mainframe->Close();
             // Applicaiton is closing.
             return false;
-        } else if (updater_result == PresetUpdater::R_INCOMPAT_CONFIGURED) {
+		}
+		else if (updater_result == PresetUpdater::R_INCOMPAT_CONFIGURED) {
             m_app_conf_exists = true;
-        } else if (verbose && updater_result == PresetUpdater::R_NOOP) {
-            MsgNoUpdates dlg;
-            dlg.ShowModal();
-        }
-    } catch (const std::exception &ex) { show_error(nullptr, ex.what()); }
+		}
+		else if (verbose && updater_result == PresetUpdater::R_NOOP) {
+			MsgNoUpdates dlg;
+			dlg.ShowModal();
+		}
+	} catch (const std::exception &ex) {
+		show_error(nullptr, ex.what());
+	}
     // Applicaiton will continue.
     return true;
 }

@@ -272,9 +272,6 @@ void PresetUpdater::priv::prune_tmps() const
 		}
 }
 
-
-// Get Slic3rPE version available online, save in AppConfig.
-
 void PresetUpdater::priv::get_missing_resource(const std::string& vendor, const std::string& filename, const std::string& url) const
 {
 	if (filename.empty() || vendor.empty())
@@ -1204,17 +1201,6 @@ void PresetUpdater::cancel_sync()
 	}
 }
 
-void PresetUpdater::slic3r_update_notify()
-{
-	if (! p->enabled_version_check)
-		return;
-	auto* app_config = GUI::wxGetApp().app_config.get();
-	const auto ver_online_str = app_config->get("version_online");
-	const auto ver_online = Semver::parse(ver_online_str);
-	const auto ver_online_seen = Semver::parse(app_config->get("version_online_seen"));
-
-	app_config->set("version_online_seen", ver_online_str);
-}
 
 static bool reload_configs_update_gui()
 {

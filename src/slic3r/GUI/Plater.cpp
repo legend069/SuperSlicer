@@ -1097,8 +1097,8 @@ void Sidebar::update_all_preset_comboboxes()
                     url = wxString::Format("http://%s", url);
 
                 p_mainframe->load_printer_url(url);
-            }
         }
+    }
 }
 
 void Sidebar::update_presets(Preset::Type preset_type)
@@ -1117,6 +1117,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         const size_t filament_cnt = p->combos_filament.size() > extruder_cnt ? extruder_cnt :
                                                                                p->combos_filament.size();
 
+                
         for (size_t i = 0; i < filament_cnt; i++) {
             p->combos_filament[i]->update();
             wxGetApp().plater()->filament_notification_plater();
@@ -4439,12 +4440,8 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
         DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
         q->set_physical_printer_config(selected_printer_config);
-    } else {
-        std::cout << "No Physical Printer Config was found.";
     }
     
-
-
     if (preset_type != Preset::TYPE_PRINTER || select_preset) {
         // update plater with new config
         q->on_config_change(wxGetApp().preset_bundle->full_config());
@@ -8301,8 +8298,6 @@ void Plater::on_config_change(const DynamicConfig &config)
     bool update_scheduled = false;
     bool bed_shape_changed = false;
     std::vector<std::string> diff = p->config->diff(config);
-    const PresetCollection& filaments = wxGetApp().preset_bundle->filaments;
-    std::string filament_name = filaments.get_selected_preset_name();
     
     for (const std::string& opt_key : diff) {
         if (opt_key == "nozzle_diameter") {
@@ -8313,6 +8308,7 @@ void Plater::on_config_change(const DynamicConfig &config)
                 p->gcode_result.reset();
             }
         }
+    
         //FIXME also mills?
         if (opt_key == "filament_colour")
         {

@@ -5063,7 +5063,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("To avoid visible seam, the extrusion can be stoppped a bit before the end of the loop."
         "\nCan be a mm or a % of the current extruder diameter.");
     def->sidetext = L("mm or %");
-    def->min = 1;
+    def->min = 0;
     def->max_literal = { 5, false };
     def->mode = comExpert | comSuSi;
     def->is_vector_extruder = true;
