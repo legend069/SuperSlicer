@@ -590,7 +590,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Arc fitting");
     def->category = OptionCategory::firmware;
     def->tooltip = L("Enable this to get a G-code file which has G2 and G3 moves. "
-        "And the fitting tolerance is same with resolution");
+        "And the fitting tolerance is same with resolution\n"
+        "Please make sure your firmware is configured for GCode Arcs support");
     def->mode = comAdvancedE | comSuSi;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -1417,7 +1418,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Fill pattern for bridges and internal bridge infill.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
-    def->enum_values.push_back("monotonic");
+    def->enum_values.push_back("monotonic");    
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Monotonic"));
     def->mode = comExpert | comSuSi;
@@ -2896,7 +2897,8 @@ void PrintConfigDef::init_fff_params()
     def->category = OptionCategory::output;
     def->tooltip = L("Enable this to add comments into the G-Code labeling print moves with what object they belong to,"
                    " which is useful for the Octoprint CancelObject plugin. This settings is NOT compatible with "
-                   "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill.");
+                   "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+                   "Please make sure your firmware is configured for label objects support");
     def->aliases = { "label_printed_objects" };
     def->mode = comAdvancedE | comPrusa;
     def->set_default_value(new ConfigOptionBool(1));
@@ -2948,10 +2950,15 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Combine infill every");
     def->category = OptionCategory::infill;
     def->tooltip = L("This feature allows you to combine infill and speed up your print by extruding thicker "
-                   "infill layers while preserving thin perimeters, thus accuracy.");
+                   "infill layers while preserving thin perimeters, thus accuracy."
+                   "\nthis will not make your combined layerheights larger than nozzle_diameter");
     def->sidetext = L("layers");
     def->full_label = L("Combine infill every n layers");
     def->min = 1;
+    //def->ratio_over = "nozzle_diameter";
+    //FIXME need to validate this max value based on nozzle_diameter and base_layer_height, ratio_over ?
+    //if base_layer_height 0.2 with 0.4mm nozzle it allows higher numbers to be set that might confuse some users.
+    //def->max = nozzle_diameter;
     def->mode = comAdvancedE | comPrusa;
     def->set_default_value(new ConfigOptionInt(1));
 
@@ -9136,7 +9143,7 @@ std::set<const DynamicPrintConfig*> DynamicPrintConfig::value_changed(const t_co
                             something_changed = true;
                     }
                 }
-                if (opt_key == "first_layer_extrusion_width") {
+                if (opt_key == "first_layer_extrusion_width") { //here
                     spacing_option = this->option<ConfigOptionFloatOrPercent>("first_layer_extrusion_spacing");
                     if (width_option) {
                             width_option->set_phony(false);

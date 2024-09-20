@@ -862,6 +862,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
                 || opt_key == "external_perimeters_nothole"
                 || opt_key == "external_perimeter_extrusion_change_odd_layers"
                 || opt_key == "external_perimeters_vase"
+                || opt_key == "first_layer_extrusion_width"
                 || opt_key == "perimeter_loop"
                 || opt_key == "perimeter_loop_seam") {
                 steps.emplace_back(posPerimeters);
@@ -1069,7 +1070,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
                 steps.emplace_back(posPerimeters);
                 steps.emplace_back(posPrepareInfill);
             } else if (
-                    opt_key == "external_perimeter_extrusion_width"
+                   opt_key == "external_perimeter_extrusion_width"
                 || opt_key == "external_perimeter_extrusion_spacing"
                 || opt_key == "perimeter_extruder"
                 || opt_key == "fuzzy_skin"
@@ -1103,6 +1104,8 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
                 || opt_key == "external_perimeter_cut_corners"
                 || opt_key == "first_layer_acceleration"
                 || opt_key == "first_layer_acceleration_over_raft"
+                || opt_key == "first_layer_extrusion_width"
+                || opt_key == "first_layer_extrusion_spacing"//missing from here ?
                 || opt_key == "first_layer_flow_ratio"
                 || opt_key == "first_layer_infill_speed"
                 || opt_key == "first_layer_min_speed"

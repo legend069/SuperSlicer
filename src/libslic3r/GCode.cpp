@@ -5379,7 +5379,7 @@ void GCode::apply_region_config(std::string &gcode) {
                                           m_writer.tool()->id());
     }
     // apply region_gcode
-    if (!m_region->config().region_gcode.value.empty()) {
+    if (!m_region->config().region_gcode.value.empty()) {//here
         DynamicConfig config;
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(m_layer == nullptr ? m_last_height : m_layer->print_z));
@@ -6233,17 +6233,57 @@ std::string GCode::_before_extrude(const ExtrusionPath &path, const std::string 
     }
     gcode += m_writer.unretract();
 
-    // extrude arc or line
+    // process custom extrusion role change gcode.
     if (path.role() != m_last_extrusion_role && !m_config.feature_gcode.value.empty()) {
         DynamicConfig config;
         config.set_key_value("extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(path.role())));
         config.set_key_value("last_extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(m_last_extrusion_role)));
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index + 1));
         config.set_key_value("layer_z", new ConfigOptionFloat(m_layer == nullptr ? m_last_height : m_layer->print_z));
-        gcode += this->placeholder_parser_process("feature_gcode",
-            m_config.feature_gcode.value, m_writer.tool()->id(), &config)
-            + "\n";
-    }
+
+        if (m_config.print_custom_variables.value == "calibration_print" && !m_region->config().region_gcode.value.empty()) {
+
+            GCodeFlavor flavor = m_config.gcode_flavor.value;
+            std::string keyword = (gcfKlipper == flavor) ? "SET_PRESSURE_ADVANCE" :
+                                 (gcfMarlinFirmware == flavor) ? "M900" :
+                                 (gcfRepRap == flavor) ? "M572 S" : "";
+
+            //std::string keyword = "SET_PRESSURE_ADVANCE";
+            std::string feature_gcode_full = m_config.feature_gcode.value;
+            std::string feature_gcode_modified;//if "feature_gcode_full" is a single line and doesn't have a new line at the end fix it.
+            if (feature_gcode_full.back() != '\n') {
+                feature_gcode_full += '\n';
+            }
+
+            size_t pos = 0;
+
+            // Loop until all occurrences of SET_PRESSURE_ADVANCE are found
+            while ((pos = feature_gcode_full.find(keyword, pos)) != std::string::npos) {
+                // Step 1: Get everything before the keyword
+                feature_gcode_modified = feature_gcode_full.substr(0, pos);
+                size_t newline_pos = feature_gcode_full.find('\n', pos + keyword.length());
+                std::string substring_to_replace = feature_gcode_full.substr(pos, newline_pos - pos);
+                size_t first_non_space = substring_to_replace.find_first_not_of(" ", keyword.length());
+                substring_to_replace = substring_to_replace.substr(0, first_non_space) + substring_to_replace.substr(first_non_space);
+                std::replace(substring_to_replace.begin(), substring_to_replace.end(), ';', ' '); // Replace ';' with a space
+                substring_to_replace = "\n;" + substring_to_replace;
+                feature_gcode_modified += substring_to_replace;
+                feature_gcode_modified += feature_gcode_full.substr(newline_pos);
+                feature_gcode_full = feature_gcode_modified;
+                pos = newline_pos + 1;
+            }
+
+            // Pass the modified G-code to be processed
+            gcode += this->placeholder_parser_process("feature_gcode", feature_gcode_full, m_writer.tool()->id(), &config) + "\n";
+        } else {
+            gcode += this->placeholder_parser_process("feature_gcode", m_config.feature_gcode.value, m_writer.tool()->id(), &config) + "\n";
+        }
+
+
+
+
+
+    }//gcode += this->placeholder_parser_process("feature_gcode", m_config.feature_gcode.value, m_writer.tool()->id(), &config) + "\n";
     if (m_enable_extrusion_role_markers) {
         if (path.role() != m_last_extrusion_role) {
             char buf[32];
