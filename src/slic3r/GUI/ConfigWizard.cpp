@@ -1382,7 +1382,7 @@ PageUpdate::PageUpdate(ConfigWizard *parent)
     append_spacer(VERTICAL_SPACING);
 
     auto *box_presets = new wxCheckBox(this, wxID_ANY, _L("Update built-in Presets automatically"));
-    box_presets->SetValue(false);// app_config->get_bool("preset_update")); // default to no, becasue the conf is never updated anyway. Remove that change if corrected later.
+    app_config->get_bool("preset_update"); // default to no, becasue the conf is never updated anyway. Remove that change if corrected later.
     append(box_presets);
     append_text(wxString::Format(_L(
         "If enabled, %s downloads updates of built-in system presets in the background."
