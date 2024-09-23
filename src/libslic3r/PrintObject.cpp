@@ -1840,8 +1840,13 @@ void PrintObject::tag_under_bridge() {
             for (size_t idx_layer = 0; idx_layer < this->layers().size() - 1; ++idx_layer) {
                 LayerRegion* lr = layeridx2lregion[idx_layer];
                 if(lr != nullptr && layeridx2lregion[idx_layer +  1] != nullptr) {
-                    for(auto &srf : new_surfaces[idx_layer])
-                        srf.expolygon.assert_valid();
+                    for(size_t i = 0; i < new_surfaces[idx_layer].size(); ++i) {
+                        new_surfaces[idx_layer][i].expolygon.assert_valid();
+                        if(new_surfaces[idx_layer][i].expolygon.contour.size() < 3){
+                            new_surfaces[idx_layer].erase(new_surfaces[idx_layer].begin() + i);
+                            --i;
+                        }
+                    }
                     lr->set_fill_surfaces().surfaces = new_surfaces[idx_layer];
                 }
             }
@@ -2740,6 +2745,7 @@ template<typename T> void debug_draw(std::string name, const T& a, const T& b, c
 void PrintObject::replaceSurfaceType(SurfaceType st_to_replace, SurfaceType st_replacement, SurfaceType st_under_it)
 {
     BOOST_LOG_TRIVIAL(info) << "overextrude over Bridge...";
+    coord_t scaled_resolution = std::max(SCALED_EPSILON, scale_t(print()->config().resolution.value));
 
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
         const PrintRegion& region = this->printing_region(region_id);
@@ -2776,7 +2782,7 @@ void PrintObject::replaceSurfaceType(SurfaceType st_to_replace, SurfaceType st_r
             if (poly_to_replace.empty()) continue;
 
             // compute the remaning internal solid surfaces as difference
-            ExPolygons not_expoly_to_replace = diff_ex(poly_to_check, poly_to_replace, ApplySafetyOffset::Yes);
+            ExPolygons not_expoly_to_replace = ensure_valid(diff_ex(poly_to_check, poly_to_replace, ApplySafetyOffset::Yes), scaled_resolution);
             // build the new collection of fill_surfaces
             {
                 Surfaces new_surfaces;

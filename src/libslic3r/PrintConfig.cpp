@@ -3474,14 +3474,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert | comPrusa;
     def->set_default_value(new ConfigOptionPercent(15));
 
-    def = this->add("ironing_spacing", coFloat);
+    def = this->add("ironing_spacing", coFloatOrPercent);
     def->label = L("Spacing between ironing lines");
     def->category = OptionCategory::ironing;
-    def->tooltip = L("Distance between ironing lines");
-    def->sidetext = L("mm");
+    def->tooltip = L("Distance between ironing lines."
+                    "\nCan be a % of the nozzle diameter used for ironing.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "nozzle_diameter";
     def->min = 0;
     def->mode = comExpert | comPrusa;
-    def->set_default_value(new ConfigOptionFloat(0.1));
+    def->set_default_value(new ConfigOptionFloatOrPercent(25, true));
 
     def = this->add("ironing_speed", coFloatOrPercent);
     def->label = L("Ironing");
@@ -9685,14 +9687,14 @@ std::map<std::string, std::string> PrintConfigDef::to_prusa(t_config_option_key&
         static const std::set<t_config_option_key> minus_1_is_disabled = {"overhangs_bridge_threshold",
               "overhangs_bridge_upper_layers", "perimeters_hole", "support_material_bottom_interface_layers"};
         // ---- filament override ------
-        if (boost::starts_with(opt_key, "filament_") != std::string::npos) {
+        if (boost::starts_with(opt_key, "filament_")) {
             std::string extruder_key = opt_key.substr(strlen("filament_"));
             if (print_config_def.filament_override_option_keys().find(extruder_key) !=
                 print_config_def.filament_override_option_keys().end()) {
                 value = "nil";
             }
         }
-        if (boost::starts_with(opt_key, "material_ow_") != std::string::npos) {
+        if (boost::starts_with(opt_key, "material_ow_")) {
             std::string normal_key = opt_key.substr(strlen("material_ow_"));
             if (print_config_def.material_overrides_option_keys().find(opt_key) !=
                 print_config_def.material_overrides_option_keys().end()) {
@@ -9704,6 +9706,10 @@ std::map<std::string, std::string> PrintConfigDef::to_prusa(t_config_option_key&
         } else if (minus_1_is_disabled.find(opt_key) != minus_1_is_disabled.end()) {
             value = "-1";
         }
+    }
+    
+    if ("bridge_angle" == opt_key && !value.empty() && value.front() == '!') {
+        value = "0";
     }
 
     // ---- custom gcode: ----

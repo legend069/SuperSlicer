@@ -659,6 +659,7 @@ void MenuFactory::append_menu_item_add_svg(wxMenu *menu, ModelVolumeType type, b
 void MenuFactory::append_menu_items_add_volume(MenuType menu_type)
 {
     wxMenu* menu = menu_type == mtObjectFFF ? &m_object_menu : menu_type == mtObjectSLA ? &m_sla_object_menu : nullptr;
+    assert(menu);
     if (!menu)
         return;
 
@@ -1075,10 +1076,13 @@ void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
 
 void MenuFactory::append_menu_item_scale(wxMenu* menu)
 {
-    wxMenu* sub_menu = menu == &m_object_menu ? &m_scale_submenu : menu == &m_sla_object_menu ? &m_sla_scale_submenu : nullptr;
-    assert(sub_menu);
-    if (sub_menu == nullptr)
+    if (menu != &m_object_menu && menu != &m_sla_object_menu) {
+        assert(false);
         return;
+    }
+    wxMenu*& sub_menu = menu == &m_object_menu ? m_scale_submenu : m_sla_scale_submenu;
+    assert(sub_menu == nullptr);
+    sub_menu = new wxMenu;
     
     // "Scale to print volume" makes a sense just for whole object
     append_menu_item(sub_menu, wxID_ANY, _L("Scale to print volume"), _L("Scale the selected object to fit the print volume"),
@@ -1288,7 +1292,6 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     append_menu_item_fix_through_winsdk(menu);
     append_menu_item_simplify(menu);
     menu->AppendSeparator();
-    
     append_menu_item_scale(menu);
     append_menu_items_mirror(menu);
     append_menu_items_split(menu);
@@ -1407,7 +1410,8 @@ wxMenu* MenuFactory::default_menu()
 
 wxMenu* MenuFactory::object_menu()
 {
-    append_menu_items_convert_unit(&m_scale_submenu);
+    assert(m_scale_submenu != nullptr);
+    append_menu_items_convert_unit(m_scale_submenu);
     append_menu_item_settings(&m_object_menu);
     append_menu_item_change_extruder(&m_object_menu);
     update_menu_items_instance_manipulation(mtObjectFFF);
@@ -1420,7 +1424,8 @@ wxMenu* MenuFactory::object_menu()
 
 wxMenu* MenuFactory::sla_object_menu()
 {
-    append_menu_items_convert_unit(&m_sla_scale_submenu);
+    assert(m_sla_scale_submenu != nullptr);
+    append_menu_items_convert_unit(m_sla_scale_submenu);
     append_menu_item_settings(&m_sla_object_menu);
     update_menu_items_instance_manipulation(mtObjectSLA);
     append_menu_item_invalidate_cut_info(&m_sla_object_menu);
@@ -1502,8 +1507,16 @@ wxMenu* MenuFactory::multi_selection_menu()
 void MenuFactory::append_menu_items_instance_manipulation(wxMenu* menu)
 {
     MenuType type = menu == &m_object_menu ? mtObjectFFF : mtObjectSLA;
-    wxMenu* sub_menu = type == mtObjectFFF ? &m_object_instances_menu : type == mtObjectSLA ? &m_sla_object_instances_menu : nullptr;
-    wxMenuItem** sub_menu_item_ptr = type == mtObjectFFF ? &m_object_instances_menu_item : type == mtObjectSLA ? &m_sla_object_instances_menu_item : nullptr;
+    if (type != mtObjectFFF && type != mtObjectSLA) {
+        assert(false);
+        return;
+    }
+    wxMenu*& sub_menu = type == mtObjectFFF ? m_object_instances_menu : m_sla_object_instances_menu;
+    wxMenuItem*& sub_menu_item = type == mtObjectFFF ? m_object_instances_menu_item : m_sla_object_instances_menu_item;
+
+    assert(sub_menu == nullptr);
+    assert(sub_menu_item == nullptr);
+    sub_menu = new wxMenu;
 
     append_menu_item(sub_menu, wxID_ANY, _L("Add instance") + "\t+", _L("Add one more instance of the selected object"),
         [](wxCommandEvent&) { plater()->increase_instances();      }, "add_copies", nullptr, 
@@ -1519,7 +1532,7 @@ void MenuFactory::append_menu_items_instance_manipulation(wxMenu* menu)
         []() { return plater()->can_increase_instances(); }, m_parent);
 
     assert(sub_menu->GetTitle().empty());
-    *sub_menu_item_ptr = append_submenu(menu, sub_menu, wxID_ANY, _L("Instances"), "", "instances",
+    sub_menu_item = append_submenu(menu, sub_menu, wxID_ANY, _L("Instances"), "", "instances",
         []() { return plater()->can_increase_instances() || plater()->can_increase_instances(); }, m_parent);
 }
 

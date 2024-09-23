@@ -1011,6 +1011,7 @@ ExtrusionPaths PerimeterGenerator::create_overhangs_classic(const Parameters &pa
         }
         while (paths.size() > 1) {
             paths.front().polyline.append(paths[1].polyline);
+            paths.erase(paths.begin() + 1);
         }
         if (length_normal > length_speed + length_flow) {
             paths.front().attributes_mutable() = ExtrusionAttributes{

@@ -107,6 +107,7 @@ void LayerRegion::slices_to_fill_surfaces_clipped(coord_t opening_offset)
             for (ExPolygon& expoly_to_test : intersection_ex(expoly, this->fill_expolygons())) {
                 expoly_to_test.douglas_peucker(std::max(SCALED_EPSILON, scale_t(this->layer()->object()->print()->config().resolution.value)));
                 if (!opening_ex({ expoly_to_test }, opening_offset).empty()) {
+                    expoly_to_test.assert_valid();
                     this->m_fill_surfaces.append({ expoly_to_test }, srf_type);
                 }
             }
@@ -531,19 +532,25 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         RegionExpansionParameters::build(expansion_top, expansion_step, max_nr_expansion_steps), 
         sparse, expansion_params_into_sparse_infill, closing_radius);
 
+    coord_t scaled_resolution = std::max(SCALED_EPSILON, scale_t(this->layer()->object()->print()->config().resolution.value));
 //    m_fill_surfaces.remove_types({ stBottomBridge, stBottom, stTop, stInternal, stInternalSolid });
     m_fill_surfaces.clear();
     reserve_more(m_fill_surfaces.surfaces, shells.size() + sparse.size() + bridges.size() + bottoms.size() + tops.size());
     {
         Surface solid_templ(stPosInternal | stDensSolid, {});
         solid_templ.thickness = layer_thickness;
+        ensure_valid(shells, scaled_resolution);
         m_fill_surfaces.append(std::move(shells), solid_templ);
     }
     {
         Surface sparse_templ(stPosInternal | stDensSparse, {});
         sparse_templ.thickness = layer_thickness;
+        ensure_valid(sparse, scaled_resolution);
         m_fill_surfaces.append(std::move(sparse), sparse_templ);
     }
+    for(auto&srf : bridges.surfaces) srf.expolygon.assert_valid();
+    for(auto&srf : bottoms) srf.expolygon.assert_valid();
+    for(auto&srf : tops) srf.expolygon.assert_valid();
     m_fill_surfaces.append(std::move(bridges.surfaces));
     m_fill_surfaces.append(std::move(bottoms));
     m_fill_surfaces.append(std::move(tops));
@@ -991,7 +998,9 @@ void LayerRegion::prepare_fill_surfaces()
                         continue;
                     if (!intersect.empty()) {
                         //not possible ot have multiple intersect no cut from a single expoly.
+                        assert(intersect.size() == 1);
                         assert(!cut.empty());
+                        intersect[0].assert_valid();
                         surface->expolygon = std::move(intersect[0]);
                         for (int i = 1; i < intersect.size(); i++) {
                             srfs_to_add.emplace_back(*surface, std::move(intersect[i]));
@@ -1007,6 +1016,7 @@ void LayerRegion::prepare_fill_surfaces()
                     }
                 }
             }
+            for(auto &srf : srfs_to_add) srf.expolygon.assert_valid();
             append(this->m_fill_surfaces.surfaces, std::move(srfs_to_add));
         }
     }

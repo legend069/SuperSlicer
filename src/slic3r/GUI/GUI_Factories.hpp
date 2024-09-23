@@ -85,13 +85,13 @@ private:
     MenuWithSeparators m_instance_menu;
 
     // Removed/Prepended Items according to the view mode
-    wxMenu      m_object_instances_menu;
-    wxMenuItem* m_object_instances_menu_item;
-    wxMenu      m_sla_object_instances_menu;
-    wxMenuItem* m_sla_object_instances_menu_item;
-
-    wxMenu      m_scale_submenu;
-    wxMenu      m_sla_scale_submenu;
+    // note: submenu are deleted by the main menu, so only pointer are allowed here.
+    wxMenu     *m_object_instances_menu = nullptr;
+    wxMenuItem *m_object_instances_menu_item = nullptr;
+    wxMenu     *m_sla_object_instances_menu = nullptr;
+    wxMenuItem *m_sla_object_instances_menu_item = nullptr;
+    wxMenu     *m_scale_submenu = nullptr;
+    wxMenu     *m_sla_scale_submenu = nullptr;
 
     void        create_default_menu();
     void        create_common_object_menu(wxMenu *menu);
