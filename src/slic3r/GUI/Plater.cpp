@@ -1090,10 +1090,7 @@ void Sidebar::update_all_preset_comboboxes()
     }
     // Update the printer choosers, update the dirty flags.
     p->combo_printer->update();
-    
-    // Update the filament choosers to only contain the compatible presets, update the color preview,
-    // update the dirty flags.
-    
+
     DynamicPrintConfig *selected_printer_config = wxGetApp()
         .preset_bundle->physical_printers.get_selected_printer_config();
     if (selected_printer_config)
@@ -1108,6 +1105,24 @@ void Sidebar::update_all_preset_comboboxes()
                 
             }
         }
+    
+    if (print_tech == ptFFF) {
+        for (PlaterPresetComboBox* cb : p->combos_filament)
+            for (size_t extr_idx = 0; extr_idx < p->combos_filament.size(); ++extr_idx) {
+                PlaterPresetComboBox *cb  = p->combos_filament[extr_idx];
+                cb->update();
+                // update tool name
+                auto opt = preset_bundle.printers.get_edited_preset().config.option<ConfigOptionStrings>("tool_name");
+                assert(opt);
+                if (opt && cb->label) {
+                    std::string tool_name = opt ? opt->get_at(extr_idx) : nullptr;
+                    if (tool_name.size() > 10) {
+                        tool_name = tool_name.substr(0, 7) + std::string("... ");
+                    }
+                    cb->label->SetLabel(tool_name.empty() ? "" : (tool_name + std::string(": ")));
+                }
+            }
+    }
 }
 
 void Sidebar::update_presets(Preset::Type preset_type)

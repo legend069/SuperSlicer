@@ -638,6 +638,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
         }
         
         // Shop hyperlink
+        /*
         wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
         
         wxStaticText *infoText = new wxStaticText(this,
@@ -660,7 +661,7 @@ PagePrinters::PagePrinters(ConfigWizard *parent,
         
         sizer->Add(shop_hyperlink, 0, wxALIGN_CENTER_VERTICAL);
         append(sizer);
-        
+        */
         const auto picker_title = family.empty() ? wxString() : format_wxstr(_L("%s Family"), family);
         uint8_t max_cols = MAX_COLS;
         
@@ -2090,7 +2091,7 @@ void PageTemperatures::apply_custom_config(DynamicPrintConfig &config)
 
 ConfigWizardIndex::ConfigWizardIndex(wxWindow *parent)
     : wxPanel(parent)
-    , bg(ScalableBitmap(parent, SLIC3R_APP_KEY "_192px_transparent.png", 192))
+    , bg(ScalableBitmap(parent, SLIC3R_APP_KEY "_192px.png", 192))
     , bullet_black(ScalableBitmap(parent, "bullet_black.png"))
     , bullet_blue(ScalableBitmap(parent, "bullet_blue.png"))
     , bullet_white(ScalableBitmap(parent, "bullet_white.png"))
