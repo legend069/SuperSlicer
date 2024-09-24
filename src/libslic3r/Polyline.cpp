@@ -286,13 +286,12 @@ bool remove_degenerate(Polylines &polylines)
     return modified;
 }
 
-void Polyline::assert_valid(const Polylines &polylines) {
-    
+void assert_valid(const Polylines &polylines) {
+   
 }
 
 void Polyline::assert_valid() const {
-    
-    
+
 }
 
 std::pair<int, Point> foot_pt(const Points &polyline, const Point &pt)

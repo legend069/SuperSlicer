@@ -96,9 +96,8 @@ public:
     void split_at(const Point &point, Polyline* p1, Polyline* p2) const;
     bool is_straight() const;
     bool is_closed() const { return this->points.front() == this->points.back(); }
-    void assert_valid(const Polylines &polylines);
     void assert_valid() const;
-    
+
     using iterator = Points::iterator;
     using const_iterator = Points::const_iterator;
 };
@@ -204,7 +203,7 @@ inline void polylines_merge(PointsType &dst, bool dst_first, PointsType &&src, b
 const Point& leftmost_point(const Polylines &polylines);
 
 bool remove_degenerate(Polylines &polylines);
-
+void assert_valid(const Polylines &polylines);
 
 // Returns index of a segment of a polyline and foot point of pt on polyline.
 //std::pair<int, Point> foot_pt(const Points &polyline, const Point &pt);
