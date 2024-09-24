@@ -1,0 +1,32 @@
+#logs
+page:Frequent settings:
+group:freq_settings_event:no_title:no_search:
+    line:
+        setting:simple:script:enum$none$None$bp$Support on build plate only$se$For support enforcers only$ev$Everywhere:depends$support_material$support_material_auto$support_material_buildplate_only:label_width$7:label$Supports_:tooltip$Select what kind of support do you need:full_width:s_support_fff
+    end_line
+    line:
+    freq_purging_volumes
+    end_line
+    line:
+        setting:label_width$7:label$Fill Pattern_:full_width:fill_pattern
+    end_line
+    line:
+        setting:label_left:label_width$7:label$Infill_:full_width:fill_density
+    end_line
+    line:
+        setting:label_left:label_width$7:label$Perimeters_:perimeters
+    end_line
+    line:Solid Layers
+         setting:label_width$7:label$Solid Layers Top_:top_solid_layers
+         setting:label_width$7:label$Bottom_ :bottom_solid_layers
+    end_line
+    line:
+        setting:simple:script:float:depends$nozzle_diameter[0]:label_width$7:label$Tool [0]_:tooltip$Value for nozzle[0]:full_width:s_nozzle_diameter_1
+        setting:simple:script:float:depends$nozzle_diameter[1]:label_width$7:label$Tool [1]_:tooltip$Value for nozzle[1]:full_width:s_nozzle_diameter_2
+    end_line
+    line:
+    preheat_printer
+    end_line
+    
+
+    

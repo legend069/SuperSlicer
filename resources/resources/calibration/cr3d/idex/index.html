@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Bed Level Calibration</title>
+    <style>
+        body {
+            font-family: 'Your Preferred Font', sans-serif;
+            background-color: #f0f0f0; 
+            padding-left: 15px;
+        }
+
+        h1, h2 {
+            color: #1a7476 !important; /* Adjust color as needed */
+        }
+
+        .calibration-title {
+            color: #1a7476; /* Set your desired color for the calibration title */
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: center;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        p {
+            line-height:1.5;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+            ul li {
+                margin-bottom: 10px;
+            }
+
+        .bold-big {
+            font-weight: bold;
+            font-size: 1.2em; /* Set your desired font size */
+        }
+    </style>
+</head>
+<body>
+    <table width="100%">
+        <tbody>
+            <tr>
+                <td style="text-align: center; padding-bottom: 10px;">
+                    <img src="./CR-3D_Logo.png" alt="CR3D Logo" style="max-width: 200px;">
+                    <h1 style="text-align: center; color: #1A7476;">IDEX Calibration</h1>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">
+                    <table>
+                        <tr>
+                            <td class="bold-big">Needs:</td>
+                            <td style="text-align: left; color: #1A7476;">CR-3D IDEX</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+        </td>
+        </tr>
+        </tbody>
+    </table>
+    <h2>
+        (Only applicable on IDEX Machines)
+    </h2>
+    <p>
+        This calibration is the first one to do because it's required to make a print stick well on the build plate. <br />
+        For multi color or multi material prints it is vital to adjust the nozzle positions to match exactly.<br />
+        While this could be done physically this can quickly become quite tedious, it's easier to dis in software.<br />
+        While the Z-calibration can be done automatically on CR-3D Machines, X and Y still need to be tuned manually. This file will assist you in doing this in a quick and easy way.<br />
+    </p>
+    <h2>How does it work?</h2>
+    <p>
+        Print this file while switching extruders for each part will make offsets visible quickly and allow you to adjust while printing. You will quickly be able to hone in on the perfect settings by changing the offset in smaller and smaller increments until perfect.
+    </p>
+    <p>Follow the below graphic to know which direction to adjust to.</p>
+        <img src="idex-calibration-t.jpg" width="300" height="300"; style="padding-top: 30px; align-content: center" />
+ </body>

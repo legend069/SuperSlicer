@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Bed Level Calibration</title>
+	<style>
+		body {
+			font-family: 'Your Preferred Font', sans-serif;
+			background-color: #f0f0f0; /* Set your desired background color */
+			color: #293133; /* Set your desired font color */
+			padding-left: 15px;
+		}
+
+		h1, h2 {
+			color: #1A7476; /* Adjust color as needed */
+		}
+
+		.calibration-title {
+			color: #ff0000; /* Set your desired color for the calibration title */
+		}
+
+		table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+
+		th, td {
+			border: 1px solid #dddddd;
+			text-align: center;
+			padding: 8px;
+		}
+
+		th {
+			background-color: #f2f2f2;
+		}
+
+		img {
+			max-width: 100%;
+			height: auto;
+		}
+
+		ul {
+			list-style-type: none;
+			padding: 0;
+		}
+
+			ul li {
+				margin-bottom: 10px;
+			}
+
+		.bold-big {
+			font-weight: bold;
+			font-size: 1.2em; /* Set your desired font size */
+		}
+	</style>
+</head>
+<body>
+	<table width="100%">
+		<tbody>
+			<tr>
+				<td style="text-align: center; padding-bottom: 10px;">
+					<img src="./CR-3D_Logo.png" alt="CR3D Logo" style="max-width: 200px;">
+					<h1 style="text-align: center; color: #1A7476;">CR-3D Cube Calibration</h1>
+				</td>
+			</tr>
+			<tr>
+				<td style="text-align: right;">
+					<table>
+						<tr>
+							<td class="bold-big">Needs:</td>
+							<td style="text-align: left;">Nothing</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</tbody>
+		</td>
+		</tr>
+		</tbody>
+	</table>
+	<body>
+		<h1>CR-3D Calibration Cube</h1>
+
+		<p>This page allows you to print the CR-3D calibration cube. It's useful to see if your printer is accurate and to calibrate some settings. First thing is to select the single or dual Cube version. </p>
+
+		<div>
+			<h2>Single Extruder Cube</h2>
+
+			<p>
+				<img src="single.png" />
+			</p>
+			<p>You can test a lot of parameters with the single extruder cube. there are many ways to check the dimensional accuracy. Holes, openings, external dimensions and much more.</p>
+			<p>There are also places where bridging is necessary. There are places with different bridging lengths for this purpose in order to be able to test the behavior.</p>
+			<p>Furthermore there are fine details and thin walls to test the precision of the printer.</p>
+			<p>In addition, a ringing test was built in to examine the vibration behavior of the printer.</p>
+		</div>
+
+		<div>
+			<h2>Dual Extruder Cube</h2>
+
+			<p>You can test a lot of parameters with the dual extruder calibration cube. there are many ways to check the dimensional accuracy and the Tool Offsets of your dual extruder</p>
+			<p>The tool offsets in the XY direction can be determined most easily with the lower layers. For this purpose, in the lower part of the cube, attention is paid to whether the various elements of the cube are shifted in one direction. To do this, the distance is simply determined using a caliper and then readjusted in the printer. There are also other multi-material locations throughout the cube, where the accuracy of fit of the two tools can be checked.</p>
+			<p>There are also places where bridging is necessary. There are places with different bridging lengths for this purpose in order to be able to test the behavior.</p>
+			<p>furthermore there are fine details and thin walls to test the precision of the printer</p>
+			<p>
+				<img src="dual.png" />
+			</p>
+			<p>To correct the tool offsets, we have compiled an overview of the coordinate directions of tool 1 (right tool).</p>
+			<p>
+				<img src="z_offset.png" />
+			</p>
+		</div>
+
+		<div>
+			<a href="https://www.thingiverse.com/thing:4962191" target="_blank">CR-3D Calibration Cube on thingiverse.com</a>
+		</div>
+	</body>
+</html>
