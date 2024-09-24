@@ -446,7 +446,6 @@ struct GlobalModelInfo {
 #endif
 }
 ;
-
 //Extract perimeter polylines of the given layer
 PolylineWithEnds extract_perimeter_polylines(const Layer *layer, const SeamPosition configured_seam_preference,
         std::vector<const LayerRegion*> &corresponding_regions_out, PerimeterGeneratorType perimeter_type) {
@@ -561,6 +560,8 @@ PolylineWithEnds extract_perimeter_polylines(const Layer *layer, const SeamPosit
     for (const LayerRegion *layer_region : layer->regions()) {
         for (const ExtrusionEntity *ex_entity : layer_region->perimeters()) {
             visitor.set_current_layer_region(layer_region);
+            assert(!ex_entity->empty());
+            if (ex_entity->empty()) continue;
             assert(ex_entity->is_collection()); //collection of inner, outer, and overhang perimeters
             ex_entity->visit(visitor);
             if (polylines.empty()) {
@@ -578,9 +579,12 @@ PolylineWithEnds extract_perimeter_polylines(const Layer *layer, const SeamPosit
                         assert(ex_entity->role() == ExtrusionRole::ThinWall); // no loops
                         //ex_entity->visit(visitor);
                         // what to do in this case?
-                        Points p;
-                        ex_entity->collect_points(p);
-                        polylines.emplace_back(std::move(p), true, true, PolylineWithEnd::PolyDir::BOTH);
+                        Points pts;
+                        ex_entity->collect_points(pts);
+                        assert(!pts.empty());
+                        bool is_loop = pts.front() == pts.back();
+                        assert(!is_loop);
+                        polylines.emplace_back(std::move(pts), true, !is_loop, PolylineWithEnd::PolyDir::BOTH);
                         corresponding_regions_out.push_back(layer_region);
                     }
                 }
