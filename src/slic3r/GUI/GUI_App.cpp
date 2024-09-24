@@ -889,12 +889,6 @@ void GUI_App::post_init() {
                 // don't show_send_system_info_dialog_if_needed, only prusa has the server to receive the data anyway.
                 // show_send_system_info_dialog_if_needed();
             }
-        #ifdef _WIN32
-            // Run external updater on Windows if version check is enabled.
-            if (this->preset_updater->version_check_enabled())
-                // "prusaslicer-updater.exe" was not started, run our own update check.
-        #endif // _WIN32
-                
             // app version check is asynchronous and triggers blocking dialog window, better call it last
             this->app_version_check(false);
         });
@@ -1266,7 +1260,7 @@ bool GUI_App::on_init_inner() {
     // If load_language() fails, the application closes.
     load_language(wxString(), true);
 #ifdef _MSW_DARK_MODE
-    bool init_dark_color_mode = app_config->get_bool("dark_color_mode");
+    bool init_dark_color_mode = true;
     bool init_sys_menu_enabled = app_config->get_bool("sys_menu_enabled");
     NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled);
 #endif
@@ -2755,7 +2749,7 @@ bool GUI_App::save_mode(const ConfigOptionMode mode) {
             str_serialized += str_serialized.empty() ? item.first : ("|" + item.first);
         }
     }
-    app_config->set("view_mode", str_serialized);
+    app_config->set("view_mode", "expert");
     update_mode();
     return true;
 }

@@ -461,7 +461,7 @@ void AppConfig::set_defaults()
         set("use_legacy_3DConnexion", "0");
 
     if (get("dark_color_mode").empty())
-        set("dark_color_mode", "0");
+        set("dark_color_mode", "1");
 
     if (get("sys_menu_enabled").empty())
         set("sys_menu_enabled", "1");
