@@ -30,9 +30,15 @@ inline void         sys_color_changed_menu(wxMenu* /* menu */) {}
 #endif // no __linux__
 
 #ifndef _MSW_DARK_MODE
+#if _WIN32_
 #define _MSW_DARK_MODE 1
-#else 
+#endif
+
+#else
+
+#if _WIN32_
 #define _MSW_DARK_MODE 1
+#endif
 #endif
 
 wxMenuItem* append_menu_item(wxMenu* menu, int id, const wxString& string, const wxString& description,

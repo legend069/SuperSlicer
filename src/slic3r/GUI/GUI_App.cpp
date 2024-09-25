@@ -1259,10 +1259,14 @@ bool GUI_App::on_init_inner() {
 
     // If load_language() fails, the application closes.
     load_language(wxString(), true);
+    
 #ifdef _MSW_DARK_MODE
     bool init_dark_color_mode = true;
     bool init_sys_menu_enabled = app_config->get_bool("sys_menu_enabled");
+#if _WIN32_
     NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled);
+#endif
+    
 #endif
     // initialize label colors and fonts
     init_ui_colours();
@@ -1287,13 +1291,17 @@ bool GUI_App::on_init_inner() {
     // app_config can be updated in check_older_app_config(), so check if dark_color_mode and sys_menu_enabled was changed
     if (bool new_dark_color_mode = app_config->get_bool("dark_color_mode");
         init_dark_color_mode != new_dark_color_mode) {
+#if _WIN32_
         NppDarkMode::SetDarkMode(new_dark_color_mode);
+#endif
         init_ui_colours();
         update_ui_colours_from_appconfig();
     }
     if (bool new_sys_menu_enabled = app_config->get_bool("sys_menu_enabled");
         init_sys_menu_enabled != new_sys_menu_enabled)
+#if _WIN32_
         NppDarkMode::SetSystemMenuForApp(new_sys_menu_enabled);
+#endif
 #endif
 
     if (is_editor()) {

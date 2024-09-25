@@ -37,6 +37,10 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <string>
+#include <locale>
+#include <codecvt>
+
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
@@ -783,6 +787,13 @@ void Sidebar::priv::hide_rich_tip(wxButton *btn)
 }
 #endif
 
+// Function to convert std::string (UTF-8) to std::wstring
+std::wstring to_wstring(const std::string& str) {
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.from_bytes(str);
+}
+
+
 // Sidebar / public
 
 Sidebar::Sidebar(Plater *parent)
@@ -1038,10 +1049,12 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox** combo, const int extr_i
         auto opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionStrings>("tool_name");
         assert(opt);
         std::string tool_name = opt? opt->get_at(extr_idx) : nullptr;
-        if (tool_name.size() > 10) {
-            tool_name = tool_name.substr(0,7) + std::string("... ");
+        std::wstring wide_tool_name = to_wstring(tool_name);
+
+        if (wide_tool_name.size() > 10) {
+            wide_tool_name = wide_tool_name.substr(0,7) + std::string("... ");
         }
-        (*combo)->label = new wxStaticText(p->presets_panel, wxID_ANY, tool_name.empty() ? "" : ( tool_name + std::string(": ")));
+        (*combo)->label = new wxStaticText(p->presets_panel, wxID_ANY, wide_tool_name.empty() ? "" : ( wide_tool_name + std::string(": ")));
         (*combo)->label->SetFont(wxGetApp().small_font());
         combo_and_btn_sizer->Add((*combo)->label, 0, wxALIGN_LEFT | wxEXPAND | wxRIGHT, 4);
     }
@@ -1115,13 +1128,15 @@ void Sidebar::update_all_preset_comboboxes()
                 auto opt = preset_bundle.printers.get_edited_preset().config.option<ConfigOptionStrings>("tool_name");
                 assert(opt);
                 if (opt && cb->label) {
-                    std::string tool_name = opt ? opt->get_at(extr_idx) : nullptr;
-                    if (tool_name.size() > 10) {
-                        tool_name = tool_name.substr(0, 7) + std::string("... ");
+                    std::string tool_name = opt->get_at(extr_idx);
+                    std::wstring wide_tool_name = to_wstring(tool_name);
+                    
+                    if (wide_tool_name.size() > 10) {
+                        wide_tool_name = wide_tool_name.substr(0, 7) + std::string("... ");
                     }
-                    cb->label->SetLabel(tool_name.empty() ? "" : (tool_name + std::string(": ")));
+                    cb->label->SetLabel(wide_tool_name.empty() ? "" : (wide_tool_name + std::string(": ")));
                 }
-            }
+           }
     }
 }
 
