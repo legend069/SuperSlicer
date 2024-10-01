@@ -803,7 +803,6 @@ void PrintObject::_min_overhang_threshold() {
                             }
                         }
                     }
-                    for(auto &srf : to_add) srf.expolygon.assert_valid();
                     append(my_surfaces, std::move(to_add));
                     ensure_valid(my_surfaces, resolution);
                     for(auto &srf : my_surfaces) srf.expolygon.assert_valid();
@@ -817,6 +816,8 @@ void PrintObject::_min_overhang_threshold() {
             ensure_valid(new_lslices, resolution);
             assert_valid(new_lslices);
             my_layer->set_lslices() = std::move(new_lslices);
+            my_layer->lslice_indices_sorted_by_print_order = chain_expolygons(my_layer->lslices());
+            assert(my_layer->lslices().size() == my_layer->lslice_indices_sorted_by_print_order.size());
         }
     }
 }

@@ -133,6 +133,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver& /* ne
         "filament_custom_variables",
         "filament_diameter",
         "filament_density",
+        "filament_fill_top_flow_ratio",
+        "filament_first_layer_flow_ratio",
         "filament_load_time",
         "filament_notes",
         "filament_cost",
@@ -186,7 +188,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver& /* ne
         "travel_ramping_lift",
         "travel_initial_part_length",
         "travel_slope",
-        "travel_max_lift",
+        // "travel_max_lift",
         "travel_lift_before_obstacle",
         "retract_before_travel",
         "retract_before_wipe",
@@ -926,7 +928,7 @@ std::pair<PrintBase::PrintValidationError, std::string> Print::validate(std::vec
                     double max_layer_height = config().max_layer_height.get_abs_value(extruder_id, nozzle_diameter);
                     if (max_layer_height < EPSILON || !config().max_layer_height.is_enabled()) max_layer_height = nozzle_diameter * 0.75;
                     if (min_layer_height > max_layer_height) return { PrintBase::PrintValidationError::pveWrongSettings, _u8L("Min layer height can't be greater than Max layer height") };
-                    if (max_layer_height > nozzle_diameter) return { PrintBase::PrintValidationError::pveWrongSettings, _u8L("Max layer height can't be greater than nozzle diameter") };
+                    //if (max_layer_height > nozzle_diameter) return { PrintBase::PrintValidationError::pveWrongSettings, _u8L("Max layer height can't be greater than nozzle diameter") };
                     double skirt_width = Flow::new_from_config_width(frPerimeter,
                         *Flow::extrusion_width_option("skirt", m_default_region_config),
                         *Flow::extrusion_spacing_option("skirt", m_default_region_config),
@@ -1364,7 +1366,8 @@ Polygons get_brim_patch(const PrintObject &obj, ModelVolumeType brim_type, const
             }
         }
     }
-    return polys;
+    coord_t scaled_brim_resolution = std::max(SCALED_EPSILON * 10, scale_t(obj.print()->config().resolution.value));
+    return ensure_valid(union_(polys), scaled_brim_resolution);
 }
 
 bool has_brim_patch(const PrintObject &obj, ModelVolumeType brim_type)
