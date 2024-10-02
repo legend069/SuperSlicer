@@ -1723,7 +1723,8 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Pressure advance(Klipper) AKA Linear advance factor(Marlin)");
     def->max = 2;
     def->mode = comAdvanced | comExpert;
-    def->set_default_value(new ConfigOptionFloats { 0.02 });
+    def->can_be_disabled = true;
+    def->set_default_value(disable_defaultoption(new ConfigOptionFloats { 0.02 }));
 
     def = this->add("first_layer_extruder", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;

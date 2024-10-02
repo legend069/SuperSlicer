@@ -355,6 +355,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
 
     bool has_spiral_vase = have_perimeters && config->opt_bool("spiral_vase");
     
+    //bool pa = config->opt_bool("enable_pressure_advance");
+    //toggle_field("pressure_advance", pa);
+    
     bool have_arachne = have_perimeters && (config->opt_int("perimeters") == config->opt_int("perimeters_hole") || !config->is_enabled("perimeters_hole"));
     toggle_field("perimeter_generator", have_arachne);
     have_arachne = have_arachne && config->opt_enum<PerimeterGeneratorType>("perimeter_generator") == PerimeterGeneratorType::Arachne;

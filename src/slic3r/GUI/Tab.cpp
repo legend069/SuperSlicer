@@ -3418,6 +3418,13 @@ void TabFilament::toggle_options()
         toggle_option("overhangs_fan_speed", !m_config->is_enabled("overhangs_dynamic_fan_speed", 0), 0);
     }
 
+    
+    if (m_active_page->title() == L("Filament")) {
+        bool pa = m_config->opt_bool("enable_pressure_advance", 0);
+        toggle_option("pressure_advance", pa);
+    }
+     
+
     //if (m_active_page->title() == "Advanced")
     {
         bool multitool_ramming = m_config->opt_bool("filament_multitool_ramming", 0);
