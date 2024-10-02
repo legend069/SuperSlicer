@@ -1712,6 +1712,19 @@ void PrintConfigDef::init_fff_params()
         { L("default"), "1", "2", "3", "4", "5", "6", "7", "8", "9" }); // override label for item 0
 
 
+    def = this->add("enable_pressure_advance", coBools);
+    def->label = L("Enable pressure advance");
+    def->tooltip = L("Enable pressure advance, auto calibration result will be overwritten once enabled.");
+    def->mode = comAdvanced | comExpert;
+    def->set_default_value(new ConfigOptionBools{ false });
+
+    def = this->add("pressure_advance", coFloats);
+    def->label = L("Pressure advance");
+    def->tooltip = L("Pressure advance(Klipper) AKA Linear advance factor(Marlin)");
+    def->max = 2;
+    def->mode = comAdvanced | comExpert;
+    def->set_default_value(new ConfigOptionFloats { 0.02 });
+
     def = this->add("first_layer_extruder", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("First layer extruder");

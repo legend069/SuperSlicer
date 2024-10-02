@@ -7612,6 +7612,11 @@ std::string GCodeGenerator::set_extruder(uint16_t extruder_id, double print_z, b
             gcode += this->placeholder_parser_process("start_filament_gcode", start_filament_gcode, extruder_id, &config);
             check_add_eol(gcode);
         }
+
+        if (m_config.enable_pressure_advance.get_at(extruder_id)) {
+            gcode += m_writer.set_pressure_advance(m_config.pressure_advance.get_at(extruder_id));
+        }
+
         if (!no_toolchange) {
             gcode += toolchange(extruder_id, print_z);
         }else m_writer.toolchange(extruder_id);
@@ -7686,10 +7691,15 @@ std::string GCodeGenerator::set_extruder(uint16_t extruder_id, double print_z, b
             m_writer.set_temperature(temp_by_gcode, false, extruder_id);
         }
     }
+
     // Set the new extruder to the operating temperature.
     if (m_ooze_prevention.enable)
         gcode += m_ooze_prevention.post_toolchange(*this);
 
+    if (m_config.enable_pressure_advance.get_at(extruder_id)) {
+        gcode += m_writer.set_pressure_advance(m_config.pressure_advance.get_at(extruder_id));
+    }
+    
     // The position is now known after the tool change.
     this->unset_last_pos();
     

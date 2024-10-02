@@ -202,6 +202,21 @@ std::string GCodeWriter::postamble() const
     return gcode.str();
 }
 
+std::string GCodeWriter::set_pressure_advance(double pa) const {
+    std::ostringstream gcode;
+    if (pa < 0)
+        return gcode.str();
+    if (FLAVOR_IS(gcfKlipper)) {
+        gcode << "SET_PRESSURE_ADVANCE ADVANCE=" << std::setprecision(4) << pa << "; Override pressure advance value \n";
+    } else if (FLAVOR_IS(gcfRepRap)) {
+        gcode << ("M572 D0 S") << std::setprecision(4) << pa << "; Override pressure advance value \n";
+    } else {
+        gcode << "M900 K" << std::setprecision(4) << pa << "; Override pressure advance value\n";
+    }
+    return gcode.str();
+}
+
+
 std::string GCodeWriter::set_temperature(const int16_t temperature, bool wait, int tool)
 {
     //use m_tool if tool isn't set

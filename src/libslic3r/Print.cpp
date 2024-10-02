@@ -107,6 +107,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver& /* ne
         "disable_fan_first_layers",
         "duplicate_distance",
         "overhangs_dynamic_fan_speed",
+        "enable_pressure_advance",
+        "pressure_advance",
         "enforce_retract_first_layer",
         "end_gcode",
         "end_filament_gcode",

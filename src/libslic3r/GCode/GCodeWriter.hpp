@@ -57,6 +57,7 @@ public:
     std::string postamble() const;
     std::string set_temperature(int16_t temperature, bool wait = false, int tool = -1);
     std::string set_bed_temperature(uint32_t temperature, bool wait = false);
+    std::string set_pressure_advance(double pa) const;
     std::string set_chamber_temperature(uint32_t temperature, bool wait = false);
     void        set_acceleration(uint32_t acceleration);
     void        set_travel_acceleration(uint32_t acceleration);
