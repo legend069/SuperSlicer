@@ -31,7 +31,7 @@ public:
     Polygon polygon() const{
         assert(is_loop);
         assert(lines.size() == 1);
-        assert(lines.front().points.front() != lines.front().points.back());
+        assert(lines.front().points.front() == lines.front().points.back());
         Polygon poly = Polygon(lines.front().points);
         return poly;
     }

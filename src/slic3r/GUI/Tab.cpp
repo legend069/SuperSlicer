@@ -4312,7 +4312,6 @@ void Tab::load_current_preset()
         }
         else {
             on_presets_changed();
-            
             //update width/spacing links
             if (type() == Preset::TYPE_FFF_PRINT) {
                 assert(m_config);
@@ -4884,6 +4883,9 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach)
 
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.ini
     save_current_preset(name, detach);
+    //ensure evrything now point to the saved preset
+    select_preset_by_name(name, true);
+    
 
     // Print bed has to be updated, when printer preset is detached from the system preset
     if (detach && type() == Preset::TYPE_PRINTER) {
