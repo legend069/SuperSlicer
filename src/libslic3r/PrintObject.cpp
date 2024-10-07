@@ -894,7 +894,17 @@ void PrintObject::calculate_overhanging_perimeters()
                         size_t prev_layer_id = l->lower_layer ? l->lower_layer->id() : size_t(-1);
                         assert(layer_region->region().config().overhangs_width_speed.is_enabled());
                         const double nozzle_diameter_overhangs = layer_region->bridging_flow(frPerimeter).nozzle_diameter();
-                        const double max_width = layer_region->region().config().overhangs_width_speed.get_abs_value(nozzle_diameter_overhangs);
+                        double max_width = -1;
+                        if (layer_region->region().config().overhangs_width_speed.is_enabled()) {
+                            max_width = layer_region->region().config().overhangs_width_speed.get_abs_value(nozzle_diameter_overhangs);
+                        }
+                        if (layer_region->region().config().overhangs_width.is_enabled() && (max_width < 0 ||
+                            max_width > layer_region->region().config().overhangs_width.get_abs_value(nozzle_diameter_overhangs))) {
+                            max_width = layer_region->region().config().overhangs_width.get_abs_value(nozzle_diameter_overhangs);
+                        }
+                        if (max_width < 0) {
+                            max_width = nozzle_diameter_overhangs;
+                        }
                         layer_region->m_perimeters =
                             ExtrusionProcessor::calculate_and_split_overhanging_extrusions(&layer_region->m_perimeters,
                                                                                            unscaled_polygons_lines[prev_layer_id],
@@ -1040,7 +1050,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "external_perimeter_extrusion_spacing"
             || opt_key == "external_perimeter_extrusion_width"
             || opt_key == "external_perimeters_vase"
-            || opt_key == "first_layer_extrusion_width"
             || opt_key == "gap_fill_extension"
             || opt_key == "gap_fill_last"
             || opt_key == "gap_fill_max_width"
@@ -1223,6 +1232,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "fill_top_flow_ratio"
             || opt_key == "fill_smooth_width"
             || opt_key == "fill_smooth_distribution"
+            || opt_key == "first_layer_infill_extrusion_spacing"
+            || opt_key == "first_layer_infill_extrusion_width"
             || opt_key == "infill_anchor"
             || opt_key == "infill_anchor_max"
             || opt_key == "infill_connection"
@@ -2794,7 +2805,7 @@ void PrintObject::replaceSurfaceType(SurfaceType st_to_replace, SurfaceType st_r
                     }
                 }
 
-                for (ExPolygon& ex : union_ex(poly_to_replace)) {
+                for (ExPolygon& ex : ensure_valid(union_ex(poly_to_replace), scaled_resolution)) {
                     ex.assert_valid();
                     new_surfaces.push_back(Surface(st_replacement, ex));
                 }

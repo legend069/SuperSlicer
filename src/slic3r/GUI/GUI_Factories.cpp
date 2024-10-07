@@ -679,9 +679,6 @@ void MenuFactory::append_menu_items_add_volume(MenuType menu_type)
     if (const auto range_id = menu->FindItem(_L("Height range Modifier")); range_id != wxNOT_FOUND)
         menu->Destroy(range_id);
 
-    if (const auto range_id = menu->FindItem(_L("Height range Modifier")); range_id != wxNOT_FOUND)
-        menu->Destroy(range_id);
-
     if (wxGetApp().get_mode() == comSimple && !get_app_config()->get_bool("objects_always_expert")) {
         //append_menu_item_add_text(menu, ModelVolumeType::MODEL_PART, false);
         //append_menu_item_add_text(menu, ModelVolumeType::NEGATIVE_VOLUME, false);
@@ -731,7 +728,7 @@ void MenuFactory::append_menu_items_add_volume(MenuType menu_type)
         if (menu_type == mtObjectFFF)
             append_menu_item_layers_editing(sub_menu_modifier);
         sub_menu_modifier->AppendSeparator();
-        append_submenu_add_generic(menu, sub_menu_modifier, ModelVolumeType::MODEL_PART);
+        append_submenu_add_generic(menu, sub_menu_modifier, ModelVolumeType::PARAMETER_MODIFIER);
         append_submenu(menu, sub_menu_modifier, wxID_ANY, _(item_modifier.first), "", item_modifier.second, selected_func, m_parent);
     }
     {

@@ -57,6 +57,7 @@ public:
     std::string postamble() const;
     std::string set_temperature(int16_t temperature, bool wait = false, int tool = -1);
     std::string set_bed_temperature(uint32_t temperature, bool wait = false);
+    std::string set_pressure_advance(double pa) const;
     std::string set_chamber_temperature(uint32_t temperature, bool wait = false);
     void        set_acceleration(uint32_t acceleration);
     void        set_travel_acceleration(uint32_t acceleration);
@@ -74,13 +75,14 @@ public:
     std::string toolchange_prefix() const;
     std::string toolchange(uint16_t tool_id);
     // in mm/s
-    std::string set_speed(const double speed, const std::string_view comment = {}, const std::string_view cooling_marker = {});
+    std::string set_speed_mm_s(const double speed, const std::string_view comment = {}, const std::string_view cooling_marker = {});
     // in mm/s
-    double      get_speed() const;
+    double      get_speed_mm_s() const;
     std::string travel_to_xy(const Vec2d &point, const double speed = 0.0, const std::string_view comment = {});
     std::string travel_arc_to_xy(const Vec2d& point, const Vec2d& center_offset, const bool is_ccw, const double speed, const std::string_view comment);
-    std::string travel_to_xyz(const Vec3d &point, const double speed = 0.0, const std::string_view comment = {});
+    std::string travel_to_xyz(const Vec3d &point, bool is_lift, const double speed = 0.0, const std::string_view comment = {});
     std::string travel_to_z(double z, const std::string_view comment = {});
+    // low-level method to force a z travel, disregarding the lift and other thigns. Prefer using "travel_to_z" "lift" and "unlift".
     std::string get_travel_to_z_gcode(double z, const std::string_view comment = {});
     bool        will_move_z(double z) const;
     std::string extrude_to_xy(const Vec2d &point, double dE, const std::string_view comment = {});
@@ -91,8 +93,9 @@ public:
     std::string unretract();
     void        set_extra_lift(double extra_zlift) { this->m_extra_lift = extra_zlift; }
     double      get_extra_lift() const { return this->m_extra_lift; }
-    double      get_lift() const { return this->m_lifted; } // for placeholder
-    double      set_lift() const { return this->m_lifted; } // for placeholder
+    double      get_lift() const { return this->m_lifted; } // for placeholder & ramping lift
+    void        set_lift(double new_lift) { this->m_lifted = new_lift; } // for ramping lift
+    double      will_lift(int layer_id) const;
     std::string lift(int layer_id);
     std::string unlift();
 

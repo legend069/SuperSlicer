@@ -968,6 +968,9 @@ struct OpenPolyline {
 // Only connects segments crossing triangles of the same orientation.
 static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polygons &loops, std::vector<OpenPolyline> &open_polylines)
 {
+    for(auto &loop : loops)
+        assert(!loop.points.front().coincides_with(loop.points.back()));
+
     // Build a map of lines by edge_a_id and a_id.
     std::vector<IntersectionLine*> by_edge_a_id;
     std::vector<IntersectionLine*> by_a_id;
@@ -1043,7 +1046,20 @@ static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polyg
                     (first_line->a_id      != -1 && first_line->a_id      == last_line->b_id)) {
                     // The current loop is complete. Add it to the output.
                     assert(first_line->a == last_line->b);
-                    loops.emplace_back(std::move(loop_pts));
+                    Points loop_pts_init = loop_pts;
+                    if (loop_pts.front().coincides_with(loop_pts.back())) {
+                        if (loop_pts.size() > 3) {
+                            loop_pts.pop_back();
+                            assert(!loop_pts.front().coincides_with(loop_pts.back()));
+    for(auto &loop : loops)
+        assert(!loop.points.front().coincides_with(loop.points.back()));
+                            loops.emplace_back(std::move(loop_pts));
+                        }
+                    } else {
+    for(auto &loop : loops)
+        assert(!loop.points.front().coincides_with(loop.points.back()));
+                        loops.emplace_back(std::move(loop_pts));
+                    }
                     #ifdef SLIC3R_TRIANGLEMESH_DEBUG
                     printf("  Discovered %s polygon of %d points\n", (p.is_counter_clockwise() ? "ccw" : "cw"), (int)p.points.size());
                     #endif
@@ -1644,7 +1660,7 @@ static ExPolygons make_expolygons_simple(IntersectionLines &lines)
     return slices;
 }
 
-static void make_expolygons(const Polygons &loops, const coord_t closing_radius, const coord_t model_precision, const coord_t extra_offset, ClipperLib::PolyFillType fill_type, ExPolygons* slices)
+static void make_expolygons(const Polygons &loops, const coord_t closing_radius, const coord_t model_precision, const coord_t extra_offset, ClipperLib::PolyFillType fill_type, ExPolygons* slices, int layer_id)
 {
     /*
         Input loops are not suitable for evenodd nor nonzero fill types, as we might get
@@ -1949,7 +1965,7 @@ std::vector<ExPolygons> slice_mesh_ex(
                     layers_p[layer_id], scale_t(params.closing_radius), scale_t(params.model_resolution), scale_t(params.extra_offset),
                     this_mode == MeshSlicingParams::SlicingMode::EvenOdd ? ClipperLib::pftEvenOdd :
                     this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour ? ClipperLib::pftPositive : ClipperLib::pftNonZero,
-                    &expolygons);
+                    &expolygons, layer_id);
 
 #if 0
 //#ifndef NDEBUG
@@ -2066,7 +2082,7 @@ void slice_mesh_slabs(
         const Vec3f   fa = vertices_transformed[tri(0)];
         const Vec3f   fb = vertices_transformed[tri(1)];
         const Vec3f   fc = vertices_transformed[tri(2)];
-        assert(fa != fb && fa != fc && fb != fc);
+        //assert(fa != fb && fa != fc && fb != fc);
         const Point   a = to_2d(fa).cast<coord_t>();
         const Point   b = to_2d(fb).cast<coord_t>();
         const Point   c = to_2d(fc).cast<coord_t>();

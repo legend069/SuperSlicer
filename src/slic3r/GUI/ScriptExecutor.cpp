@@ -241,23 +241,25 @@ float as_get_float_idx(std::string &key, int idx)
     return val;
 }
 float  as_get_float(std::string &key) { return as_get_float_idx(key, 0); }
-double round(float value)
-{
-    double intpart;
-    if (modf(value, &intpart) == 0.0) {
-        // shortcut for int
-        return value;
-    }
-    std::stringstream ss;
-    // first, get the int part, to see how many digit it takes
-    int long10 = 0;
-    if (intpart > 9)
-        long10 = (int) std::floor(std::log10(std::abs(intpart)));
-    // set the usable precision: there is only ~7 decimal digit in a float (15-16 decimal digit in a double)
-    ss << std::fixed << std::setprecision(7 - long10) << value;
-    double dbl_val;
-    ss >> dbl_val;
-    return dbl_val;
+//double round(float value) {
+//    double intpart;
+//    if (modf(value, &intpart) == 0.0) {
+//        // shortcut for int
+//        return value;
+//    }
+//    std::stringstream ss;
+//    //first, get the int part, to see how many digit it takes
+//    int long10 = 0;
+//    if (intpart > 9)
+//        long10 = (int)std::floor(std::log10(std::abs(intpart)));
+//        //set the usable precision: there is only ~7 decimal digit in a float (15-16 decimal digit in a double)
+//        ss << std::fixed << std::setprecision(7 - long10) << value;
+//    double dbl_val;
+//    ss >> dbl_val;
+//    return dbl_val;
+//}
+double round(float value) {
+    return floor(value * 100000. + 0.5) / 100000.;
 }
 
 int as_get_int_idx(std::string &key)
@@ -1549,8 +1551,7 @@ boost::any ScriptContainer::call_script_function_get_value(const ConfigOptionDef
         int res        = ctx->Execute();
         current_script = nullptr;
     }
-    int32_t    ret_int;
-    float      ret_float;
+    int32_t ret_int;
     boost::any opt_val;
     switch (def.type) {
     case coBool:
@@ -1574,23 +1575,23 @@ boost::any ScriptContainer::call_script_function_get_value(const ConfigOptionDef
     case coPercents:
     case coFloat:
     case coFloats: {
-        opt_val = double(ctx->GetReturnFloat());
+        opt_val = round(ctx->GetReturnFloat());
         break;
     }
     case coFloatOrPercent:
-    case coFloatsOrPercents: {
-        ret_float = ctx->GetReturnFloat();
-        opt_val   = FloatOrPercent{ret_float, ret_percent};
+    case coFloatsOrPercents:
+    {
+        opt_val   = FloatOrPercent{ round(ctx->GetReturnFloat()), ret_percent};
         break;
     }
     case coPoint:
     case coPoints: {
-        double pt_x = ctx->GetReturnFloat();
+        double pt_x = round(ctx->GetReturnFloat());
         opt_val     = Vec2d{pt_x, pt_x}; // FIXME
         break;
     } // FIXME PointCtrl
     case coPoint3: {
-        double pt_x = ctx->GetReturnFloat();
+        double pt_x = round(ctx->GetReturnFloat());
         opt_val     = Vec3d{pt_x, pt_x, pt_x};
         break;
     }

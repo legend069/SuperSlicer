@@ -88,6 +88,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         && config->opt_bool("extra_perimeters_odd_layers") == false
         && config->opt_bool("overhangs_reverse") == false
         && config->opt_bool("gap_fill_last") == false
+        && config->opt_bool("solid_infill_every_layers") == false
         && config->opt_int("solid_over_perimeters") == 0
         && config->option("seam_notch_all")->get_float() == 0
         && config->option("seam_notch_inner")->get_float() == 0
@@ -103,6 +104,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             "- unchecked 'dense infill'\n"
             "- unchecked 'extra perimeters'"
             "- unchecked 'gap fill after last perimeter'"
+            "- unchecked 'solid infill every layers'"
             "- disabled  'no solid fill over X perimeters'"
             "- disabled 'seam notch'"));
         if (is_global_config)
@@ -137,6 +139,8 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 new_conf.set_key_value("overhangs_reverse", new ConfigOptionBool(false));
             else if (this->local_config->get().optptr("gap_fill_last"))
                 new_conf.set_key_value("gap_fill_last", new ConfigOptionBool(false));
+            else if (this->local_config->get().optptr("solid_infill_every_layers"))
+                new_conf.set_key_value("solid_infill_every_layers", new ConfigOptionBool(false));
             else if (this->local_config->get().optptr("solid_over_perimeters"))
                 new_conf.set_key_value("solid_over_perimeters", new ConfigOptionInt(0));
             else if (this->local_config->get().optptr("seam_notch_all"))
@@ -158,6 +162,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             new_conf.set_key_value("extra_perimeters_odd_layers", new ConfigOptionBool(false));
             new_conf.set_key_value("overhangs_reverse", new ConfigOptionBool(false));
             new_conf.set_key_value("gap_fill_last", new ConfigOptionBool(false));
+            new_conf.set_key_value("solid_infill_every_layers", new ConfigOptionBool(false));
             new_conf.set_key_value("solid_over_perimeters", new ConfigOptionInt(0));
             new_conf.set_key_value("seam_notch_all", new ConfigOptionFloatOrPercent(0, false));
             new_conf.set_key_value("seam_notch_inner", new ConfigOptionFloatOrPercent(0, false));
@@ -350,6 +355,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
 
     bool has_spiral_vase = have_perimeters && config->opt_bool("spiral_vase");
     
+    //bool pa = config->opt_bool("enable_pressure_advance");
+    //toggle_field("pressure_advance", pa);
+    
     bool have_arachne = have_perimeters && (config->opt_int("perimeters") == config->opt_int("perimeters_hole") || !config->is_enabled("perimeters_hole"));
     toggle_field("perimeter_generator", have_arachne);
     have_arachne = have_arachne && config->opt_enum<PerimeterGeneratorType>("perimeter_generator") == PerimeterGeneratorType::Arachne;
@@ -369,9 +377,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
     toggle_field("no_perimeter_unsupported_algo", have_perimeters);
     toggle_field("only_one_perimeter_top", have_perimeters);
     toggle_field("only_one_perimeter_first_layer", config->opt_int("perimeters") > 1);
-    
-    toggle_field("overhangs_width", config->option("overhangs_width_speed")->is_enabled());
-        
     bool have_overhangs_reverse = have_perimeters && !have_arachne && !config->opt_bool("perimeter_reverse");
     toggle_field("overhangs_reverse", have_overhangs_reverse);
 
@@ -430,8 +435,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
         for (auto el : { "infill_every_layers", "infill_only_where_needed" })
             toggle_field(el, !have_infill_dense);
 
-    bool has_top_solid_infill 	 = config->opt_int("top_solid_layers") > 0 || has_spiral_vase;
-    bool has_bottom_solid_infill = config->opt_int("bottom_solid_layers") > 0;
+    bool has_top_solid_infill 	 = config->opt_int("top_solid_layers") > 0 || has_spiral_vase || config->opt_int("solid_infill_every_layers") == 1;
+    bool has_bottom_solid_infill = config->opt_int("bottom_solid_layers") > 0 || config->opt_int("solid_infill_every_layers") == 1;
     bool has_solid_infill 		 = has_top_solid_infill || has_bottom_solid_infill || (have_infill && (config->opt_int("solid_infill_every_layers") > 0 || config->opt_float("solid_infill_below_area") > 0));
     // solid_infill_extruder uses the same logic as in Print::extruders()
     for (auto el : { "top_fill_pattern", "bottom_fill_pattern", "solid_fill_pattern", "enforce_full_fill_volume", "external_infill_margin", "bridged_infill_margin",
@@ -544,7 +549,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
         toggle_field(el, have_raft);
 
     //for default_extrusion_width/spacing, you need to ahve at least an extrusion_width with 0
-    bool have_default_width = config->option("first_layer_extrusion_width")->get_float() == 0 ||
+    auto opt_first_layer_width = config->option("first_layer_extrusion_width");
+    auto opt_first_layer_infill_width = config->option("first_layer_infill_extrusion_width");
+    assert(opt_first_layer_width);
+    assert(opt_first_layer_infill_width);
+    bool have_default_width = 
+        (opt_first_layer_width->is_enabled() && opt_first_layer_width->get_float() == 0) ||
+        (opt_first_layer_infill_width->is_enabled() && opt_first_layer_infill_width->get_float() == 0) ||
         (config->option("perimeter_extrusion_width")->get_float() == 0 && (have_perimeters || have_brim)) ||
         (config->option("external_perimeter_extrusion_width")->get_float() == 0 && have_perimeters) ||
         (config->option("infill_extrusion_width")->get_float() == 0 && (have_infill || has_solid_infill)) ||
@@ -554,6 +565,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* config)
         (config->option("skirt_extrusion_width")->get_float() == 0 && have_skirt);
     toggle_field("extrusion_width", have_default_width);
     toggle_field("extrusion_spacing", have_default_width);
+    
+    toggle_field("first_layer_extrusion_spacing", opt_first_layer_width->is_enabled());
+    toggle_field("first_layer_infill_extrusion_spacing", opt_first_layer_infill_width->is_enabled());
+    
 
     bool has_PP_ironing = has_top_solid_infill && config->opt_bool("ironing");
     for (auto el : { "ironing_type", "ironing_flowrate", "ironing_spacing", "ironing_angle" })
@@ -646,22 +661,11 @@ void ConfigManipulation::update_printer_fff_config(DynamicPrintConfig *config,
             new_conf.option<ConfigOptionFloatsOrPercents>("max_layer_height")->set_at(FloatOrPercent{75., true}, extruder_idx);
             new_conf.option<ConfigOptionFloatsOrPercents>("max_layer_height")->set_enabled(false, extruder_idx);
             apply(config, &new_conf);
+            max_lh = config->get_computed_value("max_layer_height", extruder_idx);
             is_msg_dlg_already_exist = false;
             max_lh = config->get_computed_value("max_layer_height", extruder_idx);
         }
-        if (max_lh > nozzle_sizes[extruder_idx]) {
-            const wxString msg_text = _(
-                L("Maximum layer height is not valid, it can't be higher than the nozzle diameter.\n\nThe maximum layer height will be set to 100% of the nozzle diameter."));
-            MessageDialog dialog(m_msg_dlg_parent, msg_text, _(L("Maximum layer height")), wxICON_WARNING | wxOK);
-            DynamicPrintConfig new_conf = *config;
-            is_msg_dlg_already_exist    = true;
-            dialog.ShowModal();
-            new_conf.option<ConfigOptionFloatsOrPercents>("max_layer_height")->set_at(FloatOrPercent{100., true}, extruder_idx);
-            apply(config, &new_conf);
-            max_lh = config->get_computed_value("max_layer_height", extruder_idx);
-            is_msg_dlg_already_exist = false;
-        }
-        /*
+        // now max_lh > nozzle_size is allowed, but a warning is sent when changed
         if (min_lh >= max_lh) {
             const wxString msg_text = _(
                 L("Minimum layer height is not valid, it can't be higher or equal to the maximum layer height.\n\nThe minimum layer height will be set to 0."));
@@ -674,7 +678,6 @@ void ConfigManipulation::update_printer_fff_config(DynamicPrintConfig *config,
             min_lh = config->get_computed_value("min_layer_height", extruder_idx);
             is_msg_dlg_already_exist = false;
         }
-         */
         
         bool have_retract_length = config->opt_float("retract_length", extruder_idx) > 0;
         bool use_firmware_retraction = config->opt_bool("use_firmware_retraction");
@@ -741,9 +744,12 @@ void ConfigManipulation::toggle_printer_fff_options(DynamicPrintConfig *config, 
         bool have_retract_length = config->opt_float("retract_length", i) > 0;
         
         const bool ramping_lift = config->get_bool("travel_ramping_lift", i);
-        toggle_field("travel_max_lift", ramping_lift, i);
+        //const bool lifts_z = (ramping_lift && config->get_float("travel_max_lift", i) > 0)
+        //                  || (! ramping_lift && config->get_float("retract_lift", i) > 0);
+
+        //toggle_field("travel_max_lift", ramping_lift, i);
         toggle_field("travel_slope", ramping_lift, i);
-        toggle_field("retract_lift", ! ramping_lift, i); // now possible outside retraction
+        // toggle_field("retract_lift", ! ramping_lift, i);
 
         // when using firmware retraction, firmware decides retraction length
         bool use_firmware_retraction = config->opt_bool("use_firmware_retraction");
