@@ -1263,7 +1263,8 @@ bool GUI_App::on_init_inner() {
 #ifdef _MSW_DARK_MODE
     bool init_dark_color_mode = true;
     bool init_sys_menu_enabled = app_config->get_bool("sys_menu_enabled");
-#if _WIN32_
+
+#if WIN32
     NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled);
 #endif
     
@@ -1291,7 +1292,7 @@ bool GUI_App::on_init_inner() {
     // app_config can be updated in check_older_app_config(), so check if dark_color_mode and sys_menu_enabled was changed
     if (bool new_dark_color_mode = app_config->get_bool("dark_color_mode");
         init_dark_color_mode != new_dark_color_mode) {
-#if _WIN32_
+#if WIN32
         NppDarkMode::SetDarkMode(new_dark_color_mode);
 #endif
         init_ui_colours();
@@ -1299,7 +1300,7 @@ bool GUI_App::on_init_inner() {
     }
     if (bool new_sys_menu_enabled = app_config->get_bool("sys_menu_enabled");
         init_sys_menu_enabled != new_sys_menu_enabled)
-#if _WIN32_
+#if WIN32
         NppDarkMode::SetSystemMenuForApp(new_sys_menu_enabled);
 #endif
 #endif
@@ -1699,7 +1700,7 @@ void GUI_App::update_ui_colours_from_appconfig() {
             m_color_label_phony = wxColour(str);
     }
 
-#ifdef _WIN32
+#if WIN32
     bool is_dark_mode = dark_mode();
     m_color_hovered_btn_label = is_dark_mode ?
         color_from_int(app_config->create_color(0.84f, 0.99f, AppConfig::EAppColorType::Highlight)) :
