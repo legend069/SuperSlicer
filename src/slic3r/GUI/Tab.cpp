@@ -502,7 +502,6 @@ int Tab::get_icon_id(const wxString& title, const std::string& icon)
 
 Slic3r::GUI::PageShp Tab::create_options_page(const wxString& title, const std::string& icon)
 {
-    assert((this->type() & Preset::Type::TYPE_FREQUENT) == 0);
     assert(Tab::fake_build || m_page_view);
     // Initialize the page.
     PageShp page(new Page(this, m_page_view, title, get_icon_id(title, icon)));

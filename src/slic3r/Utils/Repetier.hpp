@@ -26,10 +26,13 @@ class Repetier : public PrintHost
 public:
     Repetier(DynamicPrintConfig *config);
     ~Repetier() override = default;
+    
+    using CompletionHandler = std::function<void(const json&, bool, const std::string&)>;
 
     const char* get_name() const override;
 
     bool test(wxString &curl_msg) const override;
+    
     wxString get_test_failed_msg (wxString &msg) const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
     bool has_auto_discovery() const override { return false; }
@@ -45,12 +48,14 @@ public:
     bool preheat_printer(DynamicPrintConfig config) const;
     bool cooldown_printer() const;
 
-    // Get printer config -> API
-    using CompletionHandler = std::function<void(const json&, bool, const std::string&)>;
+    /// Get printer config -> API
+    void get_list_printers(const CompletionHandler& handler) const;
     void get_printer_config(const CompletionHandler& handler) const;
 
     std::vector<json> get_all_json_values(const json &j, const std::string &key);
     void              collect_json_values(const json &j, const std::string &key, std::vector<json> &results);
+    bool find_key_value(const json &j, const std::string &key, json &value);
+    std::vector<json> filter_json_by_jobstate(const json &json_array, const std::string &jobstate_filter);
 
 private:
     std::string host;

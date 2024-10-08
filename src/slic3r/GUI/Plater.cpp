@@ -553,8 +553,17 @@ void FreqChangedParams::init()
         if (selected_printer_config) {
             this->m_rep = new Repetier(selected_printer_config);
             
+            bool is_running = wxGetApp().plater_->get_job_state_physical_printer(selected_printer_config);
+            
+            if (is_running) {
+                m_preheat_button->Disable();
+                wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There is a job running, can´t preheat/cooldown printer!"));
+            }
+            
             if (isOn) {
-                ScalableBitmap preheat_off = ScalableBitmap(m_parent, "preheat_off", 9);
+                ScalableBitmap preheat_off = ScalableBitmap(m_parent,
+                                                            "preheat_off",
+                                                            9);
                 
                 m_preheat_button->SetBitmap(preheat_off.get_bitmap());
                 m_preheat_button->SetLabel("Preheat");
@@ -574,12 +583,21 @@ void FreqChangedParams::init()
                 
                 DynamicPrintConfig print_config = wxGetApp().preset_bundle->full_config();
                 
-                if (this->m_rep->preheat_printer(print_config)) {
-                    wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
+                if (!is_running) {
+                    if (this->m_rep->preheat_printer(print_config)) {
+                        wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
+                    } else {
+                        wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error preheating the printer, please try again."));
+                    }
                 } else {
-                    wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error preheating the printer, please try again."));
+                    // Set to default
+                    ScalableBitmap preheat_off = ScalableBitmap(m_parent,
+                                                                "preheat_off",
+                                                                9);
+                    
+                    m_preheat_button->SetBitmap(preheat_off.get_bitmap());
+                    m_preheat_button->SetLabel("Preheat");
                 }
-                
                 isOn = true;
             }
         }
@@ -595,6 +613,18 @@ void FreqChangedParams::init()
     
     m_refresh_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
+        bool is_running = wxGetApp().plater_->get_job_state_physical_printer(selected_printer_config);
+        
+        if (is_running) {
+            m_preheat_button->Disable();
+        } else {
+            ScalableBitmap preheat_off = ScalableBitmap(m_parent,
+                                                        "preheat_off",
+                                                        9);
+            
+            m_preheat_button->SetBitmap(preheat_off.get_bitmap());
+            m_preheat_button->SetLabel("Preheat");
+        }
         
         if (selected_printer_config) {
             this->m_rep = new Repetier(selected_printer_config);
@@ -4533,15 +4563,55 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 #endif
 }
 
+bool Plater::get_job_state_physical_printer(DynamicPrintConfig* conf) {
+    if (!conf) {
+        return false;
+    }
+    
+    // Using stack allocation for `Repetier` to avoid memory leaks
+    Repetier repetier(conf);
+
+    // Use a promise to manage the asynchronous result
+    std::promise<bool> promise;
+    std::future<bool> future = promise.get_future();
+
+    repetier.get_list_printers([this, &promise, &repetier, conf](const json& printer_config,
+                                                         bool success,
+                                                         const std::string& error_msg) {
+        m_api_success = success;
+
+        if (success) {
+            json json_value;
+            std::vector<json> filtered_nodes = repetier.filter_json_by_jobstate(printer_config, conf->opt_string("printhost_port"));
+
+            bool found = repetier.find_key_value(filtered_nodes, "jobstate", json_value);
+            if (found && json_value.get<std::string>() == "running") {
+                // Job is running, fulfill the promise with `true`
+                promise.set_value(true);
+                return;
+            }
+        }
+        
+        // If unsuccessful or not running, set promise to false
+        promise.set_value(false);
+    });
+
+    // Wait for the result of the asynchronous operation
+    return future.get();
+}
+
 void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     
     wxButton* preheat_button = this->sidebar().get_preheat_button();
     wxButton* refresh_button = this->sidebar().get_refresh_button();
     std::string message = "";
     Repetier *repetier = new Repetier(conf);
+   // bool is_job_running = get_job_state_physical_printer(conf);
+    
+    bool is_running = wxGetApp().plater_->get_job_state_physical_printer(conf);
     
     if (conf) {
-        repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf](const json& printer_config,
+        repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf, is_running](const json& printer_config,
                                                                                             bool success,
                                                                                             const std::string& error_msg) {
             /// Declarations
@@ -4585,10 +4655,17 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
                         }
                     }
                 }
-                preheat_button->Enable();
-                refresh_button->Enable();
-                std::string message = "The physical printer config has been set successfully.";
-                notification_manager->push_notification(_u8L(message));
+                if (is_running) {
+                    preheat_button->Disable();
+                    notification_manager->push_notification(_u8L("There is currently a job running, preheating/cooldown is disabled until the job is finished."));
+                } else {
+                    preheat_button->Enable();
+                }
+                
+            refresh_button->Enable();
+            std::string message = "The physical printer config has been set successfully.";
+            notification_manager->push_notification(_u8L(message));
+                
             } else {
                 std::string message = "There was an error updating the physical printer config: " + error_msg;
                 notification_manager->push_notification(_u8L(error_msg));

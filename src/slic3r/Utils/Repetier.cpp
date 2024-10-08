@@ -271,12 +271,10 @@ void Repetier::get_printer_config(const CompletionHandler& handler) const {
 
     http.form_add("a", "getPrinterConfig")
         .on_complete([&](std::string body, unsigned status) {
-            std::cout << "Getting printer config was successful: " << body << std::endl;
             json_response = json::parse(body);
             handler(json_response, true, "");  // Call handler with success
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
-            std::cout << "Error getting printer config: " << error << std::endl;
             handler(json(), false, error);  // Call handler with error
         })
         .perform_sync();
@@ -300,6 +298,47 @@ std::vector<json> Repetier::get_all_json_values(const json &j, const std::string
     std::vector<json> results;
     collect_json_values(j, key, results);
     return results;
+}
+
+// Function to find the value of a given key in a JSON object
+bool Repetier::find_key_value(const json &j, const std::string &key, json &value)
+{
+    if (j.is_object()) {
+        // If the key is found in this object, return the value
+        if (j.contains(key)) {
+            value = j.at(key);
+            return true;
+        }
+        // If not, recursively check each item in the object
+        for (const auto &item : j.items()) {
+            if (find_key_value(item.value(), key, value)) {
+                return true;
+            }
+        }
+    } else if (j.is_array()) {
+        // If the JSON is an array, search through each element
+        for (const auto &item : j) {
+            if (find_key_value(item, key, value)) {
+                return true;
+            }
+        }
+    }
+    return false;  // Return false if the key is not found
+}
+
+// Function to filter JSON nodes based on a condition
+std::vector<json> Repetier::filter_json_by_jobstate(const json &json_array, const std::string &jobstate_filter) {
+    std::vector<json> filtered_results;
+    
+    // Iterate through each node in the JSON array
+    for (const auto &node : json_array) {
+        // Check if the node contains "jobstate" and if it matches the filter
+        if (node.contains("slug") && node.at("slug").get<std::string>() == jobstate_filter) {
+            // Add the node to the filtered results
+            filtered_results.push_back(node);
+        }
+    }
+    return filtered_results;
 }
 
 void Repetier::set_auth(Http &http) const
@@ -364,6 +403,26 @@ bool Repetier::get_groups(wxArrayString& groups) const
         .perform_sync();
 
     return res;
+}
+
+void Repetier::get_list_printers(const CompletionHandler& handler) const {
+
+    std::string endpoint = "/printer/api/" + port + "?a=listPrinter";
+    std::string url      = make_url((boost::format("printer/api/%1%") % port).str());
+    json json_response;
+
+    auto http = Http::get(std::move(url));
+    set_auth(http);
+
+    http.form_add("a", "listPrinter")
+        .on_complete([&](std::string body, unsigned status) {
+            json_response = json::parse(body);
+            handler(json_response, true, "");  // Call handler with success
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            handler(json(), false, error);  // Call handler with error
+        })
+        .perform_sync();
 }
 
 bool Repetier::get_printers(wxArrayString& printers) const

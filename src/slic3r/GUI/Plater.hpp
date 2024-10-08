@@ -203,6 +203,7 @@ public:
     void convert_gcode_to_binary();
     void refresh_print();
     void set_physical_printer_config(DynamicPrintConfig* conf);
+    bool get_job_state_physical_printer(DynamicPrintConfig* conf);
     void refresh_physical_printer_config();
     bool physical_printer_is_selected = false;
     void on_physical_printer_selected(wxCommandEvent &);
