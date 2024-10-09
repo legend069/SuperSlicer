@@ -584,7 +584,7 @@ void FreqChangedParams::init()
                 DynamicPrintConfig print_config = wxGetApp().preset_bundle->full_config();
                 
                 if (!is_running) {
-                    if (this->m_rep->preheat_printer(print_config)) {
+                   if (this->m_rep->preheat_extruders(print_config) && this->m_rep->preheat_bed(print_config)) {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
                     } else {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error preheating the printer, please try again."));

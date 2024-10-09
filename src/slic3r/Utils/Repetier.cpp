@@ -215,7 +215,7 @@ bool Repetier::cooldown_printer() const {
             res = true;
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
-            std::cout << "Error preheating" << error << std::endl;
+            std::cout << "Error cooldowning" << error << std::endl;
             res = false;
         })
         .perform_sync();
@@ -224,7 +224,7 @@ bool Repetier::cooldown_printer() const {
     return res;
 }
 
-bool Repetier::preheat_printer(DynamicPrintConfig config) const {
+bool Repetier::preheat_extruders(DynamicPrintConfig config) const {
     
     bool res = true;
     size_t first_layer_temp_count = config.option<ConfigOptionInts>("first_layer_temperature")->size();
@@ -234,8 +234,7 @@ bool Repetier::preheat_printer(DynamicPrintConfig config) const {
         int first_layer_temp = config.option<ConfigOptionInts>("first_layer_temperature")->get_at(i);
         
         std::string endpoint = "/printer/api/" + port + "?a=setExtruderTemperature";
-        
-        //{"temperature":215,"extruder":0}
+
         std::string jsonData = R"({"temperature": )" + std::to_string(first_layer_temp) + R"(,"extruder": )" + std::to_string(i) + "}";
         
         std::string cleanedHost = removeHttpPrefix(host);
@@ -254,12 +253,45 @@ bool Repetier::preheat_printer(DynamicPrintConfig config) const {
                 std::cout << "Error preheating" << error << std::endl;
                 res = false;
             })
-            .perform_sync();
-        
+            .perform_sync(); 
     }
-    
     return res;
 }
+
+bool Repetier::preheat_bed(DynamicPrintConfig config) const {
+    
+    bool res = true;
+    size_t first_layer_temp_count = config.option<ConfigOptionInts>("first_layer_bed_temperature")->size();
+    
+    for (int i = 0; i < first_layer_temp_count; i++) {
+        
+        int first_layer_temp = config.option<ConfigOptionInts>("first_layer_bed_temperature")->get_at(i);
+        
+        std::string endpoint = "/printer/api/" + port + "?a=setBedTemperature";
+
+        std::string jsonData = R"({"temperature": )" + std::to_string(first_layer_temp) + R"(,"bedId": )" + std::to_string(i) + "}";
+        
+        std::string cleanedHost = removeHttpPrefix(host);
+        std::string encoded_json = Http::url_encode(jsonData);
+        
+        std::string url = "http://" + cleanedHost + endpoint + "&data=" + encoded_json;
+        
+        auto http = Http::post(std::move(url));
+        set_auth(http);
+        
+        http.form_add("a", "setBedTemperature")
+            .on_complete([&](std::string body, unsigned status) {
+                std::cout << "Preheating bed was successful" << std::endl;
+            })
+            .on_error([&](std::string body, std::string error, unsigned status) {
+                std::cout << "Error preheating bed" << error << std::endl;
+                res = false;
+            })
+            .perform_sync(); 
+    }
+    return res;
+}
+
 
 void Repetier::get_printer_config(const CompletionHandler& handler) const {
     std::string endpoint = "/printer/api/" + port + "?a=getPrinterConfig";
