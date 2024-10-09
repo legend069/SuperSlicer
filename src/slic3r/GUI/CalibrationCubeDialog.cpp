@@ -58,6 +58,8 @@ void CalibrationCubeDialog::create_buttons(wxStdDialogButtonSizer* buttons){
 void CalibrationCubeDialog::create_geometry(std::string calibration_path) {
     Plater* plat = this->main_frame->plater();
     Model& model = plat->model();
+    gui_app->app_config->set("autocenter", "1");
+
     if (!plat->new_project(L("Calibration cube")))
         return;
 
@@ -114,6 +116,7 @@ void CalibrationCubeDialog::create_geometry(std::string calibration_path) {
 
 
     plat->reslice();
+    gui_app->app_config->set("autocenter", "0");
 
 }
 

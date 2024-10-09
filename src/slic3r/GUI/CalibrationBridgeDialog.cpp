@@ -53,16 +53,11 @@ void CalibrationBridgeDialog::create_buttons(wxStdDialogButtonSizer* buttons){
 
 void CalibrationBridgeDialog::create_geometry(std::string setting_to_test, bool add) {
     Plater* plat = this->main_frame->plater();
+    gui_app->app_config->set("autocenter", "1");
+
     Model& model = plat->model();
     if (!plat->new_project(L("Bridge calibration")))
         return;
-
-    //GLCanvas3D::set_warning_freeze(true);
-    bool autocenter = gui_app->app_config->get("autocenter") == "1";
-    if (autocenter) {
-        //disable auto-center for this calibration.
-        gui_app->app_config->set("autocenter", "0");
-    }
 
     long step = 10;
     if (!steps->GetValue().ToLong(&step)) {
@@ -212,11 +207,7 @@ void CalibrationBridgeDialog::create_geometry(std::string setting_to_test, bool 
     }
 
     plat->reslice();
-
-    if (autocenter) {
-        //re-enable auto-center after this calibration.
-        gui_app->app_config->set("autocenter", "1");
-    }
+    gui_app->app_config->set("autocenter", "0");
 }
 
 } // namespace GUI

@@ -5935,7 +5935,7 @@ bool Plater::new_project(std::string project_name)
     // Update Project dirty state, update application title bar.
     update_project_dirty_from_presets();
     // Update physical printer config
-    refresh_physical_printer_config();
+    //refresh_physical_printer_config();
     return true;
 }
 

@@ -27,6 +27,7 @@ namespace GUI {
 void CalibrationCr3dAbstractDialog::create_geometry(std::string calibration_path) {
     Plater* plat = this->main_frame->plater();
     Model& model = plat->model();
+    gui_app->app_config->set("autocenter", "1");
 
     if (!plat->new_project(L("CR-3D Calibration cube")))
         return;
@@ -46,6 +47,8 @@ void CalibrationCr3dAbstractDialog::create_geometry(std::string calibration_path
     obj->update_after_undo_redo();
 
     plat->reslice();
+    gui_app->app_config->set("autocenter", "0");
+
 }
 
 void CalibrationCr3dCubeDialog::create_buttons(wxStdDialogButtonSizer* buttons){

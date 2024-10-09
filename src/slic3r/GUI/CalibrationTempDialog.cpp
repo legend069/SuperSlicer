@@ -55,7 +55,10 @@ void CalibrationTempDialog::create_buttons(wxStdDialogButtonSizer* buttons){
 }
 
 void CalibrationTempDialog::create_geometry(wxCommandEvent& event_args) {
+
     Plater* plat = this->main_frame->plater();
+    gui_app->app_config->set("autocenter", "1");
+
     Model& model = plat->model();
     if (!plat->new_project(L("Temperature calibration")))
         return;
@@ -141,16 +144,6 @@ void CalibrationTempDialog::create_geometry(wxCommandEvent& event_args) {
         }
     }
 
-
-    /// --- translate ---
-    bool autocenter = gui_app->app_config->get("autocenter") == "1";
-    if (!autocenter) {
-        const ConfigOptionPoints* bed_shape = printer_config->option<ConfigOptionPoints>("bed_shape");
-        Vec2d bed_size = BoundingBoxf(bed_shape->get_values()).size();
-        Vec2d bed_min = BoundingBoxf(bed_shape->get_values()).min;
-        model.objects[objs_idx[0]]->translate({ bed_min.x() + bed_size.x() / 2, bed_min.y() + bed_size.y() / 2, 5 * xyzScale - 5 });
-    }
-
     /// --- main config, please modify object config when possible ---
     DynamicPrintConfig new_print_config = *print_config; //make a copy
     new_print_config.set_key_value("complete_objects", new ConfigOptionBool(false));
@@ -204,6 +197,8 @@ void CalibrationTempDialog::create_geometry(wxCommandEvent& event_args) {
 
 
     plat->reslice();
+    gui_app->app_config->set("autocenter", "0");
+
 }
 
 } // namespace GUI

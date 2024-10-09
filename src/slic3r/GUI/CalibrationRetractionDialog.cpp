@@ -101,15 +101,9 @@ void CalibrationRetractionDialog::remove_slowdown(wxCommandEvent& event_args) {
 void CalibrationRetractionDialog::create_geometry(wxCommandEvent& event_args) {
     Plater* plat = this->main_frame->plater();
     Model& model = plat->model();
+
     if (!plat->new_project(L("Retraction calibration")))
         return;
-
-    //GLCanvas3D::set_warning_freeze(true);
-    bool autocenter = gui_app->app_config->get("autocenter") == "1";
-    if (autocenter) {
-        //disable aut-ocenter for this calibration.
-        gui_app->app_config->set("autocenter", "0");
-    }
 
     long nb_retract = 1;
     if (!nb_steps->GetValue().ToLong(&nb_retract)) {
@@ -178,6 +172,7 @@ void CalibrationRetractionDialog::create_geometry(wxCommandEvent& event_args) {
     //add sub-part after scale
     float zscale_number = (first_layer_height + layer_height) / 0.4;
     std::vector<std::string> filament_temp_item_name;
+    
     for (size_t id_item = 0; id_item < nb_items; id_item++) {
         int mytemp = temp - temp_decr * id_item;
         if (mytemp <= 285 && mytemp >= 180 && mytemp % 5 == 0) {
@@ -185,6 +180,7 @@ void CalibrationRetractionDialog::create_geometry(wxCommandEvent& event_args) {
             assert(model.objects[objs_idx[id_item]]->volumes.size() == 1);
             add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_temp" / filament_temp_item_name.back()).string(),
                 Vec3d{ 0,0, scale * 0.0 - 4.8 }, Vec3d{ scale,scale,scale });
+                
             assert(model.objects[objs_idx[id_item]]->volumes.size() == 2);
             model.objects[objs_idx[id_item]]->volumes[1]->rotate(PI / 2, Vec3d(0, 0, 1));
             model.objects[objs_idx[id_item]]->volumes[1]->rotate(-PI / 2, Vec3d(1, 0, 0));
@@ -215,6 +211,7 @@ void CalibrationRetractionDialog::create_geometry(wxCommandEvent& event_args) {
     /// --- custom config ---
     assert(filament_temp_item_name.size() == nb_items);
     assert(model.objects.size() == nb_items);
+    
     for (size_t i = 0; i < nb_items; i++) {
         ModelObject *current_obj = model.objects[objs_idx[i]];
         //speed
@@ -224,10 +221,8 @@ void CalibrationRetractionDialog::create_geometry(wxCommandEvent& event_args) {
         current_obj->config.set_key_value("brim_width", new ConfigOptionFloat(0));
         current_obj->config.set_key_value("perimeters", new ConfigOptionInt(2));
         current_obj->config.set_key_value("external_perimeters_first", new ConfigOptionBool(false));
-        current_obj->config.set_key_value("bottom_solid_layers", new ConfigOptionInt(0));
-        for(auto& volume : current_obj->volumes)
-            if( volume->name == filament_temp_item_name[i] || volume->name.empty()) // if temperature patch or the main retraction patch (empty name because it's the initial volume)
-                volume->config.set_key_value("bottom_solid_layers", new ConfigOptionInt(2));
+        current_obj->config.set_key_value("bottom_solid_layers", new ConfigOptionInt(3));
+
         current_obj->config.set_key_value("top_solid_layers", new ConfigOptionInt(0));
         current_obj->config.set_key_value("fill_density", new ConfigOptionPercent(0));
         //current_obj->config.set_key_value("fill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
@@ -255,48 +250,17 @@ void CalibrationRetractionDialog::create_geometry(wxCommandEvent& event_args) {
             
         }
     }
-
-    /// --- main config, please modify object config when possible ---
-    if (nb_items > 1) {
-        DynamicPrintConfig new_print_config = *print_config; //make a copy
-        new_print_config.set_key_value("complete_objects", new ConfigOptionBool(true));
-        //if skirt, use only one
-        if (print_config->option<ConfigOptionInt>("skirts")->get_int() > 0 && print_config->option<ConfigOptionInt>("skirt_height")->get_int() > 0) {
-            new_print_config.set_key_value("complete_objects_one_skirt", new ConfigOptionBool(true));
-        }
-        this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->load_config(new_print_config);
-        this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
-        plat->on_config_change(new_print_config);
-    }
-
-    //update plater
-    //GLCanvas3D::set_warning_freeze(false);
+   
     plat->changed_objects(objs_idx);
-    //if (plat->printer_technology() == ptFFF)
-        //plat->fff_print().full_print_config().apply(plat->config());
+    this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->update_dirty();
+    plat->is_preview_shown();
+    
     //update everything, easier to code.
     ObjectList* obj = this->gui_app->obj_list();
     obj->update_after_undo_redo();
+    
+    //plat->reslice();
 
-    // arrange if needed, after new settings, to take them into account
-    if (has_to_arrange) {
-        //update print config (done at reslice but we need it here)
-        if (plat->printer_technology() == ptFFF)
-            plat->fff_print().apply(plat->model(), *plat->config());
-        plat->arrange();
-        // std::shared_ptr<ProgressIndicatorStub> fake_statusbar = std::make_shared<ProgressIndicatorStub>();
-        // ArrangeJob arranger(std::dynamic_pointer_cast<ProgressIndicator>(fake_statusbar), plat);
-        // arranger.prepare_all();
-        // arranger.process();
-        // arranger.finalize();
-    }
-
-    plat->reslice();
-
-    if (autocenter) {
-        //re-enable auto-center after this calibration.
-        gui_app->app_config->set("autocenter", "1");
-    }
 }
 
 } // namespace GUI
