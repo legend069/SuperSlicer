@@ -1080,7 +1080,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox** combo, const int extr_i
         assert(opt);
         std::string tool_name = opt? opt->get_at(extr_idx) : nullptr;
         std::wstring wide_tool_name = to_wstring(tool_name);
-
+        
         if (wide_tool_name.size() > 10) {
             wide_tool_name = wide_tool_name.substr(0,7) + std::string("... ");
         }
@@ -1133,7 +1133,7 @@ void Sidebar::update_all_preset_comboboxes()
     }
     // Update the printer choosers, update the dirty flags.
     p->combo_printer->update();
-
+    
     DynamicPrintConfig *selected_printer_config = wxGetApp()
         .preset_bundle->physical_printers.get_selected_printer_config();
     if (selected_printer_config)
@@ -1166,7 +1166,7 @@ void Sidebar::update_all_preset_comboboxes()
                     }
                     cb->label->SetLabel(wide_tool_name.empty() ? "" : (wide_tool_name + std::string(": ")));
                 }
-           }
+            }
     }
 }
 
@@ -2342,47 +2342,47 @@ const std::regex Plater::priv::pattern_prusa(".*prusa", std::regex::icase);
 const std::regex Plater::priv::pattern_zip(".*zip", std::regex::icase);
 
 Plater::priv::priv(Plater *q, MainFrame *main_frame)
-    : q(q)
-    , main_frame(main_frame)
-    , config(Slic3r::DynamicPrintConfig::new_from_defaults_keys({
-        // These keys are used by (at least) printconfig::min_object_distance
-        "bed_shape", "bed_custom_texture", "bed_custom_model", 
-        "brim_width", "brim_width_interior","brim_separation",
-        "complete_objects",
-        "parallel_objects_step",
-        "complete_objects_sort",
-        "complete_objects_one_skirt",
-        "brim_per_object",
-        "duplicate_distance", 
-        "draft_shield",
-        "extruder_clearance_radius",
-        "first_layer_extrusion_width",
-        "first_layer_infill_extrusion_width",
-        "init_z_rotate", 
-        "max_print_height",
-        "perimeter_extrusion_width",
-        "extrusion_width",
-        "skirts", "skirt_brim", "skirt_distance", "skirt_distance_from_brim", 
-        "skirt_extrusion_width", "skirt_height", "first_layer_extrusion_spacing", "perimeter_extrusion_spacing", "extrusion_spacing",
-        "variable_layer_height", "nozzle_diameter", "single_extruder_multi_material",
-        "wipe_tower", "wipe_tower_brim_width", "wipe_tower_rotation_angle", "wipe_tower_width", "wipe_tower_x", "wipe_tower_y",
-        "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extruder",
-        "extruder_colour", "filament_colour", "material_colour",
-        "printer_model", "printer_notes", "printer_technology",
-        // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
-        "layer_height", "first_layer_height", "min_layer_height", "max_layer_height",
-        "perimeters", "perimeter_extruder", "fill_density", "infill_extruder", "raft_layers", 
-        "support_material", "support_material_extruder", "support_material_interface_extruder", "support_material_contact_distance", "top_solid_layers",
-        "z_step"
-        }))
-    , sidebar(new Sidebar(q))
-    , notification_manager(std::make_unique<NotificationManager>(q))
-    , m_worker{q, std::make_unique<NotificationProgressIndicator>(notification_manager.get()), "ui_worker"}
-    , m_sla_import_dlg{new SLAImportDialog{q}}
-    , delayed_scene_refresh(false)
-    , view_toolbar(GLToolbar::Radio, "View")
-    , collapse_toolbar(GLToolbar::Normal, "Collapse")
-    , m_project_filename(wxEmptyString)
+: q(q)
+, main_frame(main_frame)
+, config(Slic3r::DynamicPrintConfig::new_from_defaults_keys({
+    // These keys are used by (at least) printconfig::min_object_distance
+    "bed_shape", "bed_custom_texture", "bed_custom_model",
+    "brim_width", "brim_width_interior","brim_separation",
+    "complete_objects",
+    "parallel_objects_step",
+    "complete_objects_sort",
+    "complete_objects_one_skirt",
+    "brim_per_object",
+    "duplicate_distance",
+    "draft_shield",
+    "extruder_clearance_radius",
+    "first_layer_extrusion_width",
+    "first_layer_infill_extrusion_width",
+    "init_z_rotate",
+    "max_print_height",
+    "perimeter_extrusion_width",
+    "extrusion_width",
+    "skirts", "skirt_brim", "skirt_distance", "skirt_distance_from_brim",
+    "skirt_extrusion_width", "skirt_height", "first_layer_extrusion_spacing", "perimeter_extrusion_spacing", "extrusion_spacing",
+    "variable_layer_height", "nozzle_diameter", "single_extruder_multi_material",
+    "wipe_tower", "wipe_tower_brim_width", "wipe_tower_rotation_angle", "wipe_tower_width", "wipe_tower_x", "wipe_tower_y",
+    "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extruder",
+    "extruder_colour", "filament_colour", "material_colour",
+    "printer_model", "printer_notes", "printer_technology",
+    // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
+    "layer_height", "first_layer_height", "min_layer_height", "max_layer_height",
+    "perimeters", "perimeter_extruder", "fill_density", "infill_extruder", "raft_layers",
+    "support_material", "support_material_extruder", "support_material_interface_extruder", "support_material_contact_distance", "top_solid_layers",
+    "z_step"
+}))
+, sidebar(new Sidebar(q))
+, notification_manager(std::make_unique<NotificationManager>(q))
+, m_worker{q, std::make_unique<NotificationProgressIndicator>(notification_manager.get()), "ui_worker"}
+, m_sla_import_dlg{new SLAImportDialog{q}}
+, delayed_scene_refresh(false)
+, view_toolbar(GLToolbar::Radio, "View")
+, collapse_toolbar(GLToolbar::Normal, "Collapse")
+, m_project_filename(wxEmptyString)
 {
     background_process.set_fff_print(&fff_print);
     background_process.set_sla_print(&sla_print);
@@ -4498,8 +4498,6 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     
     auto idx = combo->get_extruder_idx();
     
-    std::cout << idx << std::endl;
-    
     //! Because of The MSW and GTK version of wxBitmapComboBox derived from wxComboBox,
     //! but the OSX version derived from wxOwnerDrawnCombo.
     //! So, to get selected string we do
@@ -4539,6 +4537,8 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     if (wxGetApp().preset_bundle->physical_printers.get_selected_printer_config()) {
         DynamicPrintConfig *selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
         q->set_physical_printer_config(selected_printer_config);
+    } else {
+        q->sidebar().get_refresh_button()->Disable();
     }
     
     if (preset_type != Preset::TYPE_PRINTER || select_preset) {
@@ -4570,20 +4570,20 @@ bool Plater::get_job_state_physical_printer(DynamicPrintConfig* conf) {
     
     // Using stack allocation for `Repetier` to avoid memory leaks
     Repetier repetier(conf);
-
+    
     // Use a promise to manage the asynchronous result
     std::promise<bool> promise;
     std::future<bool> future = promise.get_future();
-
+    
     repetier.get_list_printers([this, &promise, &repetier, conf](const json& printer_config,
-                                                         bool success,
-                                                         const std::string& error_msg) {
+                                                                 bool success,
+                                                                 const std::string& error_msg) {
         m_api_success = success;
-
+        
         if (success) {
             json json_value;
             std::vector<json> filtered_nodes = repetier.filter_json_by_jobstate(printer_config, conf->opt_string("printhost_port"));
-
+            
             bool found = repetier.find_key_value(filtered_nodes, "jobstate", json_value);
             if (found && json_value.get<std::string>() == "running") {
                 // Job is running, fulfill the promise with `true`
@@ -4595,7 +4595,7 @@ bool Plater::get_job_state_physical_printer(DynamicPrintConfig* conf) {
         // If unsuccessful or not running, set promise to false
         promise.set_value(false);
     });
-
+    
     // Wait for the result of the asynchronous operation
     return future.get();
 }
@@ -4604,16 +4604,13 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
     
     wxButton* preheat_button = this->sidebar().get_preheat_button();
     wxButton* refresh_button = this->sidebar().get_refresh_button();
-    std::string message = "";
     Repetier *repetier = new Repetier(conf);
-   // bool is_job_running = get_job_state_physical_printer(conf);
-    
     bool is_running = wxGetApp().plater_->get_job_state_physical_printer(conf);
     
     if (conf) {
         repetier->get_printer_config([this, preheat_button, refresh_button, repetier, conf, is_running](const json& printer_config,
-                                                                                            bool success,
-                                                                                            const std::string& error_msg) {
+                                                                                                        bool success,
+                                                                                                        const std::string& error_msg) {
             /// Declarations
             DynamicPrintConfig new_conf;
             NotificationManager* notification_manager = get_notification_manager();
@@ -4627,7 +4624,6 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
                     for (const auto& value : tool_diameter_values) {
                         if (value.is_number()) {
                             double tool_diameter = value.get<double>();
-                            std::cout << "Found diameter: " << tool_diameter << std::endl;
                             
                             if (tab_printer) {
                                 DynamicPrintConfig *config = tab_printer->get_config();
@@ -4658,13 +4654,13 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
                 if (is_running) {
                     preheat_button->Disable();
                     notification_manager->push_notification(_u8L("There is currently a job running, preheating/cooldown is disabled until the job is finished."));
-                } else {
+                } else {
                     preheat_button->Enable();
                 }
                 
-            refresh_button->Enable();
-            std::string message = "The physical printer config has been set successfully.";
-            notification_manager->push_notification(_u8L(message));
+                refresh_button->Enable();
+                std::string message = "The physical printer config has been set successfully.";
+                notification_manager->push_notification(_u8L(message));
                 
             } else {
                 std::string message = "There was an error updating the physical printer config: " + error_msg;

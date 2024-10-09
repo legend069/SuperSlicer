@@ -17,6 +17,9 @@
 #include <wx/sizer.h>
 #include <wx/statbox.h>
 #include <wx/tooltip.h>
+#include "Tab.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Utils.hpp"
@@ -194,6 +197,7 @@ void BedShapePanel::build_panel(const ConfigOptionPoints& default_pt, const Conf
 {
     wxGetApp().UpdateDarkUI(this);
     m_shape = default_pt.get_values();
+    
     m_custom_texture = custom_texture.value.empty() ? NONE : custom_texture.value;
     m_custom_model = custom_model.value.empty() ? NONE : custom_model.value;
 
@@ -294,7 +298,24 @@ wxPanel* BedShapePanel::init_texture_panel()
     wxPanel* panel = new wxPanel(this);
     wxGetApp().UpdateDarkUI(panel, true);
     ConfigOptionsGroupShp optgroup = std::make_shared<ConfigOptionsGroup>(panel, _L("Texture"));
+        
+    boost::filesystem::path data_dir = boost::filesystem::path(Slic3r::data_dir());
+    boost::filesystem::path resources_dir = boost::filesystem::path(Slic3r::resources_dir());
+    
+    VendorProfile bundle = wxGetApp().preset_bundle->printers.get_edited_preset_with_vendor_profile().vendor->from_ini(data_dir / "vendor" / "CR3D.ini");
+    std::string selected_name = wxGetApp().preset_bundle->printers.get_selected_preset_name();
+    std::string base_selected_name = selected_name.substr(0, selected_name.find(" - "));  // Cut after the first " - " if present
 
+    for (const auto &model : bundle.models) {
+        if (base_selected_name.find(model.name) != std::string::npos ||
+            model.name.find(base_selected_name) != std::string::npos) {
+            
+                m_custom_model =   resources_dir.string() + "/profiles/" + "CR3D/" + model.bed_model;
+                m_custom_texture = resources_dir.string() + "/profiles/" + "CR3D/" + model.bed_texture;
+                break;
+        }
+    }
+    
     optgroup->title_width = 10;
     optgroup->m_on_change = [this](t_config_option_key opt_key, bool enabled, boost::any value) {
         assert(enabled);

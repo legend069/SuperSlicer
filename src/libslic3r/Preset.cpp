@@ -2861,7 +2861,7 @@ namespace PresetUtils {
 		return out;
 	}
 
-    std::string system_printer_bed_model(const Preset& preset)
+std::string system_printer_bed_model(const Preset& preset)
     {
         std::string out;
         const VendorProfile::PrinterModel* pm = PresetUtils::system_printer_model(preset);
@@ -2873,7 +2873,7 @@ namespace PresetUtils {
         return out;
     }
 
-    std::string system_printer_bed_texture(const Preset& preset)
+std::string system_printer_bed_texture(const Preset& preset)
     {
         std::string out;
         const VendorProfile::PrinterModel* pm = PresetUtils::system_printer_model(preset);
