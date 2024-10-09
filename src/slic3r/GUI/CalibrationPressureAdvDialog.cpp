@@ -52,7 +52,7 @@ namespace GUI {
         {"GapFill", FlowRole::frSupportMaterialInterface},                          // special calc required
         {"InternalBridgeInfill", FlowRole::frSupportMaterialInterface},             // special calc required
         {"Ironing", FlowRole::frSupportMaterialInterface},                          // special calc required
-        {"OverhangPerimeter", FlowRole::frSupportMaterialInterface},                // special calc required ?
+        {"OverhangPerimeter", FlowRole::frExternalPerimeter},                       //overhangs use the same flow config as external perimeter TODO: confirm this.
         {"Perimeter", FlowRole::frPerimeter},
         {"SolidInfill", FlowRole::frSolidInfill},
         {"SupportMaterial", FlowRole::frSupportMaterial},
@@ -117,7 +117,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     {"SolidInfill", "solid_infill_extrusion_width"},
     {"SupportMaterial", "support_material_extrusion_width"},// support material layer_height can go up/down depending on config.
     {"SupportMaterialInterface", "support_material_extrusion_width"},//SupportMaterialInterface and SupportMaterialInterface shares same width calculations?
-    {"ThinWall", "external_perimeter_extrusion_width"},//not fully suported
+    {"ThinWall", "thin_walls_min_width"},//not fully suported
     {"TopSolidInfill", "top_infill_extrusion_width"},
     {"FirstLayer", "first_layer_extrusion_width"}
 
@@ -176,55 +176,6 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     };
 
 
-<<<<<<< Updated upstream
-    std::unordered_map<std::string, ExtrusionSettings> extrusionRoleToOptionKey = {
-        {"InternalInfill", {"infill_extrusion_width", "infill_acceleration", "placeholder"}},
-        //{"BridgeInfill", {"placeholder", "bridge_acceleration", "placeholder"}},//special calc required
-        {"ExternalPerimeter", {"external_perimeter_extrusion_width", "external_perimeter_acceleration"}},
-        //{"GapFill", {"placeholder", "gap_fill_acceleration"}},//special calc required
-        //{"InternalBridgeInfill", {"placeholder", "internal_bridge_acceleration"}},//special calc required
-        {"Ironing", {"top_infill_extrusion_width", "ironing_acceleration"}},
-        {"OverhangPerimeter", {"overhangs_width", "overhangs_acceleration"}},
-        {"Perimeter", {"perimeter_extrusion_width", "perimeter_acceleration"}},
-        {"SolidInfill", {"solid_infill_extrusion_width", "solid_infill_acceleration"}},
-        {"SupportMaterial", {"support_material_extrusion_width", "support_material_acceleration"}},
-        {"SupportMaterialInterface", {"support_material_extrusion_width", "support_material_interface_acceleration"}},
-        {"ThinWall", {"external_perimeter_extrusion_width", "thin_walls_acceleration"}},
-        {"TopSolidInfill", {"top_infill_extrusion_width", "top_solid_infill_acceleration"}}
-    };*/
-    
-    int countincrements = 0;
-    int sizeofarray     = static_cast<int>((end_pa - start_pa) / pa_increment) + 2; //'+2' needed for odd/even numbers
-    std::vector<double>      pa_values(sizeofarray);
-    std::vector<std::string> c_pa_values_c(sizeofarray);
-
-    double incremented_pa_value = start_pa;
-    while (incremented_pa_value <=
-           end_pa + pa_increment /
-                        2) { // this makes a number to be used to load x number of 90 bend models for the PA test.
-        if (incremented_pa_value <= end_pa) {
-            double rounded_Pa              = std::round(incremented_pa_value * 1000000.0) / 1000000.0;
-            pa_values[countincrements]     = rounded_Pa; // store PA numbers in array to be used later.
-            c_pa_values_c[countincrements] = rounded_Pa;
-            countincrements++;
-            incremented_pa_value += pa_increment;
-        } else {
-            pa_values[countincrements] = end_pa;
-            countincrements++; // failsafe if werid input numbers are provided that can't add the "ending pa" number
-                               // to the array.
-            break;
-        }
-
-    } // is there a limit of how many models SS can load ? might be good to set a failsafe just so it won't load 10k+ models...
-
-    bool    has_to_arrange = false;
-    Plater *plat           = this->main_frame->plater();
-    Model & model          = plat->model();
-    gui_app->app_config->set("autocenter", "1");
-    if (!plat->new_project(L("Pressure calibration")))
-        return;
-
-=======
     Plater* plat = this->main_frame->plater();
     Model& model = plat->model();
     if (!plat->new_project(L("Pressure calibration")))
@@ -236,7 +187,6 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         gui_app->app_config->set("autocenter", "0");
     }
     
->>>>>>> Stashed changes
     std::vector<std::string> items;
     for (int i = 0; i < currentTestCount; i++) {
         items.emplace_back((boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "base_plate.3mf").string());
@@ -270,6 +220,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     double er_accel = full_print_config.get_computed_value("solid_infill_acceleration");
     double er_speed = full_print_config.get_computed_value("solid_infill_speed");
     double er_spacing = full_print_config.get_abs_value("external_perimeter_extrusion_spacing",nozzle_diameter);
+    double thin_walls_min_width = full_print_config.get_abs_value("thin_walls_min_width", nozzle_diameter);
 
     double default_er_width = full_print_config.get_abs_value("extrusion_width", nozzle_diameter);
     double default_er_speed = full_print_config.get_computed_value("default_speed");
@@ -279,6 +230,13 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     double spacing_ratio_external = full_print_config.get_computed_value("external_perimeter_overlap");
     double filament_max_overlap = full_print_config.get_computed_value("filament_max_overlap",0);//maybe check for extruderID ?
     double combined_layer_height = infill_every_layers * base_layer_height;
+    double support_material_layer_height = full_print_config.get_computed_value("support_material_layer_height");
+
+    //double min_layer_height = full_print_config.get_computed_value("min_layer_height");
+    //double max_layer_height = full_print_config.get_computed_value("max_layer_height");
+
+    double min_layer_height = full_print_config.get_abs_value("min_layer_height", nozzle_diameter);
+    double max_layer_height = full_print_config.get_abs_value("max_layer_height", nozzle_diameter);
 
     bool infill_dense = full_print_config.get_bool("infill_dense");
     if (combined_layer_height > nozzle_diameter){
@@ -390,30 +348,40 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                     modified_layer_height = combined_layer_height;
                 }
                 else if (role_str == "SupportMaterial"){//this one might be tricky to do, since supports layerheight can go up/down based on config. maybe load 3 90_bend models for supports with low,high, middle layer heights
-                    modified_layer_height = 0.2;
+                    if (support_material_layer_height == 0){
+                        double average_layer_height = (min_layer_height + max_layer_height) / 2;
+                        modified_layer_height = average_layer_height;
+                    }
+                    else{
+                        modified_layer_height = support_material_layer_height;
+                    }
+                }
+                else if (role_str == "FirstLayer"){
+                    modified_layer_height = first_layer_height;
                 }
 
                 switch (extrusion_role) {
                     case ExtrusionRole::erInternalInfill:
-                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
+                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, modified_layer_height, filament_max_overlap, false);
                         break;
-                    case ExtrusionRole::erBridgeInfill:
+                    case ExtrusionRole::erBridgeInfill:// this will be tricky because bridges don't get any "layersquish" so the 90_bend model will have to have "empty" layers to help simulate a bridge
+                        base_flow = Flow::new_from_width(float width, float nozzle_diameter, float height, float spacing_ratio, bool bridge = false);
                         //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erExternalPerimeter:
                         base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
-                    case ExtrusionRole::erGapFill:
+                    case ExtrusionRole::erGapFill:// i don't think i can adjust width/spacing for this one. only speed related config. unless i scale the 90_bend model wrong so it DOES get gap fill ? won't work for arachne, or will it ?
                         //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erInternalBridgeInfill:
-                        //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
+                        //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, modified_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erIroning:
-                        //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
+                        //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, modified_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erOverhangPerimeter:
-                        //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
+                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erPerimeter:
                         base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
@@ -422,19 +390,19 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                         base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erSupportMaterial:
-                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
+                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, modified_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erSupportMaterialInterface:
                         base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
-                    case ExtrusionRole::erThinWall:
+                    case ExtrusionRole::erThinWall://maybe scale the 90_bend models down so they get detected as thin_walls_min_width config ? this will result in a "single wall" 90_bend model hmmm..
                         //base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erTopSolidInfill:
                         base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case ExtrusionRole::erCustom://first_layer
-                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, first_layer_height, 1.f, true);
+                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, modified_layer_height, 1.f, true);
                         break;
                     default:
                         base_flow = Flow::new_from_config(FlowRole::frExternalPerimeter, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);//unsupported roles.
@@ -714,6 +682,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     new_print_config.set_key_value("xy_inner_size_compensation", new ConfigOptionFloat(0));
     new_print_config.set_key_value("xy_outer_size_compensation", new ConfigOptionFloat(0));
     new_print_config.set_key_value("print_custom_variables", new ConfigOptionString("calibration_print"));//created this as an extra check for when generating gcode to not include "feature_gcode"
+                                                                                                          // unless i disable the "generate" button if the keywords are detected in the custom gcode ?
 
 
     //assert(filament_temp_item_name.size() == nb_runs);
@@ -1013,15 +982,11 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     if (extrusion_role != "Verify") {//don't auto slice so user can manual add PA values
         plat->reslice(); //forces a slice of plater.
     }
-<<<<<<< Updated upstream
-    gui_app->app_config->set("autocenter", "0");
-=======
 
     if (autocenter) {
         //re-enable auto-center after this calibration.
         gui_app->app_config->set("autocenter", "1");
     }
->>>>>>> Stashed changes
 }
 
 double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, double er_width, double filament_max_overlap, double spacing_ratio, double spacing_ratio_external, double base_layer_height, double er_spacing) {
@@ -1168,7 +1133,7 @@ void CalibrationPressureAdvDialog::create_row_controls(wxBoxSizer* parent_sizer,
         current_selection++;
         if (current_selection >= sizeof(choices_extrusion_role) / sizeof(choices_extrusion_role[0])) {
             current_selection = 0; // Wrap around: SetSelection does it's own memory access checks so this shouldn't be needed. but it's a nice safe guard to have.
-        } 
+        }
 
         if (prefix == " PA ") {//klipper only feature ?
             rowSizer->AddSpacer(15);
