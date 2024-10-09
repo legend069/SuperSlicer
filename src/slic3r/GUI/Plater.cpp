@@ -549,59 +549,53 @@ void FreqChangedParams::init()
     
     m_preheat_button->Bind(wxEVT_BUTTON, [preheat_off, this, tab_print](wxCommandEvent&) {
         DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
-        
+
         if (selected_printer_config) {
             this->m_rep = new Repetier(selected_printer_config);
-            
+
             bool is_running = wxGetApp().plater_->get_job_state_physical_printer(selected_printer_config);
-            
-            if (is_running) {
+
+            if (is_running) {
                 m_preheat_button->Disable();
                 wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There is a job running, can´t preheat/cooldown printer!"));
             }
-            
+
             if (isOn) {
-                ScalableBitmap preheat_off = ScalableBitmap(m_parent,
-                                                            "preheat_off",
-                                                            9);
-                
+                ScalableBitmap preheat_off = ScalableBitmap(m_parent,"preheat_off", 9);
+
                 m_preheat_button->SetBitmap(preheat_off.get_bitmap());
                 m_preheat_button->SetLabel("Preheat");
                 if (this->m_rep->cooldown_printer()) {
                     wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Cooldowning Printer."));
-                } else {
+                }else {
                     wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error cooldowning the printer, please try again."));
                 }
-                
+
                 isOn = false;
-            } else {
-                ScalableBitmap preheat_on = ScalableBitmap(m_parent,
-                                                           "preheat_on",
-                                                           9);
+            }else {
+                ScalableBitmap preheat_on = ScalableBitmap(m_parent,"preheat_on",9);
                 m_preheat_button->SetBitmap(preheat_on.get_bitmap());
                 m_preheat_button->SetLabel("Cooldown");
-                
+
                 DynamicPrintConfig print_config = wxGetApp().preset_bundle->full_config();
-                
+
                 if (!is_running) {
                    if (this->m_rep->preheat_extruders(print_config) && this->m_rep->preheat_bed(print_config)) {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("Preheating Printer."));
-                    } else {
+                    }else {
                         wxGetApp().plater_->get_notification_manager()->push_notification(_u8L("There was an error preheating the printer, please try again."));
                     }
                 } else {
                     // Set to default
-                    ScalableBitmap preheat_off = ScalableBitmap(m_parent,
-                                                                "preheat_off",
-                                                                9);
-                    
+                    ScalableBitmap preheat_off = ScalableBitmap(m_parent,"preheat_off",9);
+
                     m_preheat_button->SetBitmap(preheat_off.get_bitmap());
                     m_preheat_button->SetLabel("Preheat");
                 }
                 isOn = true;
             }
         }
-    });
+        });
     
     // Add refresh button
     m_refresh_button = new wxButton(m_parent, wxID_ANY, "Refresh", wxDefaultPosition, wxDefaultSize);
@@ -614,24 +608,21 @@ void FreqChangedParams::init()
     m_refresh_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         DynamicPrintConfig* selected_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
         bool is_running = wxGetApp().plater_->get_job_state_physical_printer(selected_printer_config);
-        
-        if (is_running) {
+
+        if (is_running) {
             m_preheat_button->Disable();
-        } else {
-            ScalableBitmap preheat_off = ScalableBitmap(m_parent,
-                                                        "preheat_off",
-                                                        9);
-            
+        }else {
+            ScalableBitmap preheat_off = ScalableBitmap(m_parent,"preheat_off",9);
+
             m_preheat_button->SetBitmap(preheat_off.get_bitmap());
             m_preheat_button->SetLabel("Preheat");
-        }
-        
-        if (selected_printer_config) {
+
+        }if (selected_printer_config) {
             this->m_rep = new Repetier(selected_printer_config);
             wxGetApp().plater_->set_physical_printer_config(selected_printer_config);
             isOn = false;
         }
-    });
+        });
     
     wxBoxSizer* hbox_sizer = new wxBoxSizer(wxHORIZONTAL);
     
@@ -4624,44 +4615,44 @@ void Plater::set_physical_printer_config(DynamicPrintConfig* conf) {
                     for (const auto& value : tool_diameter_values) {
                         if (value.is_number()) {
                             double tool_diameter = value.get<double>();
-                            
+
                             if (tab_printer) {
-                                DynamicPrintConfig *config = tab_printer->get_config();
+                                DynamicPrintConfig* config = tab_printer->get_config();
                                 new_conf = *config;
-                                
+
                                 if (config->has("nozzle_diameter")) {
                                     static size_t old_nozzles = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values().size();
                                     const std::vector<double>& nozzle_diameters = config->option<ConfigOptionFloats>("nozzle_diameter")->get_values();
-                                    
+
                                     // Copy the original diameters and append the new tool diameter
                                     if (modified_nozzle_diameters.size() >= old_nozzles) {
                                         modified_nozzle_diameters.clear();
                                     }
-                                    
+
                                     modified_nozzle_diameters.push_back(tool_diameter);
-                                    
+
                                     ConfigOptionFloats* new_nozzle_option = new ConfigOptionFloats(modified_nozzle_diameters);
                                     new_conf.set_key_value("nozzle_diameter", new_nozzle_option);
-                                    
+
                                     tab_printer->load_config(new_conf);
-                                    PrinterTechnology   pt                  = printer_technology();
+                                    PrinterTechnology   pt = printer_technology();
                                     this->sidebar().og_freq_chng_params(pt)->update_script_presets();
                                 }
                             }
                         }
                     }
                 }
-                if (is_running) {
+                if (is_running) {
                     preheat_button->Disable();
                     notification_manager->push_notification(_u8L("There is currently a job running, preheating/cooldown is disabled until the job is finished."));
-                } else {
+                }else {
                     preheat_button->Enable();
                 }
-                
+
                 refresh_button->Enable();
                 std::string message = "The physical printer config has been set successfully.";
                 notification_manager->push_notification(_u8L(message));
-                
+
             } else {
                 std::string message = "There was an error updating the physical printer config: " + error_msg;
                 notification_manager->push_notification(_u8L(error_msg));
