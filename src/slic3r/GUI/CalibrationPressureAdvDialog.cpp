@@ -371,14 +371,9 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     bool    has_to_arrange = false;
     Plater *plat           = this->main_frame->plater();
     Model & model          = plat->model();
+    gui_app->app_config->set("autocenter", "1");
     if (!plat->new_project(L("Pressure calibration")))
         return;
-
-    bool autocenter = gui_app->app_config->get("autocenter") == "1";
-    if (autocenter) {
-        // disable auto-center for this calibration.
-        gui_app->app_config->set("autocenter", "0");
-    }
 
     std::vector<std::string> items;
     for (size_t i = 0; i < nb_runs; i++) {
@@ -919,11 +914,7 @@ struct ExtrusionSettings {// think a struct is better instead of all the maps ?
     if (extrusion_role != "Verify") { // don't auto slice so user can manual add PA values
         // plat->reslice(); //forces a slice of plater.
     }
-
-    if (autocenter) {
-        // re-enable auto-center after this calibration.
-        gui_app->app_config->set("autocenter", "1");
-    }
+    gui_app->app_config->set("autocenter", "0");
 }
 
 double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter,

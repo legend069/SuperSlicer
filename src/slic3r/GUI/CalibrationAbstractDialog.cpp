@@ -26,7 +26,7 @@ static wxSize get_screen_size(wxWindow* window)
 namespace Slic3r {
 namespace GUI {
 
-    CalibrationAbstractDialog::CalibrationAbstractDialog(GUI_App* app, MainFrame* mainframe, std::string name)
+CalibrationAbstractDialog::CalibrationAbstractDialog(GUI_App* app, MainFrame* mainframe, std::string name)
         : DPIDialog(NULL, wxID_ANY, wxString(SLIC3R_APP_NAME) + " - " + _(L(name)),
 #if ENABLE_SCROLLABLE
             wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER
@@ -49,6 +49,7 @@ namespace GUI {
 void CalibrationAbstractDialog::create(boost::filesystem::path html_path, std::string html_name, wxSize dialog_size){
 
     auto main_sizer = new wxBoxSizer(wxVERTICAL);
+    gui_app->app_config->set("autocenter", "1");
 
     //language
     wxString language = wxGetApp().current_language_code();
@@ -96,6 +97,8 @@ void CalibrationAbstractDialog::create(boost::filesystem::path html_path, std::s
 
     SetSizer(main_sizer);
     this->SetSize(dialog_size.x, dialog_size.y);
+    gui_app->app_config->set("autocenter", "0");
+
 }
 
 void CalibrationAbstractDialog::close_me(wxCommandEvent& event_args) {

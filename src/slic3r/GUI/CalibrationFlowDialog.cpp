@@ -54,13 +54,7 @@ void CalibrationFlowDialog::create_geometry_2_5(wxCommandEvent &event_args)
 void CalibrationFlowDialog::create_geometry(float start, float delta) {
     Plater* plat = this->main_frame->plater();
     Model& model = plat->model();
-
-    //GLCanvas3D::set_warning_freeze(true);
-    bool autocenter = gui_app->app_config->get("autocenter") == "1";
-    if (autocenter) {
-        //disable auto-center for this calibration.
-        gui_app->app_config->set("autocenter", "0");
-    }
+    gui_app->app_config->set("autocenter", "1");
 
     std::vector<size_t> objs_idx = plat->load_files(std::vector<std::string>{
             (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_flow" / "filament_flow_test_cube.amf").string(),
@@ -212,11 +206,8 @@ void CalibrationFlowDialog::create_geometry(float start, float delta) {
     }
 
     plat->reslice();
+    gui_app->app_config->set("autocenter", "0");
 
-    if (autocenter) {
-        //re-enable auto-center after this calibration.
-        gui_app->app_config->set("autocenter", "1");
-    }
 }
 
 } // namespace GUI
