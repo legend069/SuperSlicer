@@ -229,14 +229,12 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     double spacing_ratio = full_print_config.get_computed_value("perimeter_overlap");
     double spacing_ratio_external = full_print_config.get_computed_value("external_perimeter_overlap");
     double filament_max_overlap = full_print_config.get_computed_value("filament_max_overlap",0);//maybe check for extruderID ?
+    const int extruder_count = wxGetApp().extruders_edited_cnt();
     double combined_layer_height = infill_every_layers * base_layer_height;
     double support_material_layer_height = full_print_config.get_computed_value("support_material_layer_height");
 
-    //double min_layer_height = full_print_config.get_computed_value("min_layer_height");
-    //double max_layer_height = full_print_config.get_computed_value("max_layer_height");
-
-    double min_layer_height = full_print_config.get_abs_value("min_layer_height", nozzle_diameter);
-    double max_layer_height = full_print_config.get_abs_value("max_layer_height", nozzle_diameter);
+    double min_layer_height = full_print_config.get_computed_value("min_layer_height", extruder_count);
+    double max_layer_height = full_print_config.get_computed_value("max_layer_height", extruder_count);
 
     bool infill_dense = full_print_config.get_bool("infill_dense");
     if (combined_layer_height > nozzle_diameter){
@@ -1017,42 +1015,81 @@ double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, dou
 }
 
 void CalibrationPressureAdvDialog::create_buttons(wxStdDialogButtonSizer* buttons) {
+
     const DynamicPrintConfig* printer_config = this->gui_app->get_tab(Preset::TYPE_PRINTER)->get_config();
     GCodeFlavor flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+    const AppConfig* app_config = get_app_config();
+
+    bool dark_mode = app_config->get_bool("dark_color_mode");
+    std::string user_color = app_config->get("color_dark");
+    wxColour text_color("#" + user_color);
+
+    std::string color_background = dark_mode ? "333233" : "ffffff";//dark grey and white. whats the offical dark mode color ?
+    wxColour background_color("#" + color_background);
 
     std::string prefix = (gcfMarlinFirmware == flavor) ? " LA " : ((gcfKlipper == flavor || gcfRepRap == flavor) ? " PA " : "unsupported firmware type");
 
+
+
     if (prefix != "unsupported firmware type") {
 
+        wxPanel* mainPanel = new wxPanel(this, wxID_ANY);
+        mainPanel->SetBackgroundColour(background_color);
+        mainPanel->Raise();
+
+        // Create a vertical sizer for the panel
+        wxBoxSizer* panelSizer = new wxBoxSizer(wxVERTICAL);
+        mainPanel->SetSizer(panelSizer);
+
+        // Create the common controls sizer
+        wxBoxSizer* commonSizer = new wxBoxSizer(wxHORIZONTAL);
+
         wxString number_of_runs[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" };//setting this any higher will break loading the model for the ID
-        nbRuns = new wxComboBox(this, wxID_ANY, wxString{ "1" }, wxDefaultPosition, wxDefaultSize, 10, number_of_runs, wxCB_READONLY);
+        nbRuns = new wxComboBox(mainPanel, wxID_ANY, wxString{ "1" }, wxDefaultPosition, wxDefaultSize, 10, number_of_runs, wxCB_READONLY);
         nbRuns->SetToolTip(_L("Select the number of tests to generate, max 6 is recommended due to bed size limits"));
         nbRuns->SetSelection(0);
         nbRuns->Bind(wxEVT_COMBOBOX, &CalibrationPressureAdvDialog::on_row_change, this);
 
-        dynamicSizer = new wxBoxSizer(wxVERTICAL);
-
-        wxBoxSizer* commonSizer = new wxBoxSizer(wxHORIZONTAL);
-        commonSizer->Add(new wxStaticText(this, wxID_ANY, _L("Number of" + prefix + "tests: ")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+        wxStaticText* text_generate_count = new wxStaticText(mainPanel, wxID_ANY, _L("Number of" + prefix + "tests: "));
+        text_generate_count->SetForegroundColour(text_color);
+        commonSizer->Add(text_generate_count, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         commonSizer->Add(nbRuns, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         
-        // Create a button for generating
-        wxButton* generateButton = new wxButton(this, wxID_FILE1, _L("Generate"));
+        // Create a button for generating models
+        wxButton* generateButton = new wxButton(mainPanel, wxID_FILE1, _L("Generate"));
         generateButton->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::create_geometry, this);
         commonSizer->Add(generateButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
+        commonSizer->AddSpacer(15);
 
-        dynamicSizer->Add(commonSizer, 0, wxALL, 10);
-        buttons->Add(dynamicSizer, 1, wxEXPAND | wxALL, 5);
+        //close button
+        wxButton* closeButton = new wxButton(mainPanel, wxID_CLOSE, _L("Close"));
+        closeButton->Bind(wxEVT_BUTTON, &CalibrationPressureAdvDialog::close_me_wrapper, this);
+        commonSizer->Add(closeButton, 0, wxALIGN_RIGHT | wxVERTICAL | wxALL, 5);
+
+        panelSizer->Add(commonSizer, 0, wxALL, 10);
+        dynamicSizer = new wxBoxSizer(wxVERTICAL);
+        panelSizer->Add(dynamicSizer, 1, wxEXPAND | wxALL, 5);
+        buttons->Add(mainPanel, 1, wxEXPAND | wxALL, 10);
 
         currentTestCount = wxAtoi(nbRuns->GetValue());
         create_row_controls(dynamicSizer, currentTestCount);
     } else {
-        buttons->Add(new wxStaticText(this, wxID_ANY, _L(prefix)));
+
+        wxStaticText* incompatiable_text = new wxStaticText(this, wxID_ANY, _L(prefix));
+        incompatiable_text->SetForegroundColour(*wxRED); // Set the text color to red for the incompatiable firmware tpe
+        buttons->Add(incompatiable_text);
     }
 }
 
 void CalibrationPressureAdvDialog::create_row_controls(wxBoxSizer* parent_sizer, int row_count) {
+
+    const AppConfig* app_config = get_app_config();
+    bool dark_mode = app_config->get_bool("dark_color_mode");
+
+    std::string user_color_text = app_config->get("color_dark");
+    wxColour text_color("#" + user_color_text);
+
     //
     //wxArrayInt
     //wxArrayDouble
@@ -1087,46 +1124,56 @@ void CalibrationPressureAdvDialog::create_row_controls(wxBoxSizer* parent_sizer,
     for (int i = 0; i < row_count; i++) {
         wxBoxSizer* rowSizer = new wxBoxSizer(wxHORIZONTAL);
 
-        wxComboBox* firstPaCombo = new wxComboBox(this, wxID_ANY, wxString{choices_first_layerPA[3]}, wxDefaultPosition, wxDefaultSize, 6, choices_first_layerPA);
-        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("First Layers" + prefix + "value: ")));
-        firstPaCombo->SetToolTip(_L("Select the" + prefix +"value to be used for the first layer only.\n(this gets added to 'before_layer_gcode' area)"));
-        firstPaCombo->SetSelection(3);
-        rowSizer->Add(firstPaCombo);
+        wxComboBox* firstPaCombo = new wxComboBox(parent_sizer->GetContainingWindow(), wxID_ANY, wxString{ choices_first_layerPA[3] }, wxDefaultPosition, wxSize(80, -1), 6, choices_first_layerPA);
+        wxStaticText* text_first_l_prefix = new wxStaticText(parent_sizer->GetContainingWindow(), wxID_ANY, _L("First Layers" + prefix + "value: "));
+        text_first_l_prefix->SetForegroundColour(text_color);
+        rowSizer->Add(text_first_l_prefix, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+        firstPaCombo->SetToolTip(_L("Select the" + prefix + "value to be used for the first layer only.\n(this gets added to 'before_layer_gcode' area)"));
+        rowSizer->Add(firstPaCombo, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         dynamicFirstPa.push_back(firstPaCombo);
 
         rowSizer->AddSpacer(15);
 
-        wxComboBox* startPaCombo = new wxComboBox(this, wxID_ANY, wxString{ choices_start_PA[0]}, wxDefaultPosition, wxDefaultSize, 6, choices_start_PA);
-        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Start value: ")));
+        wxComboBox* startPaCombo = new wxComboBox(parent_sizer->GetContainingWindow(), wxID_ANY, wxString{ choices_start_PA[0]}, wxDefaultPosition, wxSize(80, -1), 6, choices_start_PA);
+        wxStaticText* text_start_value = new wxStaticText(parent_sizer->GetContainingWindow(), wxID_ANY, _L("Start value: "));
+        text_start_value->SetForegroundColour(text_color);
+        rowSizer->Add(text_start_value, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         startPaCombo->SetToolTip(_L("Select the starting" + prefix + "value to be used.\n (you can manually type in values!)"));
         startPaCombo->SetSelection(0);
-        rowSizer->Add(startPaCombo);
+        rowSizer->Add(startPaCombo, 0, wxALIGN_CENTER_VERTICAL);
         dynamicStartPa.push_back(startPaCombo);
 
         rowSizer->AddSpacer(15);
 
-        wxComboBox* endPaCombo = new wxComboBox(this, wxID_ANY, wxString{ choices_end_PA[0] }, wxDefaultPosition, wxDefaultSize, 10, choices_end_PA);
-        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("End value: ")));
+        wxComboBox* endPaCombo = new wxComboBox(parent_sizer->GetContainingWindow(), wxID_ANY, wxString{ choices_end_PA[0] }, wxDefaultPosition, wxSize(80, -1), 10, choices_end_PA);
+        wxStaticText* text_end_value = new wxStaticText(parent_sizer->GetContainingWindow(), wxID_ANY, _L("End value: "));
+        text_end_value->SetForegroundColour(text_color);
+        rowSizer->Add(text_end_value, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         endPaCombo->SetToolTip(_L("Select the ending" + prefix + "value to be used.\n (you can manually type in values!)"));
         endPaCombo->SetSelection(0);
-        rowSizer->Add(endPaCombo);
+        rowSizer->Add(endPaCombo, 0, wxALIGN_CENTER_VERTICAL);
         dynamicEndPa.push_back(endPaCombo);
 
         rowSizer->AddSpacer(15);
 
-        wxComboBox* paIncrementCombo = new wxComboBox(this, wxID_ANY, wxString{ choices_increment_PA[3] }, wxDefaultPosition, wxDefaultSize, 8, choices_increment_PA);
-        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Increment by: ")));
+        wxComboBox* paIncrementCombo = new wxComboBox(parent_sizer->GetContainingWindow(), wxID_ANY, wxString{ choices_increment_PA[3] }, wxDefaultPosition, wxSize(80, -1), 8, choices_increment_PA);
+        wxStaticText* text_increment = new wxStaticText(parent_sizer->GetContainingWindow(), wxID_ANY, _L("Increment by: "));
+        text_increment->SetForegroundColour(text_color);
+        rowSizer->Add(text_increment, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         paIncrementCombo->SetToolTip(_L("Select the incremental value.\n (you can manually type in values!)"));
         paIncrementCombo->SetSelection(3);
-        rowSizer->Add(paIncrementCombo);
+        rowSizer->Add(paIncrementCombo, 0, wxALIGN_CENTER_VERTICAL);
         dynamicPaIncrement.push_back(paIncrementCombo);
 
         rowSizer->AddSpacer(15);
-        wxComboBox* erPaCombo = new wxComboBox(this, wxID_ANY, wxString{ choices_extrusion_role[current_selection] }, wxDefaultPosition, wxDefaultSize, 15, choices_extrusion_role, wxCB_READONLY);//disable user edit this one :)
-        rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Extrusion role: ")));
+
+        wxComboBox* erPaCombo = new wxComboBox(parent_sizer->GetContainingWindow(), wxID_ANY, wxString{ choices_extrusion_role[current_selection] }, wxDefaultPosition, wxSize(200, -1), 15, choices_extrusion_role, wxCB_READONLY);//disable user edit this one :)
+        wxStaticText* text_extrusion_role = new wxStaticText(parent_sizer->GetContainingWindow(), wxID_ANY, _L("Extrusion role: "));
+        text_extrusion_role->SetForegroundColour(text_color);
+        rowSizer->Add(text_extrusion_role, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
         erPaCombo->SetToolTip(_L("Select the extrusion role you want to generate a calibration for"));
         erPaCombo->SetSelection(current_selection);
-        rowSizer->Add(erPaCombo);
+        rowSizer->Add(erPaCombo, 0, wxALIGN_CENTER_VERTICAL);
         dynamicExtrusionRole.push_back(erPaCombo);
 
         // Increment selection for the next row
@@ -1137,12 +1184,14 @@ void CalibrationPressureAdvDialog::create_row_controls(wxBoxSizer* parent_sizer,
 
         if (prefix == " PA ") {//klipper only feature ?
             rowSizer->AddSpacer(15);
-            wxCheckBox* enableST = new wxCheckBox(this, wxID_ANY, _L(""), wxDefaultPosition, wxDefaultSize);
-            rowSizer->Add(new wxStaticText(this, wxID_ANY, _L("Smooth time: ")));
+            wxCheckBox* enableST = new wxCheckBox(parent_sizer->GetContainingWindow(), wxID_ANY, _L(""), wxDefaultPosition, wxDefaultSize);
+            wxStaticText* text_smooth_time = new wxStaticText(parent_sizer->GetContainingWindow(), wxID_ANY, _L("Smooth time: "));
+            text_smooth_time->SetForegroundColour(text_color);
+            rowSizer->Add(text_smooth_time, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
             //enableST->SetToolTip(_L("Generate smooth time values"));
             enableST->SetToolTip(_L("This parameter defines the duration over which extruder velocity changes are averaged, helping to smooth out rapid changes in extrusion pressure. Shorter times (e.g., 0.01 seconds) are beneficial for fast printing, while longer times (e.g., 0.4 seconds) are better for slower printing. The default value is 0.04 seconds."));
             enableST->SetValue(false);
-            rowSizer->Add(enableST);
+            rowSizer->Add(enableST, 1, wxALIGN_CENTER_VERTICAL);
             dynamicEnableST.push_back(enableST);
         }
 
@@ -1222,7 +1271,9 @@ std::pair<std::vector<double>, int> CalibrationPressureAdvDialog::calc_PA_values
     return std::make_pair(pa_values, countincrements);
 }
 
-
+void CalibrationPressureAdvDialog::close_me_wrapper(wxCommandEvent& event) {
+    this->close_me(event);
+}
 } // namespace GUI
 } // namespace Slic3r
 #pragma optimize("", on)

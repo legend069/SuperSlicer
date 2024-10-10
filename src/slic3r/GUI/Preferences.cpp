@@ -1028,8 +1028,12 @@ void PreferencesDialog::build()
 
         append_bool_option(m_tabid_2_optgroups.back().back(), "dark_color_mode", L("Enable dark mode"),
                            L("If enabled, UI will use Dark mode colors. If disabled, old UI will be used."),
-                           app_config->set("dark_color_mode", "1"));
-        app_config->set("dark_color_mode", "1");
+                           app_config->get_bool("dark_color_mode")); //why force darkmode? >:(
+						   											 // i prefer it myself but some users won't
+		if (!app_config->get_bool("dark_color_mode")) {
+		    SetForegroundColour(wxNullColour);
+		    SetBackgroundColour(wxNullColour);
+		}
 
         if (wxPlatformInfo::Get().GetOSMajorVersion() >= 10) // Use system menu just for Window newer then Windows 10
                                                              // Use menu with ownerdrawn items by default on systems older then Windows 10
