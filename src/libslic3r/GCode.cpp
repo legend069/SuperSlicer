@@ -181,32 +181,40 @@ namespace Slic3r {
         //}
         unsigned int extruder_id = gcodegen.writer().tool()->id();
         const ConfigOptionInts& filament_idle_temp = gcodegen.config().idle_temperature;
+        bool cooldown = false;
         if (!filament_idle_temp.is_enabled(extruder_id)) {
             // There is no idle temperature defined in filament settings.
             // Use the delta value from print config.
-            if (gcodegen.config().standby_temperature_delta.value != 0 && gcodegen.writer().tool_is_extruder() && this->_get_temp(gcodegen) > 0) {
+            if (gcodegen.writer().tool_is_extruder() && this->_get_temp(gcodegen) > 0 &&
+                gcodegen.config().standby_temperature_delta.value != 0) {
                 // we assume that heating is always slower than cooling, so no need to block
                 gcode += gcodegen.writer().set_temperature
                 (this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false, extruder_id);
-                if(gcode.back() == '\n') gcode.pop_back(); // delete \n if possible to insert our comment FIXME: allow set_temperature to get an extra comment
-                gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
+                cooldown = true;
             }
         } else {
             // Use the value from filament settings. That one is absolute, not delta.
             gcode += gcodegen.writer().set_temperature(filament_idle_temp.get_at(extruder_id), false, extruder_id);
-            if(gcode.back() == '\n') gcode.pop_back(); // delete \n if possible to insert our comment FIXME: allow set_temperature to get an extra comment
+            cooldown = true;
+        }
+        if (cooldown) {
+            if (gcode.back() == '\n')
+                gcode.pop_back(); // delete \n if possible to insert our comment FIXME: allow set_temperature to get
+                                  // an extra comment
             gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
         }
-
         return gcode;
     }
 
     std::string OozePrevention::post_toolchange(GCodeGenerator& gcodegen)
     {
-        if (gcodegen.config().standby_temperature_delta.value != 0 && gcodegen.writer().tool_is_extruder()){
+        if (gcodegen.writer().tool_is_extruder() &&
+            (gcodegen.config().standby_temperature_delta.value != 0 ||
+             gcodegen.config().idle_temperature.is_enabled(gcodegen.writer().tool()->id()))) {
             int temp = this->_get_temp(gcodegen);
-            if (temp > 0)
+            if (temp > 0) {
                 return gcodegen.writer().set_temperature(temp, true, gcodegen.writer().tool()->id());
+            }
         }
         return std::string();
     }
@@ -1183,11 +1191,16 @@ void GCodeGenerator::_init_multiextruders(const Print& print, std::string& out, 
     //set standby temp for reprap
     if (std::set<uint8_t>{gcfRepRap}.count(print.config().gcode_flavor.value) > 0) {
         for (uint16_t tool_id : tool_ordering.all_extruders()) {
-            int standby_temp = int(print.config().temperature.get_at(tool_id));
-            if (standby_temp > 0) {
+            int printing_temp = int(print.config().temperature.get_at(tool_id));
+            if (printing_temp > 0) {
+                int standby_temp = printing_temp;
                 if (print.config().ooze_prevention.value)
                     standby_temp += print.config().standby_temperature_delta.value;
+                if (print.config().idle_temperature.is_enabled(tool_id)) {
+                    standby_temp = print.config().idle_temperature.get_at(tool_id);
+                }
                 out.append("G10 P").append(std::to_string(tool_id)).append(" R").append(std::to_string(standby_temp)).append(" ; sets the standby temperature\n");
+                //out.append("G10 P").append(std::to_string(tool_id)).append(" S").append(std::to_string(printing_temp)).append(" ; sets the default temperature\n");
             }
         }
     }
@@ -2889,17 +2902,21 @@ void GCodeGenerator::_print_first_layer_extruder_temperatures(std::string &out, 
         m_writer.set_temperature(temp, wait, first_printing_extruder_id);
     } else {
         // Custom G-code does not set the extruder temperature. Do it now.
-        if (!print.config().single_extruder_multi_material.value) {
+        // it's useful to do it when there is really multiple extruder, or if reprap because of the G10
+        if (!print.config().single_extruder_multi_material.value ||
+            std::set<uint8_t>{gcfRepRap}.count(print.config().gcode_flavor.value) > 0) {
             // Set temperatures of all the printing extruders.
             for (const Extruder& tool : m_writer.extruders()) {
                 int temp = print.config().first_layer_temperature.get_at(tool.id());
                 if (temp == 0)
                     temp = print.config().temperature.get_at(tool.id());
-                if (print.config().ooze_prevention.value && tool.id() != first_printing_extruder_id)
-                    if (!print.config().idle_temperature.is_enabled(tool.id()))
-                        temp += print.config().standby_temperature_delta.value;
-                    else
+                if (print.config().ooze_prevention.value && tool.id() != first_printing_extruder_id) {
+                    if (print.config().idle_temperature.is_enabled(tool.id())) {
                         temp = print.config().idle_temperature.get_at(tool.id());
+                    } else {
+                        temp += print.config().standby_temperature_delta.value;
+                    }
+                }
                 if (temp > 0)
                     out += (m_writer.set_temperature(temp, false, tool.id()));
             }
