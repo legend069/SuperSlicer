@@ -395,8 +395,9 @@ void FreqChangedParams::sys_color_changed()
 
     for (auto btn: m_empty_buttons)
         btn->sys_color_changed();
-
-    wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
+    if (m_wiping_dialog_button) {
+        wxGetApp().UpdateDarkUI(m_wiping_dialog_button, true);
+    }
 }
 
 FreqChangedParams::FreqChangedParams(wxWindow* parent) :
