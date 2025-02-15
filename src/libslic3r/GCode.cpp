@@ -6764,11 +6764,11 @@ std::string GCodeGenerator::_before_extrude(const ExtrusionPath &path, const std
             // go to midpoint to let us set the decel speed)
             if (!last_pos_defined() || !last_pos().coincides_with_epsilon(path.first_point())) {
                 Polyline poly_start = this->travel_to(gcode, path.first_point(), path.role());
-                coordf_t length = poly_start.length();
+                const coordf_t length = poly_start.length();
                 if (length > SCALED_EPSILON) {
                     // compute some numbers
                     double previous_accel = m_writer.get_acceleration(); // in mm/s²
-                    double previous_speed = m_writer.get_speed_mm_s(); // in mm/s
+                    double previous_speed = m_writer.get_speed_mm_s();   // in mm/s
                     double travel_speed = m_config.get_computed_value("travel_speed");
                     // first, the acceleration distance
                     const double extrude2travel_speed_diff = previous_speed >= travel_speed ?
@@ -6781,7 +6781,8 @@ std::string GCodeGenerator::_before_extrude(const ExtrusionPath &path, const std
                     assert(!std::isinf(dist_to_go_travel_speed));
                     assert(!std::isnan(dist_to_go_travel_speed));
                     // then the deceleration distance
-                    const double travel2extrude_speed_diff = speed_mm_s >= travel_speed ? 0 : (travel_speed - speed_mm_s);
+                    const double travel2extrude_speed_diff = speed_mm_s >= travel_speed ? 0 :
+                                                                                          (travel_speed - speed_mm_s);
                     const double seconds_to_go_extrude_speed = (travel2extrude_speed_diff / acceleration);
                     const coordf_t dist_to_go_extrude_speed = scaled(seconds_to_go_extrude_speed *
                                                                      (travel_speed - travel2extrude_speed_diff / 2));
@@ -6843,26 +6844,35 @@ std::string GCodeGenerator::_before_extrude(const ExtrusionPath &path, const std
                             poly_start.clip_end(length * ratio);
                             poly_end.clip_start(length * (1 - ratio));
                         }
-                        //gcode += "; acceleration to travel\n";
+                        // gcode += "; acceleration to travel\n";
                         m_writer.set_travel_acceleration((uint32_t) floor(travel_acceleration + 0.5));
                         this->write_travel_to(gcode, poly_start,
                                               "move to first " + description + " point (acceleration)");
                         // travel acceleration should be already set at startup via special gcode, and so it's
                         // automatically used by G0.
-                        //gcode += "; decel to extrusion\n";
+                        // gcode += "; decel to extrusion\n";
                         m_writer.set_travel_acceleration((uint32_t) floor(acceleration + 0.5));
                         this->write_travel_to(gcode, poly_end,
                                               "move to first " + description + " point (deceleration)");
                         // restore travel accel and ensure the new extrusion accel is set
                         m_writer.set_travel_acceleration((uint32_t) floor(travel_acceleration + 0.5));
                         m_writer.set_acceleration((uint32_t) floor(acceleration + 0.5));
-                        //gcode += "; end travel\n";
+                        // gcode += "; end travel\n";
                         assert(!moved_to_point);
                         moved_to_point = true;
                     }
+                } else if (poly_start.size() == 2 && length < SCALED_EPSILON) {
+                    // the travel is epsilon (can this really happen? maybe it needs to be investigated. I saw it happen one time with A21_borked project)
+                    // last_pos().coincides_with_epsilon(path.first_point()) should have prevented this, but it works with SCALED_EPSILON / 2
+                    // were's here because length is between SCALED_EPSILON / 2 and SCALED_EPSILON.
+                    // => No travel needed.
+                    assert(last_pos_defined());
+                    m_writer.set_acceleration((uint32_t)floor(acceleration + 0.5));
+                    assert(!moved_to_point);
+                    moved_to_point = true;
                 } else {
                     // this can only happen when !last_pos_defined(), and then poly_start has only one point
-                    assert(poly_start.size() == 1 && !last_pos_defined());
+                    assert(!last_pos_defined() && poly_start.size() == 1);
                     m_writer.set_travel_acceleration((uint32_t) floor(acceleration + 0.5));
                     m_writer.set_acceleration((uint32_t) floor(acceleration + 0.5));
                     this->write_travel_to(gcode, poly_start,
@@ -6871,6 +6881,8 @@ std::string GCodeGenerator::_before_extrude(const ExtrusionPath &path, const std
                     moved_to_point = true;
                 }
             } else {
+                assert(last_pos_defined());
+                assert(moved_to_point);
                 m_writer.set_acceleration((uint32_t)floor(acceleration + 0.5));
             }
         }
