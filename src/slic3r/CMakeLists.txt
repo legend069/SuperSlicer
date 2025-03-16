@@ -59,6 +59,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CreateMMUTiledCanvas.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
+    GUI/CalibrationPressureAdvDialog.cpp
+    GUI/CalibrationPressureAdvDialog.hpp
     GUI/format.hpp
     GUI/FreeCADDialog.cpp
     GUI/FreeCADDialog.hpp
@@ -200,6 +202,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/wxExtensions.hpp
     GUI/ExtruderSequenceDialog.cpp
     GUI/ExtruderSequenceDialog.hpp
+    GUI/ExtrusionDiagram.cpp
+    GUI/ExtrusionDiagram.hpp
     GUI/WipeTowerDialog.cpp
     GUI/WipeTowerDialog.hpp
     GUI/RammingChart.cpp
