@@ -8912,13 +8912,41 @@ void _handle_legacy(std::unordered_map<t_config_option_key, std::pair<t_config_o
             continue;
         }
         std::string &value = it->second.second;
+        //array?
+        if ("max_layer_height" == opt_key) {
+            bool changed = false;
+            std::vector<std::string> value_array;
+            boost::split(value_array, value, boost::is_any_of(","), boost::token_compress_off);
+            for (std::string &val : value_array) {
+                if ("0" == val) {
+                    val = "!75%";
+                    changed = true;
+                }
+            }
+            if (changed) {
+                value = "";
+                for (std::string &val : value_array) {
+                    if (!value.empty()) {
+                        value += ",";
+                    }
+                    value += val;
+                }
+            }
+        }
         // 0-> disabled
         if ("0" == value) {
-            if ("max_layer_height" == opt_key) {value = "!75%";}
-            if ("gcode_min_length" == opt_key) {value = "!0";}
-            if ("max_gcode_per_second" == opt_key) {value = "!0";}
-            if ("print_temperature" == opt_key) {value = "!0";}
-            if ("print_first_layer_temperature" == opt_key) {value = "!0";}
+            if ("max_gcode_per_second" == opt_key) {
+                value = "!0";
+            }
+            if ("gcode_min_length" == opt_key) {
+                value = "!0";
+            }
+            if ("print_temperature" == opt_key) {
+                value = "!0";
+            }
+            if ("print_first_layer_temperature" == opt_key) {
+                value = "!0";
+            }
         }
         //-1-> disabled
         if (value == "-1") {

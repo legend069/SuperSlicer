@@ -811,7 +811,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         wxString firstPaValue = dynamicFirstPa[id_item]->GetValue();
         firstPaValue.Replace(",", ".");
         double first_pa = wxAtof(firstPaValue);
-        smooth_time = dynamicEnableST[id_item]->GetValue();
+        smooth_time = dynamicEnableST.size() > id_item ? dynamicEnableST[id_item]->GetValue() : 0;
         selected_extrusion_role = dynamicExtrusionRole[id_item]->GetValue().ToStdString();
 
         if (selected_extrusion_role == "CheckAll") {// have to keep it in range
@@ -1390,7 +1390,10 @@ void CalibrationPressureAdvDialog::on_row_change(wxCommandEvent& event) {
             dynamicEndPa.pop_back();
             dynamicPaIncrement.pop_back();
             dynamicExtrusionRole.pop_back();
-            dynamicEnableST.pop_back();
+            if (dynamicEnableST.size() > 0) {
+                dynamicEnableST.pop_back();
+                assert(dynamicEnableST.size() == dynamicExtrusionRole.size());
+            }
         }
     }
 
