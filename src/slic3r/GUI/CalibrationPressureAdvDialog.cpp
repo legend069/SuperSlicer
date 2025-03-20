@@ -513,6 +513,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
                 } else {
                     er_width = print_config->get_abs_value("solid_infill_extrusion_width", nozzle_diameter); //used for gapfill_width/bridges selection. TODO: add the bits for this here since gapfill/bridges need special calculations
+                    er_width = (er_width != 0) ? er_width : default_er_width;
                     er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
                     first_layer_width = default_first_layer_width;
                     first_layer_spacing = default_first_layer_spacing;
