@@ -2634,9 +2634,10 @@ std::vector<Slic3r::GUI::PageShp> Tab::create_pages(std::string setting_type_nam
                                     ? static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("layer_height"))->get_float()
                                     : nozzle_diameter / 2;
 
-                                double width = m_config->has("external_perimeter_extrusion_width")
-                                    ? static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("external_perimeter_extrusion_width"))->get_float()
-                                    : 0.45;
+                                double width = (m_config->has("external_perimeter_extrusion_width") &&
+                                    static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("external_perimeter_extrusion_width"))->get_float() > 0)
+                                        ? static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("external_perimeter_extrusion_width"))->get_float()
+                                        : 0.45;
 
                                 double overlap = m_config->has("external_perimeter_overlap")
                                     ? static_cast<const ConfigOptionPercent*>(m_config->option("external_perimeter_overlap"))->get_abs_value(1)
@@ -3255,11 +3256,13 @@ bool Tab::validate_custom_gcode(const wxString& title, const std::string& gcode)
 
 void Tab::edit_custom_gcode(const t_config_option_key& opt_key)
 {
-    EditGCodeDialog dlg = EditGCodeDialog(this, opt_key, get_custom_gcode(opt_key));
-    if (dlg.ShowModal() == wxID_OK) {
-        set_custom_gcode(opt_key, dlg.get_edited_gcode());
-        update_dirty();
-        update();
+    if (m_config->has(opt_key)) {
+        EditGCodeDialog dlg = EditGCodeDialog(this, opt_key, get_custom_gcode(opt_key));
+        if (dlg.ShowModal() == wxID_OK) {
+            set_custom_gcode(opt_key, dlg.get_edited_gcode());
+            update_dirty();
+            update();
+        }
     }
 }
 
@@ -3277,7 +3280,10 @@ void Tab::set_custom_gcode(const t_config_option_key& opt_key, const std::string
 
 const std::string& TabFilament::get_custom_gcode(const t_config_option_key& opt_key)
 {
-    return m_config->opt_string(opt_key, size_t(0));
+    if (m_config->has(opt_key)) {
+        return m_config->opt_string(opt_key, size_t(0));
+    }
+    // error popup?
 }
 
 void TabFilament::set_custom_gcode(const t_config_option_key& opt_key, const std::string& value)

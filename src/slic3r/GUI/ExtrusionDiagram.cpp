@@ -277,7 +277,8 @@ void ExtrusionDiagram::UpdateValues(double val, const std::string& config_option
         updated = true;
     }
     else if (config_option == "external_perimeter_extrusion_width") {
-        m_width = val;
+        m_width = (m_width != 0) ? val : m_nozzle_diameter;
+        //m_width = val;
         updated = true;
     }
     else if (config_option == "external_perimeter_overlap") {
