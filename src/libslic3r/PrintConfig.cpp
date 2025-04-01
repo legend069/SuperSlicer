@@ -11920,6 +11920,7 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
     {"color_change_gcode",      {"color_change_extruder", "next_color", "next_colour"}},
     {"pause_print_gcode",       {"color_change_extruder"}},
     {"between_objects_gcode",   {"layer_num", "layer_z"}},
+    //{"region_gcode",            {"layer_num", "layer_z"}},
 };
 
 const std::map<t_custom_gcode_key, t_config_option_keys>& custom_gcode_specific_placeholders()

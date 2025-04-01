@@ -694,6 +694,8 @@ void Layer::make_perimeters()
                             && config.external_perimeters_vase == other_config.external_perimeters_vase
                             && config.extra_perimeters_odd_layers == other_config.extra_perimeters_odd_layers
                             && config.extra_perimeters_on_overhangs == other_config.extra_perimeters_on_overhangs
+                            && config.first_layer_extrusion_width == other_config.first_layer_extrusion_width
+                            && config.first_layer_extrusion_spacing == other_config.first_layer_extrusion_spacing
                             && config.gap_fill_enabled          == other_config.gap_fill_enabled
                             && ((config.gap_fill_speed          == other_config.gap_fill_speed) || !config.gap_fill_enabled)
                             && config.gap_fill_acceleration     == other_config.gap_fill_acceleration

@@ -91,9 +91,13 @@ Flow PrintRegion::flow(const PrintObject &object, FlowRole role, double layer_he
                 ) {
             config_width = object.config().first_layer_infill_extrusion_width;
             config_spacing = object.config().first_layer_infill_extrusion_spacing;
-        } else if (object.config().first_layer_extrusion_width.is_enabled()) {
+        } /*else if (object.config().first_layer_extrusion_width.is_enabled()) {
             config_width = object.config().first_layer_extrusion_width;
             config_spacing = object.config().first_layer_extrusion_spacing;
+        }*/
+        else if (m_config.first_layer_extrusion_width.value > 0) {
+            config_width = m_config.first_layer_extrusion_width;
+            config_spacing = m_config.first_layer_extrusion_spacing;
         }
     }
 

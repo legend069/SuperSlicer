@@ -1440,6 +1440,13 @@ double ConfigBase::get_computed_value(const t_config_option_key &opt_key, int ex
             if (!cofop->percent)
                 return cofop->value;
             cast_opt = cofop;
+            if (boost::ends_with(opt_key, "_layer_speed")){ // first_layer_speed if 100% it will not change the first layer speed and will use that ER roles speed values.
+
+                auto value = static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->value;
+                //return static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->value;
+                std::stringstream ss; ss << "ConfigBase::get_computed_value(): " << opt_key << " " << value << " can not be called this way, please send a bug report.";
+                throw ConfigurationError(ss.str());
+            } 
         }
         if (raw_opt->type() == coPercent) {
             cast_opt = static_cast<const ConfigOptionPercent*>(raw_opt);
