@@ -29,6 +29,8 @@ protected:
     virtual void create_buttons(wxStdDialogButtonSizer*) = 0;
     void on_dpi_changed(const wxRect& suggested_rect) override;
     void close_me(wxCommandEvent& event_args);
+    wxString fix_number_separators(const wxString& input);
+    wxString remove_thousands_separators(const wxString& input);
     void add_part(ModelObject* model_object, std::string input_file, Vec3d move, Vec3d scale = Vec3d{ 1,1,1 }, bool rotate = true);
 
     wxHtmlWindow* html_viewer;

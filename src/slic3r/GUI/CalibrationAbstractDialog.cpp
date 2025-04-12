@@ -135,6 +135,80 @@ void CalibrationAbstractDialog::close_me(wxCommandEvent& event_args) {
     this->Destroy();
 }
 
+wxString CalibrationAbstractDialog::fix_number_separators(const wxString& input){
+
+    constexpr std::array<char, 4> valid_thousands_separators = { 32, 39, 44, 46 }; // space, ', ',', '.'
+    constexpr std::array<char, 2> valid_decimal_separators = { 44, 46 };           // ',', '.'
+
+    const char correct_decimal_sep = std::use_facet<std::numpunct<char>>(std::locale::classic()).decimal_point();
+    const char correct_thousands_sep = std::use_facet<std::numpunct<char>>(std::locale::classic()).thousands_sep();
+
+    wxString output;
+    bool decimal_found = false;
+    int digit_count_since_sep = 0;
+
+    for (int i = input.length() - 1; i >= 0; --i) {
+        const char c = input[i];
+
+        if (wxIsdigit(c)) {
+            output.Prepend(c);
+            digit_count_since_sep++;
+        }
+        else if (!decimal_found && std::find(valid_decimal_separators.begin(), valid_decimal_separators.end(), c) != valid_decimal_separators.end()) {
+            output.Prepend(correct_decimal_sep);
+            decimal_found = true;
+            digit_count_since_sep = 0;
+        }
+        else if (std::find(valid_thousands_separators.begin(), valid_thousands_separators.end(), c) != valid_thousands_separators.end()) {
+            if (digit_count_since_sep == 3) {
+                if (correct_thousands_sep != 0)
+                    output.Prepend(correct_thousands_sep);
+                digit_count_since_sep = 0;
+            }
+            // else wrong position remove it
+        }
+        // else trash character skip
+    }
+
+    return output;
+}
+
+wxString CalibrationAbstractDialog::remove_thousands_separators(const wxString& input){
+
+    constexpr std::array<char, 4> valid_thousands_separators = { 32, 39, 44, 46 }; // space, ', ',', '.'
+    constexpr std::array<char, 2> valid_decimal_separators = { 44, 46 };           // ',', '.'
+
+    const char correct_decimal_sep = std::use_facet<std::numpunct<char>>(std::locale::classic()).decimal_point();
+    const char correct_thousands_sep = std::use_facet<std::numpunct<char>>(std::locale::classic()).thousands_sep();
+
+    wxString output;
+    bool decimal_found = false;
+
+    for (int i = input.length() - 1; i >= 0; --i) {
+        const char c = input[i];
+
+        if (wxIsdigit(c)) {
+            output.Prepend(c);
+        }
+        else if (!decimal_found && c == correct_decimal_sep) {
+            output.Prepend(correct_decimal_sep);
+            decimal_found = true;
+        }
+        else if (std::find(valid_thousands_separators.begin(), valid_thousands_separators.end(), c) != valid_thousands_separators.end()) {
+            // valid thousands sep remove it
+        }
+        else {
+            // junk character remove it
+        }
+    }
+
+    if (output.EndsWith(wxString::Format("%c", correct_decimal_sep))) {
+        output.RemoveLast();
+    }
+    
+    return output;
+}
+
 void CalibrationAbstractDialog::add_part(ModelObject* model_object, std::string input_file, Vec3d move, Vec3d scale, bool rotate) {
     Model model;
     try {
