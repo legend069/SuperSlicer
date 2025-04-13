@@ -17,12 +17,14 @@
 //#include "Jobs/job.hpp" 2.7 requirement?
 #include <unordered_map>
 
-#pragma optimize("", off)
+#ifdef NDEBUG
+    #undef NDEBUG
+    #include <assert.h>
+    #pragma optimize("", off)
+#endif
 
 #define enable_27_fixes
 
-#undef NDEBUG
-#include <assert.h>
 
 #if ENABLE_SCROLLABLE
 static wxSize get_screen_size(wxWindow* window)
@@ -263,12 +265,9 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     double filament_max_overlap = full_print_config.get_computed_value("filament_max_overlap",0);//maybe check for extruderID ?
     const int extruder_count = wxGetApp().extruders_edited_cnt();
     //const int ext_cnt = full_print_config.get_computed_value();
-    double combined_layer_height = infill_every_layers * base_layer_height;
+    double combined_layer_height = base_layer_height;
     double min_layer_height = full_print_config.get_computed_value("min_layer_height", extruder_count - extruder_count);//why is this now broken after i added multi extruder config then removed it. ??
     double max_layer_height = full_print_config.get_computed_value("max_layer_height", extruder_count - extruder_count);
-
-    //double max_layer_heih = full_print_config.get_abs_value("min_layer_height", nozzle_diameter);
-    //double min_layer_height, max_layer_height = 0.0;
 
 
     bool infill_dense = full_print_config.get_bool("infill_dense");
@@ -353,24 +352,24 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         number_positions.clear();
         
         auto pa_result = calc_PA_values(id_item);
-        std::vector<double> pa_values = pa_result.first;
+        std::vector<std::string> pa_values = pa_result.first;
         int count_increments = pa_result.second;
         selected_extrusion_role = dynamicExtrusionRole[id_item]->GetValue().ToStdString();
         if (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0){
-            combined_layer_height = support_material_layer_height;
+            combined_layer_height = support_material_layer_height; //TOFIX: support material layer heights can change if its set to "0"
         }
-        if (selected_extrusion_role == "InternalInfill" && infill_dense == false && infill_every_layers > 1){
+        else if (selected_extrusion_role == "InternalInfill" && infill_dense == false && infill_every_layers > 1){
             combined_layer_height = infill_every_layers * base_layer_height;
         }
-        if (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height !=0){
+        else if (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height !=0){
             combined_layer_height = support_material_interface_layer_height;
         }
-        if (selected_extrusion_role == "FirstLayer"){
+        else if (selected_extrusion_role == "FirstLayer"){
             combined_layer_height = first_layer_height;
         }
-        /*
-        double first_pa = wxAtof(firstPaValue);
-        */
+        else {
+            combined_layer_height = base_layer_height;
+        }
 
         if (selected_extrusion_role == "CheckAll") {
             //count_increments = 13;
@@ -467,7 +466,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                         base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);
                         break;
                     case GCodeExtrusionRole::Custom://first_layer
-                        base_flow = Flow::new_from_config(flow_role, *print_config, nozzle_diameter, modified_layer_height, 1.f, true);
+                        base_flow = Flow::new_from_config(FlowRole::frPerimeter, *print_config, nozzle_diameter, modified_layer_height, 1.f, true);
                         break;
                     default:
                         base_flow = Flow::new_from_config(FlowRole::frExternalPerimeter, *print_config, nozzle_diameter, base_layer_height, filament_max_overlap, false);//unsupported roles.
@@ -537,24 +536,14 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
         //-- magical scaling is done here :)
         //the 90_bend models need to be scaled correctly so there is no 'gapfill' since gapfill will effect results.
-        double adjustment_factor = first_layer_flow.width() - first_layer_flow.spacing();// FIXME: this calculation is incorrect?
-
         double xyzScale = nozzle_diameter / 0.4;
-        double er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, base_layer_height, er_spacing);
-        //double er_width_to_scale_first_layer = magical_scaling(nozzle_diameter, first_layer_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, first_layer_height, first_layer_spacing);//prob not needed?
-        double er_width_to_scale_first_layer_border = first_layer_flow.width() + 3 * first_layer_flow.spacing() + adjustment_factor;//total_width_with_overlap
+        auto bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
+        auto first_layer_bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, first_layer_height, first_layer_spacing, true);
+        double er_width_to_scale = bend_90.scale;
 
-        if (infill_every_layers > 1 && selected_extrusion_role == "InternalInfill" && infill_dense == false){
-            er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-        }
-        if (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0){
-            er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-        }
-        if(selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height != 0){
-            er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-        }
         if (selected_extrusion_role == "FirstLayer"){
-            er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, first_layer_height, first_layer_flow.spacing());
+            bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, first_layer_spacing, true);
+            er_width_to_scale = bend_90.first_layer_scale;
         }
 
         //-- magical scaling 
@@ -563,10 +552,10 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         double z_scaled_model_height = initial_model_height * (first_layer_height / initial_model_height); //mm
         double xy_scaled_90_bend_x = initial_90_bend_x * er_width_to_scale;             // mm
         double xy_scaled_90_bend_y = initial_90_bend_y * er_width_to_scale;             // mm
-        //double first_layer_xy_scaled_90_bend_x = initial_90_bend_x * er_width_to_scale_first_layer; // mm for 90_bend width scaled for first_layer prob not needed?
-        //double first_layer_xy_scaled_90_bend_y = initial_90_bend_y * er_width_to_scale_first_layer; // mm for 90_bend width scaled for first_layer prob not needed?
-        double xy_scaled_border_x = er_width_to_scale_first_layer_border;               // mm
-        double xy_scaled_border_y = er_width_to_scale_first_layer_border;               // mm
+        //double first_layer_xy_scaled_90_bend_x = initial_90_bend_x * first_layer_bend_90.first_layer_scale; // mm for 90_bend width scaled for first_layer prob not needed?
+        //double first_layer_xy_scaled_90_bend_y = initial_90_bend_y * first_layer_bend_90.first_layer_scale; // mm for 90_bend width scaled for first_layer prob not needed?
+        double xy_scaled_border_x = first_layer_bend_90.perfect_first_layer_width;      // mm
+        double xy_scaled_border_y = first_layer_bend_90.perfect_first_layer_width;      // mm
         double xy_scaled_number_x = initial_number_x * xyzScale * er_width_to_scale;    // mm
         double xy_scaled_number_y = initial_number_y * xyzScale * er_width_to_scale;    // mm
         double xy_scaled_point_x =  initial_point_xy * xyzScale * er_width_to_scale;    // mm
@@ -575,8 +564,8 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
         double thickness_offset = 0.0;
         double bend_90_y_pos = 0.0;
-        double z_scale_90_bend = (first_layer_height + (base_layer_height * 4)) / initial_model_height;//force constant 5 layer height for model
-        double z_90_bend_pos = (first_layer_height + (base_layer_height * 4)) / 2;
+        double z_scale_90_bend = (first_layer_height + (combined_layer_height * 5)) / initial_model_height;//force constant 5 layer height for model
+        double z_90_bend_pos = (first_layer_height + (combined_layer_height * 5)) / 2;
         double z_scale_others = first_layer_height / initial_model_height;
         double z_others_pos = first_layer_height / 2;
         std::set<std::string> added_roles;
@@ -620,28 +609,15 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 er_spacing = default_er_spacing;
             }
 
-            er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
-            er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, base_layer_height, er_spacing);
+            er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;//i should really move away from the percentage stuff...
 
-            if (infill_every_layers > 1 && selected_extrusion_role == "InternalInfill" && infill_dense == false){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-                z_90_bend_pos = (first_layer_height + (combined_layer_height * 5)) / 2;
-                z_scale_90_bend = (first_layer_height + (combined_layer_height * 5)) / initial_model_height;//force constant 6 layer height for model even if combing layers, needed for infill selected role
-            }
-            if (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0 ){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-                z_90_bend_pos = (first_layer_height + (combined_layer_height * 5)) / 2;
-                z_scale_90_bend = (first_layer_height + (combined_layer_height * 5)) / initial_model_height;//TOFIX: support material layer heights can change if its set to "0"
-            }
-            if (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height != 0 ){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-                z_90_bend_pos = (first_layer_height + (combined_layer_height * 5)) / 2;
-                z_scale_90_bend = (first_layer_height + (combined_layer_height * 5)) / initial_model_height;//TOFIX: support material layer heights can change if its set to "0"
-            }
+            auto bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
+            er_width_to_scale = bend_90.scale;
+
             if (selected_extrusion_role == "FirstLayer"){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-                z_90_bend_pos = (first_layer_height + (combined_layer_height * 5)) / 2;
-                z_scale_90_bend = (first_layer_height + (combined_layer_height * 5)) / initial_model_height;
+
+                bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, first_layer_spacing, true);
+                er_width_to_scale = bend_90.first_layer_scale;
             }
 
 
@@ -654,24 +630,11 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
             Eigen::Vector3d modelPosition( x_offset_90_bend, bend_90_y_pos + y_offset , z_90_bend_pos );
 
             // thickness offset that moves each '90_bend' model in Y
-            //thickness_offset = ((er_width / 100) * nozzle_diameter) * 4 + (nozzle_diameter * 2);// pretty tight gap
-            //thickness_offset = ((er_width / 100) * nozzle_diameter) * 4 + (nozzle_diameter * 2.5);
             thickness_offset = ((er_width / 100) * nozzle_diameter) * 4 + (nozzle_diameter * 4);// larger gap
-           
-            //thickness_offset = ((er_width / 100.0) * nozzle_diameter * xy_scaled_90_bend_y * 4) + (nozzle_diameter * 4);
-            //double scaled_thickness_offset = ((xy_scaled_90_bend_x - initial_90_bend_x) + (xy_scaled_90_bend_y - initial_90_bend_y));
-            //double real_offset = thickness_offset + scaled_thickness_offset;
-
-            /*thickness_offset = ((er_width / 100.0) * nozzle_diameter * 4) + (nozzle_diameter * 4);
-
-            double scaled_thickness_offset = thickness_offset * (((xy_scaled_90_bend_x / initial_90_bend_x) + (xy_scaled_90_bend_y / initial_90_bend_y)) / 2.0 - 1);
-            double real_offset = thickness_offset + scaled_thickness_offset;*/
+            thickness_offset = std::max(bend_90.perfect_sliced_width, first_layer_bend_90.perfect_first_layer_width) + (std::max(bend_90.perfect_sliced_width, first_layer_bend_90.perfect_first_layer_width) / 1.5);
 
             bend_90_positions.push_back(modelPosition);
             bend_90_y_pos = modelPosition.y() + thickness_offset;
-            //bend_90_y_pos = modelPosition.y() + real_offset;
-            
-            
         }
     
         for (int nb_bends = 0; nb_bends < count_increments;nb_bends++){
@@ -686,6 +649,12 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 Eigen::Vector3d number_pos_mid = number_positions[0];
                 Eigen::Vector3d number_pos_last = number_positions[0];
 
+                if (count_increments % 2 == 1) {
+                    bend_pos_mid.y() = bend_90_positions[count_increments/2].y();
+                }
+                else{
+                    bend_pos_mid.y() = (bend_90_positions[count_increments / 2 - 1].y() + bend_90_positions[count_increments / 2].y()) / 2.0;
+                }
 
                 if (!number_positions.empty()) {
 
@@ -697,9 +666,6 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                         count_numbers++;
                     }
                 }
-
-                //TOFIX: on odd/uneven PA_values array results in the boreders being a little too short. this is mainly because i force load in the final end_pa value, cascades into loading extra 90_bend model.
-                //maybe on odd/even PA_values array just ammend the known sizes to the borders as a "offset" to strech them?
 
                 double numbers_total_width = (number_pos_last.x() + (xy_scaled_number_x / 2)) - (number_pos_first.x() - (xy_scaled_number_x / 2));// scaled to include gap between end of 90_bend and first number,perfection
                 double total_height = (bend_pos_last.y() + (xy_scaled_90_bend_y / 2)) - (bend_pos_first.y() - (xy_scaled_90_bend_y / 2));
@@ -731,8 +697,8 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                         /*scale*/Vec3d{ scaled_r_border_x_percentage , scaled_lr_border_y_percentage , z_scale_others}, false);count_borders++;        //right border
                 
 
-                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),//on odd number of count_increments the bottom border is not joined to the side borders. fixing this bug will require
-                    Vec3d{ tb_border_x_pos , bend_pos_first.y() - (xy_scaled_90_bend_y / 2) - (xy_scaled_border_y / 2) - nozzle_diameter, z_others_pos },                      // adding more if/else statements to add the extra offset and apply this to all other calculations for the border scale and position.
+                add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
+                    Vec3d{ tb_border_x_pos , bend_pos_first.y() - (xy_scaled_90_bend_y / 2) - (xy_scaled_border_y / 2) - nozzle_diameter, z_others_pos },
                         /*scale*/Vec3d{ scaled_tb_border_x_percentage , scaled_tb_border_y_percentage, z_scale_others }, false);count_borders++;       //bottom border
                 //----------
                 add_part(model.objects[objs_idx[id_item]], (boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / "pa_border.3mf").string(),
@@ -758,7 +724,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 // i want the numbers for a thin wall to be scaled and printed as a thinwall... the detection for thin walls/overhangs might need to be fixed first?
 
                 Eigen::Vector3d bend_90_pos = bend_90_positions[nb_bends];
-                std::string pa_values_string = std::to_string(pa_values[nb_bends]);
+                std::string pa_value = pa_values[nb_bends];
 
                 double xpos = bend_90_pos.x() + (xy_scaled_90_bend_x / 2) + (xy_scaled_number_x / 2) + nozzle_diameter;
                 //double ypos = bend_90_pos.y() + (xy_scaled_90_bend_y / 2) - (xy_scaled_number_y / 2)
@@ -767,15 +733,11 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 //double ypos = bend_90_pos.y() + (xy_scaled_90_bend_y / 2) - (xy_scaled_number_y / 2) + (er_width / 100 * 2);//TODO: perfect this position so it's centered with the notch on the 90_bend                                                                                                    
                                                                                                      //  will need to calculate that number sizing/positioning to offset it by.
 
-                for (size_t j = 0; j < pa_values_string.length(); ++j) {//not sure how the code will respond with a positive array list? ie ; 100.2 this moves decimal point thus breaking the code from loading model since "..3mf" not a real file
-
-                    //improvement: if j > 0 if 'std::isdigit(pa_values_string[j]' == '0' and if it's the same as j-1 don't re print the trailing 0's
-                    //check if current digit is the same as the last two?, if it is then stop adding models, this should auto correct for the border scaling  
-                    // should this be a choice box ?
+                for (size_t j = 0; j < pa_value.length(); ++j) {//not sure how the code will respond with a positive array list? ie ; 100.2 this moves decimal point thus breaking the code from loading model since "..3mf" not a real file
 
                     if (j != 0  ) {//don't apply the offset for first number
                         xpos = xpos + space_numbers_distance_x;}
-                    if (pa_values_string[j] == '.') { //maybe if ! isdigit(pa_values_string[j]) if it's not a '.' it could be ',' part fix for localization issue. but also this character could be anything else..(it shouldn't though..) and it shouldn't be 'fixed' here..
+                    if (pa_value[j] == '.') {
 
                         double right_edge_of_left_number = xpos + (xy_scaled_number_x / 2) - space_numbers_distance_x;//this can be simplified,values represent the inner edges of the numbers between the '.' model
                         double left_edge_of_right_number = xpos + (xy_scaled_number_x / 2) + (nozzle_diameter * 2) + (xy_scaled_number_x / 2) - space_numbers_distance_x;
@@ -787,8 +749,8 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                         number_positions.push_back(Eigen::Vector3d(point_xpos, ypos - (xy_scaled_number_y / 2) + (xy_scaled_point_y / 2), z_scaled_model_height));
                         xpos -= (xy_scaled_number_x / 2);
 
-                    } else if (std::isdigit(pa_values_string[j])) {
-                        add_part(model.objects[objs_idx[id_item]],(boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / (pa_values_string[j] + std::string(".3mf"))).string(),
+                    } else if (std::isdigit(pa_value[j])) {
+                        add_part(model.objects[objs_idx[id_item]],(boost::filesystem::path(Slic3r::resources_dir()) / "calibration" / "filament_pressure" / (pa_value[j] + std::string(".3mf"))).string(),
                             Vec3d{ xpos, ypos, z_scaled_model_height },
                                 /*scale*/Vec3d{ xyzScale * er_width_to_scale, xyzScale * er_width_to_scale, z_scale_others * 2 }, false);//TOCHECK: if any numbers get gapfill
                         number_positions.push_back(Eigen::Vector3d(xpos, ypos, z_scaled_model_height));
@@ -812,8 +774,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     new_print_config.set_key_value("xy_inner_size_compensation", new ConfigOptionFloat(0));
     new_print_config.set_key_value("xy_outer_size_compensation", new ConfigOptionFloat(0));
     new_filament_config.set_key_value("filament_pressure_advance", (new ConfigOptionFloats({0.00}))->set_can_be_disabled(true));
-    new_print_config.set_key_value("print_custom_variables", new ConfigOptionString("calibration_print"));//created this as an extra check for when generating gcode to not include "feature_gcode"
-                                                                                                          // unless i disable the "generate" button if the keywords are detected in the custom gcode ?
+    new_print_config.set_key_value("print_custom_variables", new ConfigOptionString("calibration_print")); //users can adjust their print_start gcode to check this value to stop the waiting for enclosure heatup if they want to. TODO: add it to the other calibration prints.
 
 
     //assert(filament_temp_item_name.size() == nb_runs);
@@ -822,29 +783,21 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     for (int id_item = 0; id_item < currentTestCount; id_item++) {
 
         auto pa_result = calc_PA_values(id_item);
-        std::vector<double> pa_values = pa_result.first;
+        std::vector<std::string> pa_values = pa_result.first;
         int count_increments = pa_result.second;
 
         wxString firstPaValue = dynamicFirstPa[id_item]->GetValue();
-        firstPaValue.Replace(",", ".");
-        double first_pa = wxAtof(firstPaValue);
+        wxString sanitized_first_pa = remove_thousands_separators(fix_number_separators(firstPaValue));
+        double first_pa = 0.0;
+        if (!sanitized_first_pa.ToDouble(&first_pa)) {
+            first_pa = 0.0;
+        }
+        
         smooth_time = dynamicEnableST.size() > id_item ? dynamicEnableST[id_item]->GetValue() : 0;
         selected_extrusion_role = dynamicExtrusionRole[id_item]->GetValue().ToStdString();
 
         if (selected_extrusion_role == "CheckAll") {// have to keep it in range
             count_increments = sizeof(choice_extrusion_role) / sizeof(choice_extrusion_role[0]);
-        }
-        if (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0){
-            combined_layer_height = support_material_layer_height;
-        }
-        if (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height !=0){
-            combined_layer_height = support_material_interface_layer_height;
-        }
-        else if (selected_extrusion_role == "InternalInfill" && infill_dense == false && infill_every_layers > 1){
-            combined_layer_height = infill_every_layers * base_layer_height;
-        }
-        else if(selected_extrusion_role == "FirstLayer"){
-            combined_layer_height == first_layer_height;
         }
 
         auto last_90_bend_scale = model.objects[objs_idx[id_item]]->volumes[count_increments]->get_scaling_factor();
@@ -856,6 +809,21 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                                          (gcfRepRap == flavor) ? "M572 S" : "";
         std::string region_prefix = "{if layer_z <= " + std::to_string(first_layer_height) + "}" + set_first_layer_prefix + std::to_string(first_pa) + "; first layer [layer_z] {endif}";
 
+        if (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0){
+            combined_layer_height = support_material_layer_height; //TOFIX: support material layer heights can change if its set to "0"
+        }
+        else if (selected_extrusion_role == "InternalInfill" && infill_dense == false && infill_every_layers > 1){
+            combined_layer_height = infill_every_layers * base_layer_height;
+        }
+        else if (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height !=0){
+            combined_layer_height = support_material_interface_layer_height;
+        }
+        else if (selected_extrusion_role == "FirstLayer"){
+            combined_layer_height = first_layer_height;
+        }
+        else {
+            combined_layer_height = base_layer_height;
+        }
         /*
         gcfRepRap,
         gcfSprinter,
@@ -883,7 +851,6 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
         model.objects[objs_idx[id_item]]->config.set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0.0,false));
         model.objects[objs_idx[id_item]]->config.set_key_value("only_one_perimeter_top", new ConfigOptionBool(false));
         model.objects[objs_idx[id_item]]->config.set_key_value("only_one_perimeter_first_layer", new ConfigOptionBool(false));//, if borderers - right are scaled correctly there shouldn't be any gap fill in them. it would be nice to keep the *4 extrusion lines for the borders only.
-        //model.objects[objs_idx[id_item]]->config.set_key_value("perimeter_overlap", new ConfigOptionPercent(100));//
         model.objects[objs_idx[id_item]]->config.set_key_value("seam_position", new ConfigOptionEnum<SeamPosition>(spRear)); //spRear or spCost //BUG: should be fixed in 2.7 merge/SS 2.5.59.7, when this is changed the "perimeters & shell" doesn't turn red indicating a change.
         model.objects[objs_idx[id_item]]->config.set_key_value("top_solid_layers", new ConfigOptionInt(0));
         model.objects[objs_idx[id_item]]->config.set_key_value("region_gcode", new ConfigOptionString(region_prefix + " \n" ));
@@ -902,34 +869,11 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                 }
             }
             if(style == 2){
-                if (infill_every_layers > 1 && selected_extrusion_role == "InternalInfill" && infill_dense == false) {
-
-                    wxGetApp().obj_list()->layers_editing(id_item);//could prob use this same thing for the unsupported roles since they need a different layer_height/width
-                    auto existing_range = model.objects[objs_idx[id_item]]->layer_config_ranges.find(std::pair<double, double>(0.0f, 2.0f));// Find the default existing range {0.0f, 2.0f}
-
-                    if (existing_range != model.objects[objs_idx[id_item]]->layer_config_ranges.end()) {
-                        ModelConfig new_range_conf = existing_range->second;
-
-                        new_range_conf.set_key_value("layer_height", new ConfigOptionFloatOrPercent(combined_layer_height, false));
-                        model.objects[objs_idx[id_item]]->layer_config_ranges.erase(existing_range);
-                        model.objects[objs_idx[id_item]]->layer_config_ranges[std::pair<double, double>(first_layer_height, model_height + first_layer_height)] = new_range_conf;
-                    }
-                }
-                if ((selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0) || (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height != 0)) {
-
-                    wxGetApp().obj_list()->layers_editing(id_item);//could prob use this same thing for the unsupported roles since they need a different layer_height/width
-                    auto existing_range = model.objects[objs_idx[id_item]]->layer_config_ranges.find(std::pair<double, double>(0.0f, 2.0f));// Find the default existing range {0.0f, 2.0f}
-
-                    if (existing_range != model.objects[objs_idx[id_item]]->layer_config_ranges.end()) {
-                        ModelConfig new_range_conf = existing_range->second;
-
-                        new_range_conf.set_key_value("layer_height", new ConfigOptionFloatOrPercent(combined_layer_height, false));
-                        model.objects[objs_idx[id_item]]->layer_config_ranges.erase(existing_range);
-                        model.objects[objs_idx[id_item]]->layer_config_ranges[std::pair<double, double>(first_layer_height, model_height + first_layer_height)] = new_range_conf;
-                    }
-                }
-                if (selected_extrusion_role == "FirstLayer" ) {
-
+                if ((selected_extrusion_role == "InternalInfill" && !infill_dense && infill_every_layers > 1) ||
+                    (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0) ||
+                    (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height != 0) ||
+                    (selected_extrusion_role == "FirstLayer"))
+                {
                     wxGetApp().obj_list()->layers_editing(id_item);//could prob use this same thing for the unsupported roles since they need a different layer_height/width
                     auto existing_range = model.objects[objs_idx[id_item]]->layer_config_ranges.find(std::pair<double, double>(0.0f, 2.0f));// Find the default existing range {0.0f, 2.0f}
 
@@ -1008,42 +952,43 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
             else{
                 er_width = std::round((er_width * 100 / nozzle_diameter) * 100.0) / 100.0;
             }
-            double er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, base_layer_height, er_spacing);
-            if (infill_every_layers > 1 && selected_extrusion_role == "InternalInfill" && infill_dense == false) {
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
+
+            auto bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, base_layer_height, er_spacing);
+            double er_width_to_scale = bend_90.scale;
+
+            if ((selected_extrusion_role == "InternalInfill" && !infill_dense && infill_every_layers > 1) ||
+                (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0) ||
+                (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height != 0)){
+
+                bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
+                er_width_to_scale = bend_90.scale;
             }
-            if (selected_extrusion_role == "SupportMaterial" && support_material_layer_height != 0 ){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-            }
-            if (selected_extrusion_role == "SupportMaterialInterface" && support_material_interface_layer_height != 0 ){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, er_spacing);
-            }
+
             if (selected_extrusion_role == "FirstLayer"){
-                er_width_to_scale = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, first_layer_height, first_layer_flow.spacing());
+
+                bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, combined_layer_height, first_layer_spacing, true);
+                er_width_to_scale = bend_90.first_layer_scale;
             }
             
-            double er_width_to_scale_first_layer_match_base2 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, first_layer_height, first_layer_spacing);
-
-            double xy_scaled_90_bend_x = initial_90_bend_x * er_width_to_scale;             // mm
-            double xy_scaled_90_bend_y = initial_90_bend_y * er_width_to_scale;             // mm
-            double first_layer_xy_scaled_90_bend_x_match = initial_90_bend_x * er_width_to_scale_first_layer_match_base2; // mm for 90_bend width scaled for first_layer to match er role width
-            double first_layer_xy_scaled_90_bend_y_match = initial_90_bend_y * er_width_to_scale_first_layer_match_base2; // mm for 90_bend width scaled for first_layer to match er role width
-
-
-            double adjusted_first_layer_width_x = er_width * (1 + (xy_scaled_90_bend_x - first_layer_xy_scaled_90_bend_x_match) / xy_scaled_90_bend_x);
-            double adjusted_first_layer_width_y = er_width * (1 + (xy_scaled_90_bend_y - first_layer_xy_scaled_90_bend_y_match) / xy_scaled_90_bend_y);
-            double adjusted_first_average = (adjusted_first_layer_width_x + adjusted_first_layer_width_y) / 2;
-
+            auto first_layer_bend_90 = magical_scaling(nozzle_diameter, er_width, filament_max_overlap, perimeter_overlap, external_perimeter_overlap, first_layer_height, first_layer_spacing, true);
+            //double first_layer_width_modifier = (std::max(bend_90.perfect_sliced_width, first_layer_bend_90.perfect_first_layer_width) / first_layer_bend_90.perfect_first_layer_width) * (std::max(er_width, first_layer_width) / 100.0) * 100.0;
+            double first_layer_width_modifier = 0;
+            if(er_width < first_layer_width){
+                first_layer_width_modifier = (std::min(bend_90.perfect_sliced_width, first_layer_bend_90.perfect_first_layer_width) / first_layer_bend_90.perfect_first_layer_width) * (er_width / 100.0) * 100.0;
+                first_layer_width_modifier = first_layer_width_modifier + (first_layer_bend_90.perfect_first_layer_width - bend_90.perfect_sliced_width) - er_spacing;//cursed but kinda works.. this technically makes 'first_layer_bend_90' incorrect..
+            }
+            else{
+                first_layer_width_modifier = (std::max(bend_90.perfect_sliced_width, first_layer_bend_90.perfect_first_layer_width) / first_layer_bend_90.perfect_first_layer_width) * (er_width / 100.0) * 100.0;
+            }
             std::string set_advance_prefix = 
                 (gcfKlipper == flavor) ? (smooth_time ? "SET_PRESSURE_ADVANCE SMOOTH_TIME=" : "SET_PRESSURE_ADVANCE ADVANCE=") :
                 (gcfMarlinFirmware == flavor) ? "M900 K" :
                 (gcfRepRap == flavor) ? "M572 S" : "";
 
-
             /// --- custom config ---
             // config for the 90_bend model
             //TOFIX : if first_layer_speed is  100% that means the first layer has no modifer for the speed and will use the standard peri/ ext peri speeds.
-            model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("first_layer_extrusion_width", new ConfigOptionFloatOrPercent(adjusted_first_average, true));//TODO: move this to base modifer and revert commit a5c160d
+            model.objects[objs_idx[id_item]]->config.set_key_value("first_layer_extrusion_width", new ConfigOptionFloatOrPercent(first_layer_width_modifier,true)); //TODO: and revert commit a5c160d ?
             model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));
             model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("external_perimeter_extrusion_width", new ConfigOptionFloatOrPercent(er_width, true));//TODO: check widths and ect breaks if any values are in mm/percentage
             model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("perimeter_speed", new ConfigOptionFloatOrPercent(er_speed, false));
@@ -1058,6 +1003,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
             if (selected_extrusion_role == "CheckAll") {
                 model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(";" + set_advance_prefix + " ; " + er_role ));//user manual type in values commented out to stop errors
+                model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("first_layer_extrusion_width", new ConfigOptionFloatOrPercent(first_layer_width_modifier, true));//this is needed for 'checkall' applying the base model modifer won't work well..
                 //will need to adjust layerheight for infill,support, other er roles that needs a different layerheight for CheckAll mode.
 
                 /*ModelConfig range_conf;
@@ -1084,7 +1030,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
                     }*/
             }
             else{
-                model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[num_part]) + " ; " + er_role + "\n"));
+                model.objects[objs_idx[id_item]]->volumes[num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(set_advance_prefix + pa_values[num_part] + " ; " + er_role + "\n"));
             }
             num_part++;
             //model.objects[objs_idx[id_item]]->ensure_on_bed(); // put at the correct z (kind of arrange-z)) shouldn't be needed though.
@@ -1118,10 +1064,8 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
 
                 // Apply the PA value to the number set stays inline with 90_bend models
                 for (int number_set = 0; number_set < count_numbers; number_set++){
-                    model.objects[objs_idx[id_item]]->volumes[number_set + num_part + extra_vol]->config.set_key_value(
-                        "region_gcode",
-                        new ConfigOptionString(set_advance_prefix + std::to_string(pa_values[pa_index]) + " ; "));
-                    
+
+                    model.objects[objs_idx[id_item]]->volumes[number_set + num_part + extra_vol]->config.set_key_value("region_gcode", new ConfigOptionString(set_advance_prefix + pa_values[pa_index] + " ; "));
                     nb_number++;
                 }
                 pa_index++;
@@ -1150,20 +1094,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     obj->update_after_undo_redo();
 
     // arrange if needed, after new settings, to take them into account
-    // BUG:(borders don't slice. with 2+ generated models.) after updating to 2.5.59.11 the generating 2+ models they have "sinking label" have to click "drop to bed" to resolve, clicking "arrange" doesn't fix issue. -fixed
-    /*if (has_to_arrange) {
-        //update print config (done at reslice but we need it here)
-        if (plat->printer_technology() == ptFFF)
-            plat->fff_print().apply(plat->model(), *plat->config());
-        std::shared_ptr<ProgressIndicatorStub> fake_statusbar = std::make_shared<ProgressIndicatorStub>();
-        ArrangeJob arranger(std::dynamic_pointer_cast<ProgressIndicator>(fake_statusbar), plat);
-        arranger.prepare_all();
-        arranger.process();
-        arranger.finalize();
-        
-    }*/
 
-    //2.7 change
     if (has_to_arrange) {
         //update print config (done at reslice but we need it here)
         if (plat->printer_technology() == ptFFF)
@@ -1174,7 +1105,7 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     }
 
     if (selected_extrusion_role != "CheckAll") {//don't auto slice so user can manual add PA values
-#ifdef _DEBUG
+#ifndef _DEBUG
             plat->reslice(); //forces a slice of plater.
 #endif
     }
@@ -1185,42 +1116,11 @@ void CalibrationPressureAdvDialog::create_geometry(wxCommandEvent& event_args) {
     }
 }
 
-/*
-double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, double er_width, double filament_max_overlap, double perimeter_overlap, double external_perimeter_overlap, double base_layer_height, double er_spacing) {
-    
-    assert(er_width > 1.0 && "er_width should be above 1.0 as it's a percentage value");
-    double xyzScale = nozzle_diameter / 0.4;
-    double er_width_decimal = er_width * nozzle_diameter / 100.0;//models are generated to be default width of x4 lines for the walls ie; 0.4mm nozzle is 1.6mm thick walls + extra for ER role widths
-    double er_width_to_scale = 1.0;
-    double overlap_ratio = 1;
-    double offset_width_under = 0.0;
-    if (filament_max_overlap) {
-        overlap_ratio = filament_max_overlap;
-    }
-    if (er_width < 100){//if er widths are under 100% this gives models gap fill, shink model again a little to 'fix'
-        offset_width_under = 0.02;
-    }
-
-    perimeter_overlap = std::min(overlap_ratio * 0.5f, external_perimeter_overlap / 2.0);
-    double new_scale_spacing = er_width_decimal - base_layer_height * float(1.0 - 0.25 * PI) * perimeter_overlap;
-    double spacing_value = std::round((new_scale_spacing / nozzle_diameter) * 100); //spacing_value = Round((Spacing / Max Nozzle Diameter) * 100)
-    er_spacing = (std::round(spacing_value * 10000) / 10000) * 0.01;
-
-
-    if (xyzScale > 4) {
-        er_width_to_scale = 1.0;
-    } else {
-        er_width_to_scale = er_spacing - (nozzle_diameter / 2 * 0.01);//need to scale slightly under to help with models being correct TODO: test more configurations of nozzle sizes/layer heights
-        //if use has the 'wrong' min layer height for a nozzle size, the model will get filled with "gapfill" not a normal extrusion, need to test more for what variables 'break' it                          
-    }
-
-    return er_width_to_scale - offset_width_under;
-}*/
-
-double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, double er_width, double filament_max_overlap, double perimeter_overlap, double external_perimeter_overlap, double base_layer_height, double er_spacing) {
+CalibrationPressureAdvDialog::ScaledBend CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, double er_width, double filament_max_overlap, double perimeter_overlap, double external_perimeter_overlap, double base_layer_height, double er_spacing, bool calc_first_layer) {
 
     const DynamicPrintConfig* print_config = this->gui_app->get_tab(Preset::TYPE_FFF_PRINT)->get_config();//i should pass this over instead...
     assert(er_width > 1.0 && "er_width should be above 1.0 as it's a percentage value");
+    ScaledBend bend_90{};
 
     // extrusions 1 and 2 overlap with external and internal perimeter overlap/spacing values. (same for extrusions 3 and 4)
     // extrusions 2 and 3 would normally have internal infill but the 90_bend model is scaled so the 2/3 are touching and won't have a 'gap' that could be filled.
@@ -1234,6 +1134,7 @@ double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, dou
     double model_design_width = nozzle_diameter * 4.0;
     double raw_wall_width = extrusion_width * 4;
     double overgap_value = extrusion_width - er_spacing;
+    assert(er_spacing <= extrusion_width && "guess support material spacing needs fixing here since it's not a real spacing value..");
 
     if(extrusion_width == er_spacing){
         overgap_value = 0;
@@ -1246,7 +1147,7 @@ double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, dou
     double extrusion1 = rounded_extrusion; // 1 and 2 overlap
     double extrusion2 = rounded_extrusion; // 2 and 3 touch
     double extrusion3 = rounded_extrusion; 
-    double extrusion4 = rounded_extrusion; //3 and 4 overlap
+    double extrusion4 = rounded_extrusion; // 3 and 4 overlap
 
     double spacing_external = extrusion_width - base_layer_height * (1.0 - 0.25 * M_PI) * external_perimeter_overlap;
     double spacing_internal = extrusion_width - base_layer_height * (1.0 - 0.25 * M_PI) * perimeter_overlap;
@@ -1264,10 +1165,21 @@ double CalibrationPressureAdvDialog::magical_scaling(double nozzle_diameter, dou
 
     double first_pair = extrusion1 + extrusion2 - overlap_external;
     double second_pair = extrusion3 + extrusion4 - overlap_internal;
-    double perfect_sliced_width = first_pair + /* overlap_23 + */ second_pair;
 
-    double scale = perfect_sliced_width / model_design_width;
-    return scale;
+    if (calc_first_layer){
+
+        double perfect_sliced_width = first_pair + /* overlap_23 + */ second_pair;
+        double scale = perfect_sliced_width / model_design_width;
+        bend_90.first_layer_scale = scale;
+        bend_90.perfect_first_layer_width = perfect_sliced_width;
+    }
+    else{
+
+        bend_90.perfect_sliced_width = first_pair + /*overlap_23 +*/ second_pair;
+        bend_90.scale = bend_90.perfect_sliced_width / model_design_width;
+    }
+
+    return bend_90;
 
 }
 
@@ -1490,7 +1402,7 @@ void CalibrationPressureAdvDialog::on_row_change(wxCommandEvent& event) {
 
 }
 
-std::pair<std::vector<double>, int> CalibrationPressureAdvDialog::calc_PA_values(int id_item) {
+std::pair<std::vector<std::string>, int> CalibrationPressureAdvDialog::calc_PA_values(int id_item) {
     wxString firstPaValue = dynamicFirstPa[id_item]->GetValue();
     wxString startPaValue = dynamicStartPa[id_item]->GetValue();
     wxString endPaValue = dynamicEndPa[id_item]->GetValue();
@@ -1499,58 +1411,120 @@ std::pair<std::vector<double>, int> CalibrationPressureAdvDialog::calc_PA_values
 
     //need to validate german/others localization issues with "," and "." getting swapped around.
 
-    /*std::locale loc("");
-    const std::numpunct<char>& np = std::use_facet<std::numpunct<char>>(loc);
+    // Sanitize user input
+    wxString sanitized_first_pa = remove_thousands_separators(fix_number_separators(firstPaValue));
+    double first_pa = 0.0;
+    wxString sanitized_start_pa = remove_thousands_separators(fix_number_separators(startPaValue));
+    double start_pa = 0.0;
+    wxString sanitized_end_pa = remove_thousands_separators(fix_number_separators(endPaValue));
+    double end_pa = 0.0;
+    wxString sanitized_increment_pa = remove_thousands_separators(fix_number_separators(paIncrementValue));
+    double increment_pa = 0.0;
 
-    // Get the locale-specific decimal and thousands separators
-    wxString decimal_sep = wxString::Format("%c", np.decimal_point());
-    wxString thousands_sep = wxString::Format("%c", np.thousands_sep());
-
-    // Replace the decimal separator with a dot
-    if (!decimal_sep.IsEmpty() ) {
-        firstPaValue.Replace(thousands_sep, decimal_sep);
-        startPaValue.Replace(thousands_sep, decimal_sep);
-        endPaValue.Replace(thousands_sep, decimal_sep);
-        paIncrementValue.Replace(thousands_sep, decimal_sep);
-        erPaValue.Replace(thousands_sep, decimal_sep);
+    if (!sanitized_first_pa.ToDouble(&first_pa)) {
+        first_pa = 0.0;
     }
-    */
-    firstPaValue.Replace(",", ".");
-    startPaValue.Replace(",", ".");
-    endPaValue.Replace(",", ".");
-    paIncrementValue.Replace(",", ".");
-    erPaValue.Replace(",", "."); 
+    if (!sanitized_start_pa.ToDouble(&start_pa)) {
+        start_pa = 0.0;
+    }
+    if (!sanitized_end_pa.ToDouble(&end_pa)) {
+        end_pa = 0.0;
+    }
+    if (!sanitized_increment_pa.ToDouble(&increment_pa)) {
+        increment_pa = 0.0;
+    }
+
+    /*
+    static const std::array<wxString, 23> testers = {
+        "1 000f000.50",
+        "1.000.000,50",
+        "1 000 00050",
+        "1000000,50",
+        "1000000 50",
+        "1000000t50",
+        "1,000,000.50",
+        "1,000,00.50",
+        "2fffff.000",
+        "1234,755",
+        "abcefg",
+        ".12344",
+        "1..000.000,50",
+        "1,,000,,000.50",
+        "...12345,50",
+        "1.000.000,",
+        ",12345",
+        "1234567890",
+        "1 0 0 0 0 0 0 . 5 0",
+        "-1,000,000.50",
+        "+1,000,000.50",
+        "0.00000001",
+        "0000000.123"
+    };
+
+    for (const auto& input : testers) {
+        wxString output = fix_number_separators(input);
+        bool breakpoint0 = false;
+        wxString santized_output = remove_thousands_separators(output);
+        bool breakpoint1 = false;
+    }*/
     
-    //maybe? will need to load in the correct 'acsii' character based on localization then swap ?
-    //any point idiot profing the input to stop crashing ? nothing stopping users typing in letters to force a crash...
-
-    double first_pa;
-    firstPaValue.ToDouble(&first_pa);
-
-    double start_pa;
-    startPaValue.ToDouble(&start_pa);
-    double end_pa;
-    endPaValue.ToDouble(&end_pa);
-    double pa_increment;
-    paIncrementValue.ToDouble(&pa_increment);
-
     int countincrements = 0;
-    int sizeofarray = static_cast<int>((end_pa - start_pa) / pa_increment) + 2;//'+2' needed for odd/even numbers 
-    std::vector<double> pa_values(sizeofarray);
+    size_t max_len = 6;
+    double precision_multiplier = std::pow(10.0, max_len);
+    std::vector<double> pa_raw_values;
 
     double incremented_pa_value = start_pa;
-    while (incremented_pa_value <= end_pa + pa_increment / 2) {
-        if (incremented_pa_value <= end_pa) {
-            double rounded_pa = std::round(incremented_pa_value * 1000000.0) / 1000000.0;
-            pa_values[countincrements] = rounded_pa;
-            countincrements++;
-            incremented_pa_value += pa_increment;
-        } else {
-            pa_values[countincrements] = end_pa;
-            countincrements++;//failsafe if werid input numbers are provided that can't add the "ending pa" number to the array.
-            break;
+    while (incremented_pa_value < end_pa + increment_pa) {
+
+        double rounded_pa = std::round(incremented_pa_value * precision_multiplier) / precision_multiplier;
+        pa_raw_values.push_back(rounded_pa);
+        countincrements++;
+        incremented_pa_value += increment_pa;
+
+    }
+    if (!pa_raw_values.empty() && pa_raw_values.back() != end_pa) {
+        pa_raw_values.back() = end_pa;//fix the last number to match the end_pa since it likely went over
+    }
+    
+    // is there a limit of how many models SS can load ? might be good to set a failsafe just so it won't load 10k+ models...
+
+    int max_precision = 0;
+    int start_from_idex = 0;
+    int end_at_index = 0;
+    int trailing_index = 1;//when it loads the models it skips numbers so it might appear this is 'extra'
+
+    for (size_t i = 0; i < pa_raw_values.size(); ++i) {
+
+        double val = pa_raw_values[i];
+        std::string val_s = std::to_string(val);
+        max_len = std::max(max_len, val_s.length());
+
+        //start_from_idex = val_s.find('.'); //i don't like using these...
+        //end_at_index = val_s.find_last_not_of('0');
+
+        for (size_t j = 0; j < val_s.length(); ++j) {
+            if (val_s[j] == '.') {
+                start_from_idex = j;
+            }
+            else if (std::isdigit(val_s[j]) && val_s[j] != '0') {
+                if (j > end_at_index){
+                    end_at_index = j;
+                }
+            }
         }
-    }// is there a limit of how many models SS can load ? might be good to set a failsafe just so it won't load 10k+ models...
+    }
+
+    max_precision = end_at_index + trailing_index - start_from_idex;
+    if (max_precision > max_len) {
+        max_precision = max_len;
+    }
+
+    std::vector<std::string> pa_values;
+    for (int i = 0; i < countincrements; ++i) {//convert to truncated valid string
+        std::ostringstream stream;
+        stream << std::fixed << std::setprecision(max_precision) << pa_raw_values[i];
+        pa_values.push_back(stream.str());
+    }
 
     return std::make_pair(pa_values, countincrements);
 }
@@ -1560,4 +1534,3 @@ void CalibrationPressureAdvDialog::close_me_wrapper(wxCommandEvent& event) {// f
 }
 } // namespace GUI
 } // namespace Slic3r
-#pragma optimize("", on)

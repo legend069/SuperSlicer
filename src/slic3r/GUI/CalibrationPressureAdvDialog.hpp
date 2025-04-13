@@ -21,10 +21,16 @@ protected:
     void create_row_controls(wxBoxSizer* parent_sizer, int row_count);
     void create_geometry(wxCommandEvent& event_args);
     void on_row_change(wxCommandEvent& event);
-    std::pair<std::vector<double>, int> calc_PA_values(int id_item);
-    double magical_scaling(double, double, double, double, double, double, double );
+    std::pair<std::vector<std::string>, int> calc_PA_values(int id_item);
 
-    //i've set choice boxes for now just to save me typing numbers in when i want to test it :)
+    struct ScaledBend {
+        double scale;// scale of the 90_bend model
+        double first_layer_scale; // first layer scale of the 90_bend model 
+        double perfect_sliced_width;// mm width of what the *4 extrusions should be
+        double perfect_first_layer_width;// mm width of what the first layer *4 extrusions should be
+    };
+    ScaledBend magical_scaling(double, double, double, double, double, double, double, bool calc_first_layer = false );
+
     wxComboBox* nbRuns;
 
     std::vector<wxComboBox*> dynamicFirstPa;      //first layer PA -user manual entry
