@@ -41,7 +41,7 @@
 #include <boost/nowide/iostream.hpp>
 
 #include <algorithm>
-#include <float.h>
+#include <cfloat>
 
 namespace Slic3r {
 
@@ -845,7 +845,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatOrPercent(200, true));
 
     def = this->add("bridge_fan_speed", coInts);
-    def->label = L("Bridges fan speed");
+    def->label = L("Bridge Infill fan speed");
     def->category = OptionCategory::cooling;
     def->tooltip = L("This fan speed is enforced during bridges and overhangs. It won't slow down the fan if it's currently running at a higher speed."
         "\nSet to 0 to stop the fan."
@@ -954,7 +954,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("bridge_speed", coFloatOrPercent);
     def->label = L("Bridges");
-    def->full_label = L("Bridge speed");
+    def->full_label = L("Bridge Infill speed");
     def->category = OptionCategory::speed;
     def->tooltip = L("Speed for printing bridges."
         "\nThis can be expressed as a percentage (for example: 60%) over the Default speed."
@@ -2934,7 +2934,9 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Extension");
     def->full_label = L("Gap fill: extra extension");
     def->category = OptionCategory::perimeter;
-    def->tooltip = L("Increase the length of all gapfills by this amount (may overextrude a little bit)\nCan be a % of the perimeter width");
+    def->tooltip = L("Increase the length of all gapfills by this amount (may overextrude a little bit)"
+        "\nCan be a % of the extrusion width"
+        "\nIs also used by infill's gapfill.");
     def->ratio_over = "perimeter_width";
     def->sidetext = L("mm or %");
     def->min = 0;
@@ -2981,7 +2983,10 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Max width");
     def->full_label = L("Gapfill: Max width");
     def->category = OptionCategory::perimeter;
-    def->tooltip = L("This setting represents the maximum width of a gapfill. Points wider than this threshold won't be created.\nCan be a % of the perimeter width\n0 to auto");
+    def->tooltip = L("This setting represents the maximum width of a gapfill. Points wider than this threshold won't be created."
+        "\nCan be a % of the extrusion width"
+        "\n0 to auto"
+        "\nIs also used by infill's gapfill.");
     def->ratio_over = "perimeter_width";
     def->sidetext = L("mm or %");
     def->min = 0;
@@ -2992,7 +2997,9 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Min surface");
     def->full_label = L("Gapfill: Min surface");
     def->category = OptionCategory::perimeter;
-    def->tooltip = L("This setting represents the minimum mm² for a gapfill extrusion to be created.\nCan be a % of (perimeter width)²");
+    def->tooltip = L("This setting represents the minimum mm² for a gapfill extrusion to be created."
+        "\nCan be a % of (extrusion width)²"
+        "\nIs also used by infill's gapfill.");
     def->ratio_over = "perimeter_width_square";
     def->sidetext = L("mm² or %");
     def->min = 0;
@@ -3003,7 +3010,10 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Min length");
     def->full_label = L("Gapfill: Min length");
     def->category = OptionCategory::perimeter;
-    def->tooltip = L("This setting represents the minimum mm for a gapfill extrusion to be extruded.\nCan be a % of the perimeter width\n0 to auto");
+    def->tooltip = L("This setting represents the minimum mm for a gapfill extrusion to be extruded."
+        "\nCan be a % of the extrusion width"
+        "\n0 to auto"
+        "\nIs also used by infill's gapfill.");
     def->ratio_over = "perimeter_width";
     def->sidetext = L("mm or %");
     def->min = 0;
@@ -3014,7 +3024,10 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Min width");
     def->full_label = L("Gapfill: Min width");
     def->category = OptionCategory::perimeter;
-    def->tooltip = L("This setting represents the minimum width of a gapfill. Points thinner than this threshold won't be created.\nCan be a % of the perimeter width\n0 to auto");
+    def->tooltip = L("This setting represents the minimum width of a gapfill. Points thinner than this threshold won't be created."
+        "\nCan be a % of the extrusion width"
+        "\n0 to auto"
+        "\nIs also used by infill's gapfill.");
     def->ratio_over = "perimeter_width";
     def->sidetext = L("mm or %");
     def->min = 0;
@@ -3118,6 +3131,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("xyz decimals");
     def->category = OptionCategory::output;
     def->tooltip = L("Choose how many digits after the dot for xyz coordinates.");
+    def->min = 0;
+    def->max = 7;
     def->mode = comExpert | comSuSi;
     def->set_default_value(new ConfigOptionInt(3));
 
@@ -3125,6 +3140,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Extruder decimals");
     def->category = OptionCategory::output;
     def->tooltip = L("Choose how many digits after the dot for extruder moves.");
+    def->min = 0;
+    def->max = 7;
     def->mode = comExpert | comSuSi;
     def->set_default_value(new ConfigOptionInt(5));
 
@@ -3497,7 +3514,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("internal_bridge_fan_speed", coInts);
-    def->label = L("Infill bridges fan speed");
+    def->label = L("Internal Bridge Infill fan speed");
     def->category = OptionCategory::cooling;
     def->tooltip = L("This fan speed is enforced during all infill bridges. It won't slow down the fan if it's currently running at a higher speed."
         "\nSet to 0 to stop the fan."
@@ -3523,8 +3540,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatOrPercent(300, true));
 
     def = this->add("internal_bridge_speed", coFloatOrPercent);
-    def->label = L("Internal bridges");
-    def->full_label = L("Internal bridge speed");
+    def->label = L("Internal Bridge Infill speed");
     def->category = OptionCategory::speed;
     def->tooltip = L("Speed for printing the bridges that support the top layer.\nCan be a % of the bridge speed.");
     def->sidetext = L("mm/s or %");
@@ -4349,7 +4365,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Overhangs speed");
     def->category = OptionCategory::speed;
     def->tooltip = L("Speed for printing overhangs."
-        "\nCan be a % of the bridge speed."
+        "\nCan be a % of the bridge infill speed."
         "\nSet zero to use autospeed for this feature.");
     def->sidetext = L("mm/s");
     def->ratio_over = "bridge_speed";
@@ -4607,7 +4623,7 @@ void PrintConfigDef::init_fff_params()
     def->category = OptionCategory::width;
     def->tooltip = L("This setting allows you to reduce the overlap between the perimeters, to reduce the impact of the perimeters' artifacts."
         " 100% means that no gap is left, and 0% means that perimeters are not touching each other anymore."
-        "\nIt's very experimental, please report about the usefulness. It may be removed if there is no use for it.");
+        "\nIt's very experimental, please report about the usefulness.");
     def->sidetext = L("%");
     def->min = 0;
     def->max = 100;
@@ -4667,8 +4683,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Max perimeter count for holes");
     def->category = OptionCategory::perimeter;
     def->tooltip = L("This option sets the number of perimeters to have over holes."
-                   " Note that if a hole-perimeter fuse with the contour, then it will go around like a contour perimeter.."
-                   "\nIf disabled, holes will have the same number of perimeters as contour."
+                   " Note that if a hole-perimeter fuse with the contour, then it will go around like a contour perimeter."
+                   "\nIf disabled, holes will have the same number of perimeters as contour. Cannot be enabled at the same time as Arachne generator."
                    "\nNote that Slic3r may increase this number automatically when it detects "
                    "sloping surfaces which benefit from a higher number of perimeters "
                    "if the Extra Perimeters option is enabled.");
@@ -5002,18 +5018,18 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->precision = 6;
     def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionFloatOrPercent(10, true));
+    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
 
     def = this->add("resolution_internal", coFloat);
     def->label = L("Internal resolution");
     def->category = OptionCategory::slicing;
     def->tooltip = L("Minimum detail resolution, used for internal structures (gapfill and some infill patterns)."
-            "\nDon't put a too-small value (0.05mm is way too low for many printers), as it may create too many very small segments that may be difficult to display and print.");
+            "\nDon't put a too-small value, as it may create too many very small segments that may be difficult to display and print if your main resolution parameter is also very small.");
     def->sidetext = L("mm");
-    def->min = 0.001;
+    def->min = 0.0001;
     def->precision = 8;
     def->mode = comExpert | comSuSi;
-    def->set_default_value(new ConfigOptionFloat(0.1));
+    def->set_default_value(new ConfigOptionFloat(0.025));
 
     def = this->add("retract_before_travel", coFloats);
     def->label = L("Minimum travel after retraction");
@@ -5718,6 +5734,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("start_gcode", coString);
     def->label = L("Start G-code");
+    def->category = OptionCategory::customgcode;
     def->tooltip = L("This start procedure is inserted at the beginning, possibly prepended by "
                      "temperature-changing commands and others. See 'autoemit_temperature_commands' and 'start_gcode_manual'.");
     def->multiline = true;
@@ -8133,11 +8150,11 @@ void PrintConfigDef::init_sla_params()
     def->set_default_value(new ConfigOptionString());
     def->cli = ConfigOptionDef::nocli;
 
-    def = this->add("sla_print_settings_id", coBool);
+    def = this->add("sla_print_settings_modified", coBool);
     def->set_default_value(new ConfigOptionBool(false));
     def->cli = ConfigOptionDef::nocli;
 
-    def = this->add("sla_print_settings_modified", coString);
+    def = this->add("sla_print_settings_id", coString);
     def->set_default_value(new ConfigOptionString(""));
     def->cli = ConfigOptionDef::nocli;
 
@@ -8454,7 +8471,8 @@ inline void for_ech_entry(std::unordered_map<t_config_option_key, std::pair<t_co
                           std::initializer_list<t_config_option_key> &&list,
                           const std::function<void(t_config_option_key &opt_key, std::string &value)> &do_something) {
     for (const t_config_option_key &key : list) {
-        if (auto last_search_result = dict.find(key); last_search_result != dict.end() && last_search_result->second.first == key) {
+        if (auto last_search_result = dict.find(key); last_search_result != dict.end()) {
+            // assert(last_search_result->second.first == key); it's possibly different because of alias.
             do_something(last_search_result->second.first, last_search_result->second.second);
         }
     }
@@ -8463,7 +8481,7 @@ inline void for_ech_entry(std::unordered_map<t_config_option_key, std::pair<t_co
                           const std::set<t_config_option_key> &list,
                           const std::function<void(t_config_option_key &opt_key, std::string &value)> &do_something) {
     for (const t_config_option_key &key : list) {
-        if (last_search_result = dict.find(key); last_search_result != dict.end() && last_search_result->second.first == key) {
+        if (last_search_result = dict.find(key); last_search_result != dict.end()) {
             do_something(last_search_result->second.first, last_search_result->second.second);
         }
     }
@@ -8884,7 +8902,7 @@ void _handle_legacy(std::unordered_map<t_config_option_key, std::pair<t_config_o
     assert(!has(dict, "bridge_internal_fan_speed"s));
     for_ech_entry(dict, {
         "bridge_fan_speed"s, "default_fan_speed"s, "min_fan_speed"s/* this is default_fan_speed's alias*/, "external_perimeter_fan_speed"s,
-        "gap_fill_fan_speed"s, "infill_fan_speed"s, "internal_bridge_fan_speed"s, "overhangs_fan_speed"s,
+        "gap_fill_fan_speed"s, "infill_fan_speed"s, "internal_bridge_fan_speed"s, "bridge_internal_fan_speed"s, "overhangs_fan_speed"s,
         "perimeter_fan_speed"s, "solid_infill_fan_speed"s, "support_material_fan_speed"s, "support_material_interface_fan_speed"s, "top_fan_speed"s},
                   [](Key &opt_key, Val &value) {
             assert(print_config_def.get(opt_key) && print_config_def.get(opt_key)->type == coInts);

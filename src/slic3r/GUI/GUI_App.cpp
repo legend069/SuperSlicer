@@ -186,7 +186,7 @@ public:
             memDC.SelectObject(bitmap);
 
             memDC.SetFont(m_action_font);
-            ///            memDC.SetTextForeground(wxColour(237, 107, 33)); // ed6b21
+///            memDC.SetTextForeground(wxColour(237, 107, 33)); // ed6b21
             uint32_t color = Slic3r::GUI::wxGetApp().app_config->create_color(0.86f, 0.93f);
             memDC.SetTextForeground(wxColour(color & 0xFF, (color & 0xFF00) >> 8, (color & 0xFF0000) >> 16));
             memDC.DrawText(text, int(get_margin() * 2), m_action_line_y_position);
@@ -212,14 +212,19 @@ public:
 
         wxDisplay main_display;
         wxRect display_size = main_display.GetClientArea();
+        wxSize ppi = main_display.GetPPI();
         //display_size.width = 1920;
         // the scaling factor is for text, not pictures.
         //double scaling = main_display.GetScaleFactor();
         
+        if (ppi.x != 0 && ppi.y != 0) {
+            scaling = scaling * ppi.y / 80.;
+        }
+
         //check if the spashscreen fit
-        scaling = std::min(
+        scaling = std::min( scaling, std::min(
             (display_size.width - display_size.x) * 0.8 / width,
-            (display_size.height - display_size.y) * 0.8 / height);
+            (display_size.height - display_size.y) * 0.8 / height));
         // if screen very small, use all the space avaialble
         if (scaling < 0.5) {
             scaling = std::min(
@@ -230,6 +235,8 @@ public:
             // don't grow with fractional scaling
             if (scaling > 1.8) {
                 scaling = 2 * int(scaling * 0.56);
+            } else if (scaling > 1.4) {
+                scaling = 1.5;
             } else {
                 scaling = 1.;
             }
@@ -1386,13 +1393,13 @@ bool GUI_App::on_init_inner()
             boost::filesystem::path splash_screen_path = (boost::filesystem::path(Slic3r::resources_dir()) / "splashscreen" / file_name);
             if (boost::filesystem::exists(splash_screen_path)) {
                 wxString path_str = wxString::FromUTF8((splash_screen_path).string().c_str());
-                // make a bitmap with dark grey banner on the left side
+        // make a bitmap with dark grey banner on the left side
                 bmp = SplashScreen::MakeBitmap(wxBitmap(path_str, wxBITMAP_TYPE_JPEG), scrn_scaling);
 
                 //get the artist name from metadata
-                int result;
-                void** ifdArray = nullptr;
-                ExifTagNodeInfo* tag;
+            int result;
+            void** ifdArray = nullptr;
+            ExifTagNodeInfo* tag;
                 ifdArray = exif_createIfdTableArray(path_str.c_str(), &result);
                 if (result > 0 && ifdArray) {
                     tag = exif_getTagInfo(ifdArray, IFD_0TH, TAG_Artist);

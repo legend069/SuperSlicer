@@ -164,9 +164,12 @@ bool        has_duplicate_points(const Polygons &polys);
 bool remove_same_neighbor(Polygon &polygon);
 bool remove_same_neighbor(Polygons &polygons);
 // remove any point that are at epsilon  (or resolution) 'distance' (douglas_peuckere algo for now) and all polygons that are too small to be valid
+
 void ensure_valid(Polygons &polygons, coord_t resolution = SCALED_EPSILON);
 Polygons ensure_valid(Polygons &&polygons, coord_t resolution = SCALED_EPSILON);
 Polygons ensure_valid(coord_t resolution, Polygons &&polygons);
+// return false if the polygon isn't valid and need to be removed.
+bool ensure_valid(Polygon &polygon, coord_t resolution = SCALED_EPSILON);
 #ifdef _DEBUGINFO
 void assert_valid(const Polygons &polygons);
 #else
@@ -284,12 +287,25 @@ inline Polyline to_polyline(const Polygon &polygon)
     return out;
 }
 
+// to have easier time with svg output.
+inline Polylines to_polylines(const Polygon &polygon)
+{
+    Polylines out;
+    assert(!polygon.empty());
+    if (!polygon.empty()) {
+        out.push_back(to_polyline(polygon));
+    }
+    return out;
+}
+
 inline Polylines to_polylines(const Polygons &polygons)
 {
     Polylines out;
     out.reserve(polygons.size());
-    for (const Polygon &polygon : polygons)
-        out.emplace_back(to_polyline(polygon));
+    for (const Polygon &polygon : polygons) {
+        assert(!polygon.empty());
+        out.push_back(to_polyline(polygon));
+    }
     return out;
 }
 

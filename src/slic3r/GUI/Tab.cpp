@@ -34,7 +34,6 @@
 #include "BonjourDialog.hpp"
 #include "ButtonsDescription.hpp"
 #include "EditGCodeDialog.hpp"
-#include "ExtrusionDiagram.hpp"
 #include "format.hpp"
 #include "GLCanvas3D.hpp"
 #include "GraphDialog.hpp"
@@ -2559,221 +2558,45 @@ std::vector<Slic3r::GUI::PageShp> Tab::create_pages(std::string setting_type_nam
                     continue;
                 current_line            = {"", ""};
                 current_line.full_width = 1;
+                current_line.widget     = [this, tab](wxWindow *parent) {
+                    // return description_line_widget(parent, &(tab->m_recommended_extrusion_width_description_line));
 
-                bool enable_old = false;
-                if (enable_old == true){
-                    current_line.widget     = [this, tab](wxWindow *parent) {
-                        // return description_line_widget(parent, &(tab->m_recommended_extrusion_width_description_line));
+                    auto               sizer    = new wxBoxSizer(wxVERTICAL);
+                    wxCollapsiblePane* collpane = new wxCollapsiblePane(parent, wxID_ANY, _L("Help / Details:"), wxDefaultPosition, wxDefaultSize, wxCP_NO_TLW_RESIZE);
+                    wxGetApp().UpdateDarkUI(collpane);
+                    // add the pane with a zero proportion value to the 'sz' sizer which contains it
+                    sizer->Add(collpane, 0, wxGROW | wxALL, 5);
+                    // now add a test label in the collapsible pane using a sizer to layout it:
+                    wxWindow *win = collpane->GetPane();
+                    collpane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [tab](wxEvent &) { tab->Layout(); });
 
-                        auto               sizer    = new wxBoxSizer(wxVERTICAL);
-                        wxCollapsiblePane* collpane = new wxCollapsiblePane(parent, wxID_ANY, _L("Help / Details:"), wxDefaultPosition, wxDefaultSize, wxCP_NO_TLW_RESIZE);
-                        wxGetApp().UpdateDarkUI(collpane);
-                        // add the pane with a zero proportion value to the 'sz' sizer which contains it
-                        sizer->Add(collpane, 0, wxGROW | wxALL, 5);
-                        // now add a test label in the collapsible pane using a sizer to layout it:
-                        wxWindow *win = collpane->GetPane();
-                        collpane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [tab](wxEvent &) { tab->Layout(); });
+                    const wxBitmapBundle *bmp_width     = get_bmp_bundle("explanation_width", 170, 90);
+                    wxStaticBitmap *image_width   = new wxStaticBitmap(win, wxID_ANY, bmp_width->GetBitmap(bmp_width->GetDefaultSize()));
+                    const wxBitmapBundle *bmp_spacing   = get_bmp_bundle("explanation_spacing", 650, 100);
+                    wxStaticBitmap *image_spacing = new wxStaticBitmap(win, wxID_ANY, bmp_spacing->GetBitmap(bmp_spacing->GetDefaultSize()));
+                    auto            sizerV        = new wxBoxSizer(wxVERTICAL);
+                    auto            sizerH2       = new wxBoxSizer(wxHORIZONTAL);
+                    auto            sizerH3       = new wxBoxSizer(wxHORIZONTAL);
+                    sizerH2->Add(image_width, 1, 0, 0);
+                    sizerH2->Add(image_spacing, 1, 0, 0);
+                    sizerV->Add(sizerH2);
+                    ogStaticText *text =
+                        new ogStaticText(win, _L("If the perimeter overlap is set at 100%, the yellow areas should "
+                                                 "be filled by the overlap.\nIf overlap is at 0%, width = spacing."));
+                    text->SetFont(wxGetApp().normal_font());
+                    sizerH3->Add(text, 1, wxEXPAND | wxALL, 0);
+                    sizerV->Add(sizerH3);
 
-                        const wxBitmapBundle *bmp_width     = get_bmp_bundle("explanation_width", 170, 90);
-                        wxStaticBitmap *image_width   = new wxStaticBitmap(win, wxID_ANY, bmp_width->GetBitmap(bmp_width->GetDefaultSize()));
-                        const wxBitmapBundle *bmp_spacing   = get_bmp_bundle("explanation_spacing", 650, 100);
-                        wxStaticBitmap *image_spacing = new wxStaticBitmap(win, wxID_ANY, bmp_spacing->GetBitmap(bmp_spacing->GetDefaultSize()));
-                        auto            sizerV        = new wxBoxSizer(wxVERTICAL);
-                        auto            sizerH2       = new wxBoxSizer(wxHORIZONTAL);
-                        auto            sizerH3       = new wxBoxSizer(wxHORIZONTAL);
-                        sizerH2->Add(image_width, 1, 0, 0);
-                        sizerH2->Add(image_spacing, 1, 0, 0);
-                        sizerV->Add(sizerH2);
-                        ogStaticText *text =
-                            new ogStaticText(win, _L("If the perimeter overlap is set at 100%, the yellow areas should "
-                                                     "be filled by the overlap.\nIf overlap is at 0%, width = spacing."));
-                        text->SetFont(wxGetApp().normal_font());
-                        sizerH3->Add(text, 1, wxEXPAND | wxALL, 0);
-                        sizerV->Add(sizerH3);
+                    win->SetSizer(sizerV);
 
-                        win->SetSizer(sizerV);
+                    sizerV->SetSizeHints(win);
+                    collpane->Collapse(true);
 
-                        sizerV->SetSizeHints(win);
-                        collpane->Collapse(false);
-
-                        return sizer;
-                    };
-                }else{
-
-                    current_line.widget = [this, tab](wxWindow *parent) {
-
-                            wxBoxSizer* mainSizer    = new wxBoxSizer(wxVERTICAL);
-                            wxBoxSizer* collpane_sizer = new wxBoxSizer(wxVERTICAL);
-                            wxBoxSizer* diagram_sizer = new wxBoxSizer(wxVERTICAL);
-                            wxBoxSizer* checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-                            wxCollapsiblePane* collpane = new wxCollapsiblePane(parent, wxID_ANY, _L("Help / Details:"), wxDefaultPosition, wxDefaultSize, wxCP_NO_TLW_RESIZE);
-                            wxGetApp().UpdateDarkUI(collpane);
-                            wxWindow *pane = collpane->GetPane();
-
-                            wxPanel* checkbox_panel = new wxPanel(pane, wxID_ANY);
-                            wxCheckBox* showNozzleCheckbox = new wxCheckBox(checkbox_panel, wxID_ANY, "Show Nozzle");
-                            showNozzleCheckbox->SetValue(true);
-                            
-                            wxButton* updateDrawing = new wxButton(checkbox_panel, wxID_ANY, _L("Update Drawing"), wxDefaultPosition, wxDefaultSize);
-                            
-                            checkbox_sizer->Add(showNozzleCheckbox, 0, wxALL, 5);
-                            checkbox_sizer->Add(updateDrawing, 0, wxALL, 5);
-                            checkbox_panel->SetSizer(checkbox_sizer);
-                            checkbox_panel->Layout();
-
-                            wxPanel* diagram_panel = new wxPanel(pane, wxID_ANY);
-                            ExtrusionDiagram* diagram = new ExtrusionDiagram(diagram_panel);
-
-                            updateDrawing->Bind(wxEVT_BUTTON, [=](wxCommandEvent&) {
-                                    //config
-                                double nozzle_diameter = wxGetApp().preset_bundle->printers.get_edited_preset().config.has("nozzle_diameter")
-                                    ? wxGetApp().preset_bundle->printers.get_edited_preset().config.get_float("nozzle_diameter")
-                                    : 0.40;
-
-                                double layer_height = m_config->has("layer_height")
-                                    ? static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("layer_height"))->get_float()
-                                    : nozzle_diameter / 2;
-
-                                double width = (m_config->has("external_perimeter_extrusion_width") &&
-                                    static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("external_perimeter_extrusion_width"))->get_float() > 0)
-                                        ? static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("external_perimeter_extrusion_width"))->get_float()
-                                        : 0.45;
-
-                                double overlap = m_config->has("external_perimeter_overlap")
-                                    ? static_cast<const ConfigOptionPercent*>(m_config->option("external_perimeter_overlap"))->get_abs_value(1)
-                                    : 0.80;
-
-                                double spacing = m_config->has("external_perimeter_extrusion_spacing")
-                                    ? static_cast<const ConfigOptionFloatOrPercent*>(m_config->option("external_perimeter_extrusion_spacing"))->get_float()
-                                    : 0.0;
-
-                                int perimeters = m_config->has("perimeters")
-                                    ? static_cast<const ConfigOptionInt*>(m_config->option("perimeters"))->get_int()
-                                    : 3;
-
-                                diagram->UpdateValues(nozzle_diameter, "nozzle_diameter");
-                                diagram->UpdateValues(layer_height, "layer_height");
-                                diagram->UpdateValues(width, "external_perimeter_extrusion_width");
-                                diagram->UpdateValues(overlap, "external_perimeter_overlap");
-                                diagram->UpdateValues(spacing, "external_perimeter_extrusion_spacing");
-                                diagram->UpdateValues(perimeters, "perimeters");
-
-                                diagram->SetShowNozzle(showNozzleCheckbox->GetValue());
-                                //diagram->InitializeMinMaxPoints();
-                                //diagram->SetMinSize(diagram->GetDrawingBounds());
-                                diagram->Inilize();
-                                diagram->ResizeDiagram();
-                                diagram->Refresh();
-                                //diagram->Update(); // Force immediate paint
-
-                                diagram_panel->Layout();
-                                diagram_panel->Refresh();
-                                diagram_panel->Update();
-
-                                tab->Layout();
-                                //tab->Fit();
-                                tab->Refresh();
-                                tab->Update();
-
-                            });
-                            wxCommandEvent manual_update_drawing(wxEVT_BUTTON, updateDrawing->GetId());
-                            wxPostEvent(updateDrawing, manual_update_drawing);//call bind event to update config.
-
-                            //wxCommandEvent manual_update_drawing(wxEVT_BUTTON, updateDrawing->GetId());
-                            //updateDrawing->ProcessEvent(manual_update_drawing); //call bind event to update config.
-
-
-                            diagram->Inilize();
-
-                            diagram_sizer->Add(diagram, 1, wxEXPAND | wxALL, 5);
-                            //diagram_panel->SetSizerAndFit(diagram_sizer);
-                            diagram_panel->SetSizer(diagram_sizer);
-
-                            collpane_sizer->Add(checkbox_panel, 0, wxALL, 5);
-                            collpane_sizer->Add(diagram_panel, 1, wxEXPAND | wxALL, 5);
-
-                            pane->SetSizerAndFit(collpane_sizer);
-                            pane->SetSizer(collpane_sizer);
-                            pane->Layout();
-                            pane->Refresh();
-                            pane->Update();
-
-                            collpane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [=](wxEvent &) {
-
-                                diagram->SetShowNozzle(showNozzleCheckbox->GetValue());
-                                diagram->Inilize();
-                                diagram->ResizeDiagram();
-                                diagram->Refresh();
-                                //diagram->Update();
-
-                                diagram_panel->Layout();
-                                diagram_panel->Refresh();
-                                diagram_panel->Update();
-
-                                tab->Layout();
-                                tab->Refresh();
-                                tab->Update();
-                            });
-
-                            showNozzleCheckbox->Bind(wxEVT_CHECKBOX, [=](wxCommandEvent&) {
-
-                                diagram->SetShowNozzle(showNozzleCheckbox->GetValue());
-                                diagram->InitializeMinMaxPoints();
-                                diagram->Inilize();
-                                diagram->ResizeDiagram();
-                                diagram->Refresh();
-
-                                diagram_panel->Layout();
-                                diagram_panel->Refresh();
-                                diagram_panel->Update();
-
-                                /*diagram_panel->SetSize(diagram->GetDrawingBounds());
-                                diagram_panel->Layout();
-                                diagram_panel->Refresh();
-                                diagram_panel->Update();*/
-
-                                tab->Layout();
-                                tab->Refresh();
-                                tab->Update();
-
-                                wxPostEvent(updateDrawing, manual_update_drawing);//don't ask why it's needed here...
-                            });
-
-
-                            diagram_panel->Layout();
-                            diagram_panel->Refresh();
-                            diagram_panel->Update();
-                            
-                            tab->Layout();
-                            tab->Refresh();
-                            tab->Update();
-                            //Layout() ensures the sizer recalculates positions after resizing or adding widgets.
-                            //Refresh() schedules the repaint of the panel after the layout changes.
-                            //Update() forces the paint event to occur immediately, ensuring the user sees the changes without delay.
-
-                            collpane->Collapse(false);
-                            mainSizer->Add(collpane, 1, wxGROW | wxALL, 5);
-                            return mainSizer;
-                        
-                    };
-/*
-
-Sizer ➡️ Panel ➡️ Checkbox
-
-    mainSizer (returned)
-    └── wxCollapsiblePane (collpane)
-        └── Internal Pane (collpane->GetPane())
-            ├── Panel 1 (checkbox_panel)
-            │   └── Checkbox
-            └── Panel 2 (diagram_panel)
-                └── Custom Drawing (ExtrusionDiagram)
-*/
-
-                }
+                    return sizer;
+                };
 
                 current_group->append_line(current_line);
                 current_page->descriptions.push_back("extrusion_width");
-
             } else if (boost::starts_with(full_line, "top_bottom_shell_thickness_explanation")) {
                 TabPrint *tab = nullptr;
                 if ((tab = dynamic_cast<TabPrint *>(this)) == nullptr)
@@ -3253,46 +3076,56 @@ bool Tab::validate_custom_gcode(const wxString& title, const std::string& gcode)
 //    tab->update_dirty();
 //    tab->on_value_change(opt_key, value);
 //}
+std::pair<t_config_option_key, int> get_key_extruder_from_string(std::string key_extruder) {
+    t_config_option_key good_opt_key = key_extruder;
+    int extruder_idx = -1;
+    if (size_t pos_hash = key_extruder.find('#'); pos_hash != std::string::npos) {
+        good_opt_key = key_extruder.substr(0, pos_hash);
+        try {
+            extruder_idx = atoi(key_extruder.substr(pos_hash+1).c_str());
+        } catch (std::exception) { extruder_idx = 0; }
+    }
+    return { good_opt_key, extruder_idx };
+}
 
 void Tab::edit_custom_gcode(const t_config_option_key& opt_key)
 {
-    if (m_config->has(opt_key)) {
-        EditGCodeDialog dlg = EditGCodeDialog(this, opt_key, get_custom_gcode(opt_key));
-        if (dlg.ShowModal() == wxID_OK) {
-            set_custom_gcode(opt_key, dlg.get_edited_gcode());
-            update_dirty();
-            update();
-        }
+    EditGCodeDialog dlg = EditGCodeDialog(this, opt_key, get_custom_gcode(opt_key));
+    if (dlg.ShowModal() == wxID_OK) {
+        set_custom_gcode(opt_key, dlg.get_edited_gcode());
+        update_dirty();
+        update();
     }
 }
 
 const std::string& Tab::get_custom_gcode(const t_config_option_key& opt_key)
 {
-    return m_config->opt_string(opt_key);
+    return m_config->opt_string(get_key_extruder_from_string(opt_key).first);
 }
 
 void Tab::set_custom_gcode(const t_config_option_key& opt_key, const std::string& value)
 {
     DynamicPrintConfig new_conf = *m_config;
-    new_conf.set_key_value(opt_key, new ConfigOptionString(value));
+    new_conf.set_key_value(get_key_extruder_from_string(opt_key).first, new ConfigOptionString(value));
     load_config(new_conf);
 }
 
 const std::string& TabFilament::get_custom_gcode(const t_config_option_key& opt_key)
 {
-    if (m_config->has(opt_key)) {
-        return m_config->opt_string(opt_key, size_t(0));
-    }
-    // error popup?
+    auto [key, id] = get_key_extruder_from_string(opt_key);
+    assert(id == 0);
+    return m_config->opt_string(key, size_t(0));
 }
 
 void TabFilament::set_custom_gcode(const t_config_option_key& opt_key, const std::string& value)
 {
-    std::vector<std::string> gcodes = static_cast<const ConfigOptionStrings*>(m_config->option(opt_key))->get_values();
+    auto [key, id] = get_key_extruder_from_string(opt_key);
+    std::vector<std::string> gcodes = static_cast<const ConfigOptionStrings*>(m_config->option(key))->get_values();
+    assert(id == 0);
     gcodes[0] = value;
 
     DynamicPrintConfig new_conf = *m_config;
-    new_conf.set_key_value(opt_key, new ConfigOptionStrings(gcodes));
+    new_conf.set_key_value(key, new ConfigOptionStrings(gcodes));
     load_config(new_conf);
 }
 

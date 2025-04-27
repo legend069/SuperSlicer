@@ -101,7 +101,7 @@ function check_available_memory_and_disk() {
 function check_distribution() {
     DISTRIBUTION=$(awk -F= '/^ID=/ {print $2}' /etc/os-release)
     # treat ubuntu as debian
-    if [ "${DISTRIBUTION}" == "ubuntu" ]
+    if [ "${DISTRIBUTION}" == "ubuntu" ] || [ "${DISTRIBUTION}" == "linuxmint" ]
     then
         DISTRIBUTION="debian"
     fi
@@ -203,7 +203,7 @@ then
     then
         mkdir deps/build
     fi
-    echo -e "[1/9] Configuring dependencies ...\n"
+    echo -e "[1/8] Configuring dependencies ...\n"
     BUILD_ARGS=""
     if [[ -n "$FOUND_GTK3_DEV" ]]
     then
@@ -228,32 +228,16 @@ then
     cmake .. $BUILD_ARGS
     echo -e "\n ... done\n"
 
-    echo -e "\n[2/9] Building dependencies...\n"
+    echo -e "\n[2/8] Building dependencies...\n"
     # make deps
     make -j$NCORES
-    echo -e "\n ... done\n"
-
-    # rename wxscintilla
-    echo "[3/9] Renaming wxscintilla library..."
-    pushd destdir/usr/local/lib  > /dev/null
-    if [[ -z "$FOUND_GTK3_DEV" ]]
-    then
-        cp libwxscintilla-3.2.a libwx_gtk2u_scintilla-3.2.a
-    else
-        cp libwxscintilla-3.2.a libwx_gtk3u_scintilla-3.2.a
-    fi
-    echo "> ls destdir/usr/local/lib"
-    ls -al .
-    echo "> ls ROOT/deps/build/destdir/usr/local/lib"
-    ls -al $ROOT/deps/build/destdir/usr/local/lib
-    popd > /dev/null
     popd > /dev/null
     echo -e "\n ... done\n"
 fi
 
 if [[ -n "$BUILD_CLEANDEPEND" ]]
 then
-    echo -e "[4/9] Cleaning dependencies...\n"
+    echo -e "[3/8] Cleaning dependencies...\n"
     pushd deps/build > /dev/null
     rm -fr dep_*
     popd > /dev/null
@@ -262,7 +246,7 @@ fi
 
 if [[ -n "$BUILD_SLIC3R" ]]
 then
-    echo -e "[5/9] Configuring SuperSlicer ...\n"
+    echo -e "[4/8] Configuring SuperSlicer ...\n"
     if [[ -n $BUILD_WIPE ]]
     then
        echo -n "wiping build directory ..."
@@ -317,12 +301,12 @@ then
     cmake .. -DCMAKE_PREFIX_PATH="$PWD/../deps/build/destdir/usr/local" -DSLIC3R_STATIC=1 ${BUILD_ARGS}
     echo " ... done"
     # make SuperSlicer
-    echo -e "\n[6/9] Building SuperSlicer ...\n"
+    echo -e "\n[5/8] Building SuperSlicer ...\n"
     make -j$NCORES Slic3r
     make -j$NCORES OCCTWrapper
     echo -e "\n ... done"
 
-    echo -e "\n[7/9] Generating language files ...\n"
+    echo -e "\n[6/8] Generating language files ...\n"
     #make .mo
     if [[ -n "$UPDATE_POTFILE" ]]
     then

@@ -255,6 +255,19 @@ void ensure_valid(Polylines &polylines, coord_t resolution) {
     }
 }
 
+Polylines ensure_valid(Polylines &&polylines, coord_t resolution) {
+    for (size_t i = 0; i < polylines.size(); ++i) {
+        assert(polylines[i].size() > 1);
+        polylines[i].douglas_peucker(resolution);
+        assert(polylines[i].size() > 1);
+        if (polylines[i].size() == 2 && polylines[i].front().coincides_with_epsilon(polylines[i].back())) {
+            polylines.erase(polylines.begin() + i);
+            --i;
+        }
+    }
+    return std::move(polylines);
+}
+
 void ensure_valid(Polyline &polyline, coord_t resolution) {
     assert(polyline.size() > 1);
     polyline.douglas_peucker(resolution);
@@ -896,7 +909,6 @@ void ArcPolyline::split_at(coordf_t distance, ArcPolyline &p1, ArcPolyline &p2) 
             if (lsqr > sqr(distance)) {
 #ifdef _DEBUG
                 length_tot_split = current.length;
-                assert(length_tot_split == 0);
 #endif
                 Point split_point = p1.back() + Point::round(v * (distance / sqrt(lsqr)));
                 p1.m_path.push_back({split_point, 0, Geometry::ArcWelder::Orientation::Unknown});

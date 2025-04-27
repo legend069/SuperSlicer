@@ -13,7 +13,12 @@ If you haven't, I advise to use a gui like tortoisegit.
 Download and run the exe accepting all defaults
 
 
-Clone the respository.  To place it in C:\local\Slic3r, run:
+Clone the respository.  To place it in C:\src\REPO_NAME (use Slic3r, SuperSlicer or PrusaSlicer as REPO_NAME), run:
+```
+c:> mkdir src
+c:> cd src
+c:\src> git clone https://github.com/supermerill/SuperSlicer.git
+```
 
 
 ## 1. Download sources
@@ -45,7 +50,7 @@ cmake --build .
 ```
 Expect this to take some time. Note that both _Debug_ and _Release_ variants are built.
 If you need to compile with a specific version of visual studio, add this option to the first CMake call `-G "Visual Studio 16 2022"`
-If you want to compile in another place than C:\local\Slic3r\deps\usr\local, add this òption to the first CMake call: ` -DDESTDIR="c:\local\Slic3-deps"`
+If you want to compile in another place than C:\local\Slic3r\deps\usr\local, add this ï¿½ption to the first CMake call: ` -DDESTDIR="c:\local\Slic3-deps"`
  You can force only the _Release_ build by passing `-DDEP_DEBUG=OFF` to the first CMake call.
 
 note: if you have visual studio 2022 installed alongside 2017/2019, you may have to comment/remove the lines 20->31 in `dep_Boost-prefix/src/dep_Boosttools/build/src/engine/vswhere_usability_wrapper.cmd` (after first failing to compile) to force it to ignore vs2022.

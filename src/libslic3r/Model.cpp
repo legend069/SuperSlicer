@@ -32,7 +32,7 @@
 #include "Format/STEP.hpp"
 #include "Format/SVG.hpp"
 
-#include <float.h>
+#include <cfloat>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -40,7 +40,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/iostream.hpp>
 
-#include <tbb/concurrent_vector.h>
+#include <oneapi/tbb/concurrent_vector.h>
 
 #include "SVG.hpp"
 #include <Eigen/Dense>

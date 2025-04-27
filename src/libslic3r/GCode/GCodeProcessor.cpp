@@ -21,8 +21,8 @@
 #include <boost/nowide/cstdio.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include <float.h>
-#include <assert.h>
+#include <cassert>
+#include <cfloat>
 
 #if __has_include(<charconv>)
     #include <charconv>
@@ -4863,7 +4863,6 @@ void GCodeProcessor::store_move_vertex(EMoveType type, bool internal_only)
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
     assert(type != EMoveType::Noop);
-//    std::cout<<"store_move_vertex @"<<m_time_processor.machines[0].time<<"\n";
     // push_back(GCodeProcessorResult::MoveVertex{})
     m_result.moves.emplace_back(
         m_last_line_id,
@@ -4887,7 +4886,10 @@ void GCodeProcessor::store_move_vertex(EMoveType type, bool internal_only)
 
     //push id of the move to time update
     TimeMachine& machine = m_time_processor.machines.front();
-    machine.blocks.back().moves.push_back(m_result.moves.size() - 1);
+    // note: machine.blocks can be empty if called from process_toolchange (or other not-G1 G2 G3 gcode)
+    if (!machine.blocks.empty()) {
+        machine.blocks.back().moves.push_back(m_result.moves.size() - 1);
+    }
 
     // stores stop time placeholders for later use
     if (type == EMoveType::Color_change || type == EMoveType::Pause_Print) {
