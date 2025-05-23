@@ -57,7 +57,7 @@ void CalibrationAbstractDialog::create(boost::filesystem::path html_path, std::s
     wxColour background_color("#" + color_background);
 
     // Create a panel for the entire content
-    wxPanel* main_panel = new wxPanel(this, wxID_ANY);
+    wxPanel* main_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE);
     main_panel->SetBackgroundColour(background_color);
 
     // Create the sizer for the panel's content
