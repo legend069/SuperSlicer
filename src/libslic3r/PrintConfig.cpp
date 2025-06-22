@@ -2671,7 +2671,7 @@ void PrintConfigDef::init_fff_params()
                 "\nIf set to %, all accelerations will be reduced by that ratio."
                 "\nSet zero to disable acceleration control for first layer.");
     def->sidetext = L("mm/s² or %");
-    def->ratio_over = "depends";
+    def->ratio_over = "default_acceleration";
     def->min = 0;
     def->max_literal = { -200, false };
     def->mode = comExpert | comPrusa;
